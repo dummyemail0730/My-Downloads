@@ -13,18 +13,6 @@ const getIcon = (category: string) => {
 export default function ToolsView() {
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-black grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50/50 shrink-0">
-        <div className="flex flex-col justify-center">
-          <h3 className="text-xl font-black uppercase tracking-tighter mb-1">Technical Toolkit</h3>
-          <p className="text-[10px] opacity-60 font-bold uppercase tracking-tight">
-            Modular scripts, internal utilities, and experimental libraries.
-          </p>
-        </div>
-        <div className="flex items-center md:justify-end gap-2 text-[9px] font-mono uppercase tracking-widest opacity-40 italic">
-          [System_Init // Core_Lib_V4]
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-black">
         {TOOLS.map((tool, idx) => (
           <motion.div

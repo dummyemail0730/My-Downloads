@@ -5,6 +5,7 @@ import SoftwareView from './components/SoftwareView';
 import MusicView from './components/MusicView';
 import ISOView from './components/ISOView';
 import ToolsView from './components/ToolsView';
+import ShadowProject from './components/ShadowProject';
 
 const TABS = [
   { id: 'SOFTWARE', label: '01 Software' },
@@ -15,6 +16,7 @@ const TABS = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('SOFTWARE');
+  const [showArchive, setShowArchive] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
 
   useEffect(() => {
@@ -39,15 +41,28 @@ export default function App() {
     }
   };
 
+  if (!showArchive) {
+    return (
+      <div className="h-screen w-full bg-black overflow-hidden flex items-center justify-center p-0 md:p-8">
+        <div className="w-full h-full max-w-7xl bg-white border-[12px] md:border-[16px] border-black overflow-hidden relative shadow-2xl">
+          <ShadowProject onEnter={() => setShowArchive(true)} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen w-full flex flex-col bg-bg-primary text-text-main overflow-hidden relative">
         
         {/* Header Section */}
         <header className="h-24 border-b border-black flex items-center justify-between px-8 bg-white shrink-0 pointer-events-none sm:pointer-events-auto">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-black flex items-center justify-center">
+            <button 
+              onClick={() => setShowArchive(false)}
+              className="w-10 h-10 bg-black flex items-center justify-center cursor-pointer hover:bg-gray-800 transition-colors pointer-events-auto"
+            >
               <span className="text-white font-black text-xl">A</span>
-            </div>
+            </button>
             <div>
               <h1 className="text-xl font-black uppercase tracking-tighter leading-none">Archive Repository</h1>
               <p className="text-[10px] uppercase tracking-widest opacity-60">Design & Development / 2026 Edition</p>
@@ -66,6 +81,7 @@ export default function App() {
             activeTab={activeTab} 
             setActiveTab={setActiveTab} 
             tabs={TABS} 
+            onHomeClick={() => setShowArchive(false)}
           />
 
           {/* Content Area */}

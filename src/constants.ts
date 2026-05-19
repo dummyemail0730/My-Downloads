@@ -9,7 +9,7 @@ export const PROJECTS: Project[] = [
   },
   {
     id: '2',
-    title: 'Flux UI Kit',
+    title: 'USB All in 1 tool kit',
     description: 'A minimalist design system component library for enterprise dashboard applications.',
     tags: ['React', 'Tailwind', 'Design Systems'],
   },
