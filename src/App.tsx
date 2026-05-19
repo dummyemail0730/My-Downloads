@@ -3,21 +3,28 @@ import { motion, AnimatePresence } from 'motion/react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
 import MusicView from './components/MusicView';
-import ISOView from './components/ISOView';
+import PhotosView from './components/PhotosView';
 import ToolsView from './components/ToolsView';
 import ShadowProject from './components/ShadowProject';
 
 const TABS = [
   { id: 'SOFTWARE', label: '01 Software' },
   { id: 'MUSIC', label: '02 Music' },
-  { id: 'ISO', label: '03 Photography' },
+  { id: 'PHOTOS', label: '03 Photos' },
   { id: 'TOOLS', label: '04 Dev Tools' }
 ];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('SOFTWARE');
   const [showArchive, setShowArchive] = useState(false);
+  const [introPlayed, setIntroPlayed] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
+
+  useEffect(() => {
+    if (showArchive) {
+      setIntroPlayed(true);
+    }
+  }, [showArchive]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -32,8 +39,8 @@ export default function App() {
         return <SoftwareView />;
       case 'MUSIC':
         return <MusicView />;
-      case 'ISO':
-        return <ISOView />;
+      case 'PHOTOS':
+        return <PhotosView />;
       case 'TOOLS':
         return <ToolsView />;
       default:
@@ -45,7 +52,10 @@ export default function App() {
     return (
       <div className="h-screen w-full bg-black overflow-hidden flex items-center justify-center p-0 md:p-8">
         <div className="w-full h-full max-w-7xl bg-white border-[12px] md:border-[16px] border-black overflow-hidden relative shadow-2xl">
-          <ShadowProject onEnter={() => setShowArchive(true)} />
+          <ShadowProject 
+            onEnter={() => setShowArchive(true)} 
+            hasPlayed={introPlayed}
+          />
         </div>
       </div>
     );
@@ -53,9 +63,19 @@ export default function App() {
 
   return (
     <div className="h-screen w-full flex flex-col bg-bg-primary text-text-main overflow-hidden relative">
+        {/* Ambient Background Image */}
+        <div className="absolute inset-0 z-0 opacity-[0.07] pointer-events-none">
+          <img 
+            src="/src/assets/images/shadow_background_1779198051469.png" 
+            alt="" 
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+        </div>
         
-        {/* Header Section */}
-        <header className="h-24 border-b border-black flex items-center justify-between px-8 bg-white shrink-0 pointer-events-none sm:pointer-events-auto">
+        <div className="flex-1 flex flex-col overflow-hidden relative z-10">
+          {/* Header Section */}
+          <header className="h-24 border-b border-black flex items-center justify-between px-8 bg-white/90 backdrop-blur-sm shrink-0 pointer-events-none sm:pointer-events-auto">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setShowArchive(false)}
@@ -126,6 +146,7 @@ export default function App() {
             <a href="#" className="hidden sm:inline hover:text-gray-400 transition-colors">MAIL://HELO@ARCHIVE</a>
           </div>
         </footer>
+      </div>
     </div>
   );
 }

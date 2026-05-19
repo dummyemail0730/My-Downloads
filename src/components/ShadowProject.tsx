@@ -1,15 +1,27 @@
 import { motion } from 'motion/react';
 import { ChevronRight } from 'lucide-react';
 
-export default function ShadowProject({ onEnter }: { onEnter: () => void }) {
+export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => void; hasPlayed?: boolean }) {
+  const skip = hasPlayed;
+
   return (
-    <div className="h-full flex flex-col p-8 md:p-12 bg-white">
-      <div className="flex-1 flex flex-col justify-center max-w-4xl">
+    <div className="h-full flex flex-col p-8 md:p-12 bg-white relative overflow-hidden">
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0 opacity-25 pointer-events-none">
+        <img 
+          src="/src/assets/images/shadow_background_1779198051469.png" 
+          alt="Background" 
+          className="w-full h-full object-cover"
+          referrerPolicy="no-referrer"
+        />
+      </div>
+
+      <div className="flex-1 flex flex-col justify-center max-w-4xl relative z-10">
         <div>
           <motion.h2 
-            initial={{ opacity: 0, y: -100 }}
+            initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: -100 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ 
+            transition={skip ? { duration: 0 } : { 
               type: "spring",
               stiffness: 300,
               damping: 12,
@@ -22,9 +34,9 @@ export default function ShadowProject({ onEnter }: { onEnter: () => void }) {
           </motion.h2>
 
           <motion.div 
-            initial={{ opacity: 0, x: -100 }}
+            initial={skip ? { opacity: 1, x: 0 } : { opacity: 0, x: -100 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ 
+            transition={skip ? { duration: 0 } : { 
               duration: 0.8,
               delay: 0.8,
               ease: "easeOut"
@@ -35,25 +47,26 @@ export default function ShadowProject({ onEnter }: { onEnter: () => void }) {
           </motion.div>
 
           <motion.div 
-            initial="hidden"
+            initial={skip ? "visible" : "hidden"}
             animate="visible"
             variants={{
               visible: {
                 transition: {
-                  staggerChildren: 0.04,
-                  delayChildren: 1.4
+                  staggerChildren: skip ? 0 : 0.04,
+                  delayChildren: skip ? 0 : 1.4
                 }
               }
             }}
             className="text-lg md:text-xl font-bold uppercase tracking-tight text-gray-400 max-w-2xl leading-tight mb-8"
           >
-            {"A systematic exploration of digital boundaries. This repository exists to document the intersection of minimalist design and high-performance computing.".split(" ").map((word, i) => (
+            {"As an aspiring and dedicated PC technician, I am committed to getting systems running at their absolute best. I have the diagnostic tools and technical toolkits ready to troubleshoot the issue. To ensure a complete setup, I also provide access to a curated selection of essential software and utility files completely free of charge.".split(" ").map((word, i) => (
               <motion.span
                 key={i}
                 variants={{
                   hidden: { opacity: 0, y: 5 },
                   visible: { opacity: 1, y: 0 }
                 }}
+                transition={skip ? { duration: 0 } : undefined}
                 className="inline-block mr-[0.3em]"
               >
                 {word}
@@ -62,9 +75,9 @@ export default function ShadowProject({ onEnter }: { onEnter: () => void }) {
           </motion.div>
 
           <motion.button 
-            initial={{ opacity: 0, y: 20 }}
+            initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 2.8 }}
+            transition={skip ? { duration: 0 } : { delay: 2.8 }}
             onClick={onEnter}
             className="group flex items-center gap-4 px-8 py-3 bg-black text-white font-black uppercase tracking-widest text-xs hover:bg-gray-900 transition-colors"
           >

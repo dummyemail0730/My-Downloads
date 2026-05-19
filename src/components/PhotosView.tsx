@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { PHOTOS } from '../constants';
 import { Camera, MapPin } from 'lucide-react';
 
-export default function ISOView() {
+export default function PhotosView() {
   return (
     <div className="h-full border-b border-black grid grid-cols-2 lg:grid-cols-3">
       {PHOTOS.map((photo, idx) => (

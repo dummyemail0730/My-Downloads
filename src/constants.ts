@@ -9,7 +9,7 @@ export const PROJECTS: Project[] = [
   },
   {
     id: '2',
-    title: 'USB All in 1 tool kit',
+    title: 'G.S W10 ISO',
     description: 'A minimalist design system component library for enterprise dashboard applications.',
     tags: ['React', 'Tailwind', 'Design Systems'],
   },
