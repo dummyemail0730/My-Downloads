@@ -3,7 +3,7 @@ import { Project, Track, Photo, Tool } from './types';
 export const PROJECTS: Project[] = [
   {
     id: '1',
-    title: 'Prism Engine',
+    title: 'G.S. W11 ISO',
     description: 'A high-performance real-time raytracing renderer for distributed systems using Rust and Vulkan.',
     tags: ['Rust', 'Vulkan', 'Graphics'],
   },
@@ -58,8 +58,8 @@ export const PHOTOS: Photo[] = [
 ];
 
 export const TOOLS: Tool[] = [
-  { id: '1', name: 'Logify', version: '2.4.0', description: 'Lightweight logging utility for Node.js microservices.', category: 'DevOps' },
-  { id: '2', name: 'Clipr', version: '1.2.1', description: 'Advanced clipboard manager for creative professionals.', category: 'Utility' },
-  { id: '3', name: 'Format-X', version: '0.8.5', description: 'Speedy JSON/XML schema validator and formatter.', category: 'Data' },
-  { id: '4', name: 'Shell-Sync', version: '1.0.2', description: 'Cross-platform environment variable synchronization tool.', category: 'DevOps' },
+  { id: '1', name: 'TECHNICAL TOOLKIT', version: '2.4.0', description: 'modified version of Windows 11 designed to be lightweight', category: 'W10 & W11' },
+  { id: '2', name: '3DP CHIP', version: '1.2.1', description: 'driver utility', category: 'W10 & OLDER' },
+  { id: '3', name: 'DDU', version: '0.8.5', description: 'Display Driver Uninstaller', category: 'W11, W10, W8, W7,' },
+  { id: '4', name: 'CPU-Z', version: '1.0.2', description: 'system profiling and monitoring utility', category: 'W11, W10, W8,W7, Vista, & XP' },
 ];

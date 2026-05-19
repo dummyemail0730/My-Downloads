@@ -11,7 +11,7 @@ export default function MusicView() {
             <Play size={20} fill="currentColor" />
           </div>
           <div>
-            <h3 className="text-lg font-black uppercase tracking-tight">Audio Fragments</h3>
+            <h3 className="text-lg font-black uppercase tracking-tight">AI MUSIC</h3>
             <p className="text-[9px] uppercase tracking-widest opacity-60 font-bold">Sonic explorations archive</p>
           </div>
         </div>
