@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { ChevronRight } from 'lucide-react';
+import shadowBg from '../assets/images/shadow_background_1779198051469.png';
 
 export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => void; hasPlayed?: boolean }) {
   const skip = hasPlayed;
@@ -9,7 +10,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
       {/* Background Image */}
       <div className="absolute inset-0 z-0 opacity-25 pointer-events-none">
         <img 
-          src="/src/assets/images/shadow_background_1779198051469.png" 
+          src={shadowBg} 
           alt="Background" 
           className="w-full h-full object-cover"
           referrerPolicy="no-referrer"

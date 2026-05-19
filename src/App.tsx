@@ -6,6 +6,7 @@ import MusicView from './components/MusicView';
 import PhotosView from './components/PhotosView';
 import ToolsView from './components/ToolsView';
 import ShadowProject from './components/ShadowProject';
+import shadowBg from './assets/images/shadow_background_1779198051469.png';
 
 const TABS = [
   { id: 'SOFTWARE', label: '01 Software' },
@@ -66,7 +67,7 @@ export default function App() {
         {/* Ambient Background Image */}
         <div className="absolute inset-0 z-0 opacity-[0.07] pointer-events-none">
           <img 
-            src="/src/assets/images/shadow_background_1779198051469.png" 
+            src={shadowBg} 
             alt="" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
