@@ -1,20 +1,45 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Geometric Balance Portfolio
 
-# Run and deploy your AI Studio app
+A minimalist, high-contrast digital archive built with React, TypeScript, and Tailwind CSS. This portfolio features a brutalist "Geometric Balance" design, showcasing professional work across software engineering, music production, photography, and technical tooling.
 
-This contains everything you need to run your app locally.
+## 🚀 Features
 
-View your app in AI Studio: https://ai.studio/apps/4c46b102-5ec1-4f13-b6a7-8d1159b686ab
+- **Brutalist Aesthetic**: Heavy borders, monochromatic palette, and bold typography.
+- **Multi-disciplinary Archive**: Dedicated views for Software, Music, Photography (ISO), and Tools.
+- **Dynamic Sidebar**: Responsive navigation with fluid state transitions.
+- **Responsive Layout**: Optimized for both desktop monitors and mobile devices.
+- **Modern Tech Stack**: Built with React 19, Motion, and Tailwind CSS 4.
 
-## Run Locally
+## 🛠️ Tech Stack
 
-**Prerequisites:**  Node.js
+- **Framework**: [React 19](https://react.dev/)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
+- **Animations**: [Motion](https://motion.dev/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
 
+## 📂 Project Structure
+
+- `src/components/`: Modular UI components (Sidebar, View-specific layouts).
+- `src/constants.ts`: Centralized project data and archive records.
+- `src/types.ts`: TypeScript interfaces for data consistency.
+- `src/index.css`: Custom brutalist theme configuration.
+
+## 🛠️ Local Development
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+   ```bash
+   npm install
+   ```
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+3. Build for production:
+   ```bash
+   npm run build
+   ```
+
+## 📄 License
+
+MIT © 2026 Admin Archive
