@@ -197,6 +197,47 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
+  // Professional-grade Security Layer: disable context menu & dev tools shortcuts
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 1. Prevent F12
+      if (e.key === 'F12') {
+        e.preventDefault();
+        return false;
+      }
+      
+      // 2. Prevent Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+Shift+K (Windows/Linux)
+      if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'K'].includes(e.key.toUpperCase())) {
+        e.preventDefault();
+        return false;
+      }
+
+      // 3. Prevent Cmd+Option+I, Cmd+Option+J, Cmd+Option+C, Cmd+Option+K (Mac) / altKey + metaKey
+      if (e.metaKey && e.altKey && ['I', 'J', 'C', 'K'].includes(e.key.toUpperCase())) {
+        e.preventDefault();
+        return false;
+      }
+
+      // 4. Prevent Ctrl+U / Cmd+U (View Source Code)
+      if ((e.ctrlKey || e.metaKey) && e.key.toUpperCase() === 'U') {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   const renderContent = () => {
     switch (activeTab) {
       case 'SOFTWARE':
