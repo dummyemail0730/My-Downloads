@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import shadowLogoMain from '../assets/images/shadow_logo_main_1779199773763.png';
 
@@ -21,6 +21,24 @@ const BOOT_MESSAGES = [
 export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const [progress, setProgress] = useState(0);
   const [activeMessage, setActiveMessage] = useState(BOOT_MESSAGES[0].text);
+
+  const smokeParticles = useMemo(() => {
+    return Array.from({ length: 14 }).map((_, i) => ({
+      id: i,
+      size: Math.random() * 250 + 180, // 180px to 430px
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      tx: (Math.random() - 0.5) * 120, // travel range X
+      ty: -Math.random() * 150 - 50,    // travel range Y (always floating upwards)
+      duration: Math.random() * 12 + 18, // 18s to 30s
+      delay: Math.random() * -25, // pre-warmed so there's smoke already visible
+      color: i % 3 === 0 
+        ? 'rgba(168, 85, 247, 0.09)' // Purple smoky wisp
+        : i % 3 === 1
+        ? 'rgba(99, 102, 241, 0.07)'  // Indigo smoky wisp
+        : 'rgba(255, 255, 255, 0.05)' // White/Grey smoky wisp
+    }));
+  }, []);
 
   useEffect(() => {
     // Increment progress to 100% over precisely 10 seconds (10000 ms)
@@ -59,9 +77,52 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 select-none overflow-hidden font-mono text-white">
+      {/* Dynamic Animated Smoke Layer */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-80" style={{ filter: 'url(#shadow-smoke-filter)' }}>
+        {smokeParticles.map((p) => (
+          <motion.div
+            key={p.id}
+            className="absolute rounded-full"
+            style={{
+              width: p.size,
+              height: p.size,
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              backgroundColor: p.color,
+              filter: 'blur(55px)',
+              mixBlendMode: 'screen'
+            }}
+            animate={{
+              x: [0, p.tx, p.tx * 0.5, 0],
+              y: [0, p.ty, p.ty * 0.4, 0],
+              scale: [1, 1.25, 0.85, 1],
+              opacity: [0.35, 0.85, 0.45, 0.35],
+            }}
+            transition={{
+              duration: p.duration,
+              delay: p.delay,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Hardware-accelerated SVG Turbulence Smoke Filter */}
+      <svg className="fixed w-0 h-0 pointer-events-none opacity-0" aria-hidden="true">
+        <defs>
+          <filter id="shadow-smoke-filter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.013" numOctaves="4" result="noise">
+              <animate attributeName="baseFrequency" dur="22s" values="0.013;0.019;0.010;0.013" repeatCount="indefinite" />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="55" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
+
       {/* Background Radial Shadows and Grid Overlay */}
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,rgba(56,15,90,0.15)_0%,rgba(0,0,0,1)_85%)] pointer-events-none" />
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.005)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.005)_1px,transparent_1px)] bg-[size:30px_30px] opacity-40 pointer-events-none" />
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,rgba(56,15,90,0.1)_0%,rgba(0,0,0,0.95)_80%)] pointer-events-none" />
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.003)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.003)_1px,transparent_1px)] bg-[size:30px_30px] opacity-40 pointer-events-none" />
       
       {/* Laser light scan effect sweeping across background */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-20">

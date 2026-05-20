@@ -166,13 +166,13 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
     const directDlLink = fileId && type === 'FILE' ? `https://docs.google.com/uc?export=download&id=${fileId}` : '';
 
     return (
-      <div className="mt-3.5 p-4 bg-blue-50/70 border border-[#000080]/15 rounded-2xl text-left select-none animate-fadeIn transition-all">
+      <div className="mt-3.5 p-4 bg-neutral-50 border border-neutral-200 rounded-2xl text-left select-none animate-fadeIn transition-all">
         <div className="flex items-start gap-3">
-          <div className="px-1.5 py-0.5 bg-[#000080]/10 text-[#000080] font-mono text-[8px] font-black rounded uppercase tracking-wider mt-0.5 shrink-0">
+          <div className="px-1.5 py-0.5 bg-black text-white font-mono text-[8px] font-black rounded uppercase tracking-wider mt-0.5 shrink-0">
             DRIVE ASSIST
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-[#000080] font-extrabold uppercase text-[10px] tracking-wide block mb-0.5">
+            <span className="text-black font-extrabold uppercase text-[10px] tracking-wide block mb-0.5">
               Google Drive Link Diagnostic
             </span>
             <p className="text-[9px] uppercase tracking-wider text-neutral-600 leading-none font-mono">
@@ -180,12 +180,12 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
             </p>
             
             {/* Checklist items */}
-            <div className="mt-3 space-y-2 border-t border-[#000080]/10 pt-2.5 font-mono text-[9px] uppercase tracking-wider text-[#555a64]">
+            <div className="mt-3 space-y-2 border-t border-neutral-200 pt-2.5 font-mono text-[9px] uppercase tracking-wider text-[#555a64]">
               {/* Permission check */}
               <div className="flex items-start gap-1.5 text-neutral-700">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#000080] shrink-0 mt-1" />
+                <span className="w-1.5 h-1.5 rounded-full bg-black shrink-0 mt-1" />
                 <p className="leading-tight">
-                  🔑 <strong>Is Access Public?</strong> Google Drive files are strictly restricted by default. Ensure sharing is switched to <strong className="text-[#000080] font-bold">"Anyone with the link"</strong>!
+                  🔑 <strong>Is Access Public?</strong> Google Drive files are strictly restricted by default. Ensure sharing is switched to <strong className="text-black font-bold">"Anyone with the link"</strong>!
                 </p>
               </div>
               
@@ -210,13 +210,13 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
 
               {/* Direct Download Converter Button */}
               {directDlLink && setUrlValue && trimmed !== directDlLink && (
-                <div className="mt-3 pt-1 border-t border-[#000080]/5">
-                  <button
+                <div className="mt-3 pt-1 border-t border-neutral-200">
+                   <button
                     type="button"
                     onClick={() => {
                       setUrlValue(directDlLink);
                     }}
-                    className="w-full text-center py-1.5 bg-white hover:bg-[#000080]/5 border border-[#000080]/20 hover:border-[#000080]/50 text-[#000080] font-black uppercase text-[8px] tracking-widest rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm font-mono active:scale-[0.98]"
+                    className="w-full text-center py-1.5 bg-white hover:bg-neutral-100 border border-neutral-300 hover:border-neutral-500 text-black font-black uppercase text-[8px] tracking-widest rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm font-mono active:scale-[0.98]"
                   >
                     <Sparkles size={9} className="animate-pulse" />
                     CONVERT TO DIRECT DOWNLOAD SYSTEM LINK ⚡
@@ -234,7 +234,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                 href={trimmed}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#000080] hover:bg-neutral-900 text-white hover:text-green-300 font-bold uppercase text-[8px] tracking-widest rounded-lg cursor-pointer font-mono shadow-sm transition-colors"
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-black hover:bg-neutral-900 text-white hover:text-neutral-200 font-bold uppercase text-[8px] tracking-widest rounded-lg cursor-pointer font-mono shadow-sm transition-colors"
               >
                 <ExternalLink size={9} />
                 <span>Test Link Open (Bypass Sandbox popup block)</span>
@@ -513,13 +513,13 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
   };
 
   return (
-    <div className="h-full flex flex-col p-8 md:p-12 bg-white relative overflow-hidden">
+    <div className="h-full flex flex-col p-8 md:p-12 bg-black text-white relative overflow-hidden">
       {/* Background Image */}
-      <div className="absolute inset-0 z-0 opacity-25 pointer-events-none">
+      <div className="absolute inset-0 z-0 opacity-15 pointer-events-none">
         <img 
           src={shadowBg} 
           alt="Background" 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover filter brightness-[0.4]"
           referrerPolicy="no-referrer"
         />
       </div>
@@ -542,11 +542,11 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
           className={`flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none ${
             isAuthenticated 
               ? 'bg-neutral-900 border-emerald-500/50 text-emerald-400 hover:bg-neutral-850 hover:border-emerald-400' 
-              : 'bg-black text-white hover:bg-neutral-800 border-black'
+              : 'bg-neutral-900 text-white hover:bg-neutral-850 border-neutral-800'
           }`}
           id="google-drive-link-btn"
         >
-          {isAuthenticated ? <Unlock size={12} className="text-emerald-400 animate-pulse" /> : <Lock size={12} className="text-neutral-400" />}
+          {isAuthenticated ? <Unlock size={12} className="text-emerald-400 animate-pulse" /> : <Lock size={12} className="text-neutral-450" />}
           <span>Admin Console</span>
           <ExternalLink size={10} className="opacity-60" />
         </button>
@@ -568,26 +568,26 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
       {/* Secure Passcode Decryption Modal */}
       <AnimatePresence>
         {showPasswordModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-white border-2 border-neutral-200 w-full max-w-sm rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-neutral-900 font-mono"
+              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-sm rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
             >
               {/* Grid overlay decoration */}
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-30" />
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-30" />
               <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-red-500/20 rounded-tl-lg pointer-events-none" />
               <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-red-500/20 rounded-tr-lg pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-red-500/20 rounded-bl-lg pointer-events-none" />
               <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-red-500/20 rounded-br-lg pointer-events-none" />
 
               {/* Close Button UI */}
-              <div className="flex justify-between items-center mb-6 pb-3 border-b border-neutral-100 relative z-10">
+              <div className="flex justify-between items-center mb-6 pb-3 border-b border-neutral-900 relative z-10">
                 <div className="flex items-center gap-2">
                   <Lock className="text-red-500 w-3.5 h-3.5 animate-pulse" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-600">Access Restricted</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-500">Access Restricted</span>
                 </div>
                 <button
                   type="button"
@@ -596,7 +596,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                     setPasswordError('');
                     setPasswordInput('');
                   }}
-                  className="p-1 hover:bg-neutral-100 text-neutral-400 hover:text-black rounded-md transition-colors cursor-pointer"
+                  className="p-1 hover:bg-neutral-900 text-neutral-400 hover:text-white rounded-md transition-colors cursor-pointer"
                   title="Close secure prompt"
                 >
                   <X size={16} />
@@ -605,11 +605,11 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
 
               {/* Icon & Message */}
               <div className="text-center mb-6 relative z-10">
-                <div className="w-12 h-12 rounded-full bg-red-50 border border-red-100 flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-full bg-red-950/20 border border-red-900/40 flex items-center justify-center mx-auto mb-3">
                   <ShieldAlert className="text-red-500 w-6 h-6" />
                 </div>
-                <h4 className="text-xs uppercase tracking-[0.2em] font-black text-neutral-800 mb-1">Decryption Key Required</h4>
-                <p className="text-[9px] uppercase tracking-wider text-neutral-500 leading-relaxed">
+                <h4 className="text-xs uppercase tracking-[0.2em] font-black text-white mb-1">Decryption Key Required</h4>
+                <p className="text-[9px] uppercase tracking-wider text-neutral-400 leading-relaxed">
                   Enter admin passcode to authorize tactical cog-uplink connection.
                 </p>
               </div>
@@ -640,7 +640,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                       if (passwordError) setPasswordError('');
                     }}
                     placeholder="ENTER PASSCODE"
-                    className="w-full text-center rounded-xl bg-neutral-50 border border-neutral-200 p-3 text-black font-mono text-xs focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-all placeholder:text-neutral-300 font-semibold uppercase tracking-[0.15em]"
+                    className="w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em]"
                     autoFocus
                     required
                   />
@@ -657,7 +657,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
 
                 <button 
                   type="submit"
-                  className="w-full py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black uppercase tracking-[0.2em] text-[9px] rounded-xl transition-all cursor-pointer select-none active:scale-95"
+                  className="w-full py-2.5 bg-red-950/40 hover:bg-red-900/50 border border-red-900/40 text-red-400 font-black uppercase tracking-[0.2em] text-[9px] rounded-xl transition-all cursor-pointer select-none active:scale-95"
                 >
                   DECRYPT & AUTHENTICATE
                 </button>
@@ -670,13 +670,13 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
       {/* High-Fidelity Tactical Uplink Console (Original, cybernetic double-column editor) */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto w-full">
             <motion.div 
               initial={{ opacity: 0, scale: 0.96, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 30 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-white border-2 border-neutral-200 w-full max-w-xl rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-neutral-950 font-mono"
+              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-xl rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
             >
               {/* Interactive Holographic style overrides */}
               <style dangerouslySetInnerHTML={{__html: `
@@ -700,11 +700,11 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
               `}} />
 
               {/* Futuristic Grid Overlay decoration */}
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.015)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-30" />
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-900/15 rounded-tl-xl pointer-events-none" />
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-900/15 rounded-tr-xl pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-900/15 rounded-bl-xl pointer-events-none" />
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-900/15 rounded-br-xl pointer-events-none" />
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-30" />
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-purple-500/30 rounded-tl-xl pointer-events-none" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-purple-500/30 rounded-tr-xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-purple-500/30 rounded-bl-xl pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-500/30 rounded-br-xl pointer-events-none" />
 
               {/* Success Toast Overlay inside Modal */}
               <AnimatePresence>
@@ -713,48 +713,48 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-x-0 inset-y-0 bg-white/98 z-50 flex flex-col items-center justify-center text-center p-6 gap-4"
+                    className="absolute inset-x-0 inset-y-0 bg-neutral-950/98 z-50 flex flex-col items-center justify-center text-center p-6 gap-4"
                   >
                     <div className="relative">
-                      <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
-                      <CheckCircle className="text-[#000080] w-20 h-20 animate-bounce relative z-10" />
+                      <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl animate-pulse" />
+                      <CheckCircle className="text-purple-500 w-20 h-20 animate-bounce relative z-10" />
                     </div>
                     <div>
-                      <h3 className="text-[#000080] font-black uppercase text-lg tracking-[0.4em] mb-1">{successStatus}</h3>
-                      <p className="text-neutral-500 font-mono text-[10px] uppercase tracking-widest max-w-md mx-auto">
+                      <h3 className="text-purple-400 font-black uppercase text-lg tracking-[0.4em] mb-1">{successStatus}</h3>
+                      <p className="text-neutral-455 font-mono text-[10px] uppercase tracking-widest max-w-md mx-auto">
                         Data packets synchronized // Virtual memory addresses mapped successfully
                       </p>
                     </div>
-                    <div className="h-[2px] w-32 bg-neutral-100 rounded-full overflow-hidden mt-2">
-                      <div className="h-full bg-[#000080] w-full animate-infinite-loading" />
+                    <div className="h-[2px] w-32 bg-neutral-900 rounded-full overflow-hidden mt-2">
+                      <div className="h-full bg-purple-500 w-full animate-infinite-loading" />
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
               {/* Header Interface */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-neutral-100 gap-4 relative z-10">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-neutral-900 gap-4 relative z-10">
                 <div className="flex items-center gap-3">
-                  <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 border border-blue-900/10">
-                    <Activity size={14} className="text-[#000080] animate-pulse" />
+                  <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-purple-950/30 border border-purple-500/20">
+                    <Activity size={14} className="text-purple-400 animate-pulse" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-[#000080] rounded-full animate-ping" />
-                      <span className="text-xs uppercase tracking-[0.25em] text-[#000080] font-black">TACTICAL COG-UPLINK</span>
+                      <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-ping" />
+                      <span className="text-xs uppercase tracking-[0.25em] text-purple-400 font-black">TACTICAL COG-UPLINK</span>
                     </div>
-                    <p className="text-[9px] uppercase tracking-widest text-[#555a64] mt-0.5 animate-pulse">CONSOLE TERMINAL v2.5 // SECURITY: RESTRICTED</p>
+                    <p className="text-[9px] uppercase tracking-widest text-neutral-500 mt-0.5 animate-pulse">CONSOLE TERMINAL v2.5 // SECURITY: RESTRICTED</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                  <div className="px-2.5 py-1 bg-neutral-50 border border-neutral-200 rounded-md text-[9px] uppercase tracking-wider text-neutral-600 flex items-center gap-1.5 font-bold">
+                  <div className="px-2.5 py-1 bg-neutral-900 border border-neutral-800 rounded-md text-[9px] uppercase tracking-wider text-neutral-300 flex items-center gap-1.5 font-bold">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     LINK: COMPATIBLE
                   </div>
                   <button 
                     onClick={() => setIsModalOpen(false)}
-                    className="p-1.5 hover:bg-neutral-100 text-neutral-400 hover:text-black rounded-lg transition-colors cursor-pointer border border-transparent hover:border-neutral-200"
+                    className="p-1.5 hover:bg-neutral-900 text-neutral-455 hover:text-white rounded-lg transition-colors cursor-pointer border border-transparent hover:border-neutral-800"
                     title="Close console uplink"
                   >
                     <X size={18} />
@@ -763,14 +763,14 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
               </div>
 
               {/* Tabs Switcher */}
-              <div className="flex border-b border-neutral-100 mb-5 relative z-10">
+              <div className="flex border-b border-neutral-900 mb-5 relative z-10">
                 <button
                   type="button"
                   onClick={() => setActiveTab('uplink')}
                   className={`pb-2.5 px-3 font-mono text-[10px] uppercase tracking-[0.2em] font-bold border-b-2 transition-all cursor-pointer ${
                     activeTab === 'uplink'
-                      ? 'border-[#000080] text-[#000080] font-extrabold'
-                      : 'border-transparent text-neutral-400 hover:text-neutral-600'
+                      ? 'border-purple-500 text-purple-400 font-extrabold'
+                      : 'border-transparent text-neutral-500 hover:text-neutral-300'
                   }`}
                 >
                   [01] LINK UPLINK PROTOCOL
@@ -780,13 +780,13 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                   onClick={() => setActiveTab('linked')}
                   className={`pb-2.5 px-3 font-mono text-[10px] uppercase tracking-[0.2em] font-bold border-b-2 transition-all cursor-pointer relative ${
                     activeTab === 'linked'
-                      ? 'border-[#000080] text-[#000080] font-extrabold'
-                      : 'border-transparent text-neutral-400 hover:text-neutral-600'
+                      ? 'border-purple-500 text-purple-400 font-extrabold'
+                      : 'border-transparent text-neutral-500 hover:text-neutral-300'
                   }`}
                 >
                   [02] VIEW LINKED DIRECTORY
                   {getLinkedItems().length > 0 && (
-                    <span className="ml-1.5 px-1.5 py-0.5 bg-[#000080] text-white font-black text-[9px] rounded-full">
+                    <span className="ml-1.5 px-1.5 py-0.5 bg-purple-600 text-white font-black text-[9px] rounded-full">
                       {getLinkedItems().length}
                     </span>
                   )}
@@ -795,11 +795,11 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
 
               {activeTab === 'uplink' ? (
                 /* Configuration Terminal Form (Single Column Original UI) */
-                <form onSubmit={handleUpdateProtocol} className="space-y-4 relative z-10">
+                <form onSubmit={handleUpdateProtocol} className="space-y-4 relative z-10 w-full text-left">
                   
                   {/* PROGRAM ID */}
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#000080] mb-1.5 block">
+                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-purple-400 mb-1.5 block">
                       [01] PROGRAM OR GAME ID
                     </label>
                     <input 
@@ -807,7 +807,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                       value={gameTitle}
                       onChange={(e) => setGameTitle(e.target.value)}
                       placeholder="e.g. UTORRENT"
-                      className="w-full rounded-xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 p-3 text-black font-mono text-xs focus:border-[#000080] focus:ring-1 focus:ring-[#000080]/15 outline-none uppercase transition-all placeholder:text-neutral-300 font-semibold"
+                      className="w-full rounded-xl bg-neutral-900 hover:bg-neutral-850 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/25 outline-none uppercase transition-all placeholder:text-neutral-700 font-semibold text-left"
                       required
                     />
                   </div>
@@ -815,29 +815,29 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                   {/* CATEGORY & PROTOCOL TYPE */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#000080] mb-1.5 block">
+                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-purple-400 mb-1.5 block">
                         [02] TARGET MEMORY CATEGORY
                       </label>
                       <div className="relative">
                         <select
                           value={category}
                           onChange={(e) => setCategory(e.target.value)}
-                          className="w-full rounded-xl bg-neutral-50 border border-neutral-200 p-3 pr-10 text-black font-mono text-xs focus:border-[#000080] outline-none transition-all appearance-none cursor-pointer hover:bg-neutral-100"
+                          className="w-full rounded-xl bg-neutral-900 border border-neutral-800 p-3 pr-10 text-white font-mono text-xs focus:border-purple-500 outline-none transition-all appearance-none cursor-pointer hover:bg-neutral-850 text-left"
                         >
-                          <option value="SOFTWARE">SOFTWARE DIRECTORY [01]</option>
-                          <option value="TOOLS">END-USER UTILITIES [04]</option>
+                          <option value="SOFTWARE" className="bg-neutral-950 text-white">SOFTWARE DIRECTORY [01]</option>
+                          <option value="TOOLS" className="bg-neutral-950 text-white">END-USER UTILITIES [04]</option>
                         </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-[#000080]">
-                          <ChevronRight size={13} className="rotate-90 text-[#000080]" />
+                        <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-purple-400">
+                          <ChevronRight size={13} className="rotate-90 text-purple-450" />
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#000080] mb-1.5 block">
+                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-purple-400 mb-1.5 block">
                         [03] PROTOCOL TYPE
                       </label>
-                      <div className="flex bg-neutral-50 border border-neutral-200 rounded-xl p-1 gap-1 h-[42px] items-center">
+                      <div className="flex bg-neutral-900 border border-neutral-800 rounded-xl p-1 gap-1 h-[42px] items-center">
                         {['GITHUB', 'FB', 'EXT'].map((opt) => (
                           <button
                             key={opt}
@@ -845,8 +845,8 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                             onClick={() => setLinkType(opt)}
                             className={`flex-1 text-center py-1.5 font-mono text-[9px] font-black uppercase tracking-widest rounded-lg transition-all select-none cursor-pointer ${
                               linkType === opt 
-                                ? 'bg-[#000080]/5 text-[#000080] border border-[#000080]/10 font-bold' 
-                                : 'text-neutral-400 hover:text-neutral-600'
+                                ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20 font-bold' 
+                                : 'text-neutral-500 hover:text-neutral-300'
                             }`}
                           >
                             {opt}
@@ -858,7 +858,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
 
                   {/* DESCRIPTION */}
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#000080] mb-1.5 block">
+                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-purple-400 mb-1.5 block">
                       [04] BINARY OR CONTEXT SHORT DESCRIPTION
                     </label>
                     <textarea 
@@ -866,14 +866,14 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Provide details about installer and system dependencies..."
                       rows={2}
-                      className="w-full rounded-xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 p-3 text-black font-mono text-xs focus:border-[#000080] focus:ring-1 focus:ring-[#000080]/15 outline-none transition-all resize-none placeholder:text-neutral-300"
+                      className="w-full rounded-xl bg-neutral-900 hover:bg-neutral-850 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/25 outline-none transition-all resize-none placeholder:text-neutral-700 text-left"
                       required
                     />
                   </div>
 
                   {/* FILE LINK */}
                   <div className="space-y-3">
-                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#000080] block">
+                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-purple-400 block">
                       [05] FILE LINK (DRIVE FILE / DOWNLOAD)
                     </label>
 
@@ -889,25 +889,25 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                               setGameFile(val);
                             }
                           }}
-                          className="w-full rounded-xl bg-neutral-50 border border-neutral-200 p-3 pr-10 text-black font-mono text-xs focus:border-[#000080] outline-none transition-all appearance-none cursor-pointer hover:bg-neutral-100 font-semibold uppercase"
+                          className="w-full rounded-xl bg-neutral-900 border border-neutral-800 p-3 pr-10 text-white font-mono text-xs focus:border-purple-500 outline-none transition-all appearance-none cursor-pointer hover:bg-neutral-850 font-semibold uppercase text-left"
                         >
                           {driveAccounts.map((account, index) => (
-                            <option key={index} value={account.url} className="text-black bg-white uppercase">
+                            <option key={index} value={account.url} className="text-white bg-neutral-950 uppercase">
                               {account.name}
                             </option>
                           ))}
-                          <option value="CUSTOM_URL" className="text-[#000080] bg-white font-black uppercase">
+                          <option value="CUSTOM_URL" className="text-purple-400 bg-neutral-950 font-black uppercase">
                             ⚙ [CUSTOM URL / MANUAL INPUT]
                           </option>
                         </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-[#000080]">
-                          <ChevronRight size={13} className="rotate-90 text-[#000080]" />
+                        <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-purple-400">
+                          <ChevronRight size={13} className="rotate-90 text-purple-450" />
                         </div>
                       </div>
 
                       {/* Display / edit input URL based on selection */}
                       <div className="relative flex items-center sm:col-span-7">
-                        <LinkIcon size={13} className="text-neutral-450 absolute left-3.5" />
+                        <LinkIcon size={13} className="text-neutral-555 absolute left-3.5" />
                         <input 
                           type="text" 
                           value={gameFile}
@@ -924,7 +924,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                             }
                           }}
                           placeholder="Enter your file destination URL (e.g. Google Drive link)"
-                          className="w-full rounded-xl border bg-white border-neutral-300 focus:border-[#000080]/90 placeholder:text-neutral-400 pl-10 pr-3 py-3 text-black font-mono text-xs outline-none transition-all font-semibold"
+                          className="w-full rounded-xl border bg-neutral-900 border-neutral-800 focus:border-purple-500 placeholder:text-neutral-700 pl-10 pr-3 py-3 text-white font-mono text-xs outline-none transition-all font-semibold text-left"
                           required
                         />
                       </div>
@@ -933,18 +933,18 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                   </div>
 
                   {/* Cancel / Sync Footer Controls */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-neutral-100 mt-6 gap-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-neutral-900 mt-6 gap-4 font-mono">
                     <button 
                       type="button"
                       onClick={handleAbortTransit}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-neutral-50 border border-neutral-200 hover:border-neutral-300 rounded-xl font-mono text-[10px] uppercase tracking-[0.15em] text-neutral-600 hover:text-black transition-all cursor-pointer text-center"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-xl font-mono text-[10px] uppercase tracking-[0.15em] text-neutral-400 hover:text-white transition-all cursor-pointer text-center"
                     >
                       ABORT TRANSIT
                     </button>
                     
                     <button 
                       type="submit"
-                      className="w-full sm:w-auto relative group flex items-center justify-center gap-2 px-6 py-2.5 bg-[#000080] hover:bg-blue-900 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer shadow-lg active:scale-95"
+                      className="w-full sm:w-auto relative group flex items-center justify-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-750 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer shadow-lg active:scale-95 text-center font-mono"
                     >
                       <Sparkles size={12} className="text-white group-hover:rotate-12 transition-transform" />
                       SYNC UPLINK PROTOCOL
@@ -955,12 +955,12 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
               ) : (
                 /* Linked Directory List */
                 <div className="space-y-4 relative z-10 flex flex-col h-[340px]">
-                  <div className="flex-1 overflow-y-auto pr-1 space-y-3 select-none">
+                  <div className="flex-1 overflow-y-auto pr-1 space-y-3 select-none font-mono">
                     {getLinkedItems().length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-200 bg-neutral-50 rounded-2xl">
-                        <LinkIcon className="text-neutral-300 w-10 h-10 mb-2" />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">No active links registered</span>
-                        <p className="text-[9px] uppercase tracking-wider text-neutral-500 mt-1 max-w-xs">
+                      <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-800 bg-neutral-900/40 rounded-2xl font-mono">
+                        <LinkIcon className="text-neutral-500 w-10 h-10 mb-2" />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 font-mono">No active links registered</span>
+                        <p className="text-[9px] uppercase tracking-wider text-neutral-400 mt-1 max-w-xs font-mono">
                           Uplink a software directory program or end-user utility to populate terminal memory.
                         </p>
                       </div>
@@ -968,97 +968,97 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                       getLinkedItems().map((item) => (
                         <div 
                           key={`${item.type}-${item.id}`}
-                          className="p-4 rounded-xl bg-neutral-50 border border-neutral-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-neutral-300 transition-all group"
+                          className="p-4 rounded-xl bg-neutral-900/40 border border-neutral-900 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-neutral-800 transition-all group"
                         >
-                          <div className="min-w-0 flex-1 w-full">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <div className="min-w-0 flex-1 w-full text-left">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap font-mono">
                               <span className={`text-[8px] font-bold font-mono px-1.5 py-0.5 rounded ${
                                 item.type === 'SOFTWARE' 
-                                  ? 'bg-amber-50 text-amber-700 border border-amber-200' 
-                                  : 'bg-blue-50 text-[#000080] border border-blue-200'
+                                  ? 'bg-amber-950/20 text-amber-400 border border-amber-900/30' 
+                                  : 'bg-purple-950/20 text-purple-400 border border-purple-900/30'
                               }`}>
                                 {item.type}
                               </span>
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-400">
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-500">
                                 {item.protocol}
                               </span>
-                              <h4 className="text-xs uppercase font-extrabold tracking-tight text-neutral-900 truncate max-w-[160px]">
+                              <h4 className="text-xs uppercase font-extrabold tracking-tight text-white truncate max-w-[160px]">
                                 {item.name}
                               </h4>
                             </div>
-                            <p className="text-[10px] text-neutral-500 truncate max-w-[340px] mb-1.5">
+                            <p className="text-[10px] text-neutral-400 truncate max-w-[340px] mb-1.5 font-mono">
                               {item.description}
                             </p>
                             
                             {editingItemId?.id === item.id && editingItemId?.type === item.type ? (
-                              <div className="mt-2 p-3 bg-neutral-100 rounded-xl border border-neutral-300 flex flex-col gap-2.5 w-full text-left">
+                              <div className="mt-2 p-3 bg-neutral-900 rounded-xl border border-neutral-800 flex flex-col gap-2.5 w-full text-left font-mono">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                   <div>
-                                    <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider block mb-0.5 font-mono">ITEM NAME / TITLE</label>
+                                    <label className="text-[8px] font-bold text-neutral-400 uppercase tracking-wider block mb-0.5 font-mono">ITEM NAME / TITLE</label>
                                     <input
                                       type="text"
                                       value={editNameValue}
                                       onChange={(e) => setEditNameValue(e.target.value)}
-                                      className="w-full bg-white border border-neutral-300 rounded-lg px-2 py-1 text-[10px] uppercase font-bold text-black outline-none focus:border-[#000080] font-mono"
+                                      className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-[10px] uppercase font-bold text-white outline-none focus:border-purple-500"
                                       placeholder="Name / Title"
                                       autoFocus
                                     />
                                   </div>
                                   <div>
-                                    <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider block mb-0.5 font-mono">TARGET MEMORY CATEGORY</label>
+                                    <label className="text-[8px] font-bold text-neutral-400 uppercase tracking-wider block mb-0.5 font-mono">TARGET MEMORY CATEGORY</label>
                                     <select
                                       value={editCategoryValue}
                                       onChange={(e) => setEditCategoryValue(e.target.value)}
-                                      className="w-full bg-white border border-neutral-300 rounded-lg px-1.5 py-[5px] text-[10px] uppercase font-bold text-[#000080] outline-none focus:border-[#000080] font-mono cursor-pointer"
+                                      className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-1.5 py-[5px] text-[10px] uppercase font-bold text-purple-400 outline-none focus:border-purple-500 font-mono cursor-pointer md:py-1"
                                     >
-                                      <option value="SOFTWARE">SOFTWARE DIRECTORY</option>
-                                      <option value="TOOL">END-USER UTILITY</option>
+                                      <option value="SOFTWARE" className="bg-neutral-950 text-white">SOFTWARE DIRECTORY</option>
+                                      <option value="TOOL" className="bg-neutral-950 text-white">END-USER UTILITY</option>
                                     </select>
                                   </div>
                                   <div>
-                                    <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider block mb-0.5 font-mono">PROTOCOL TYPE</label>
+                                    <label className="text-[8px] font-bold text-neutral-400 uppercase tracking-wider block mb-0.5 font-mono">PROTOCOL TYPE</label>
                                     <input
                                       type="text"
                                       value={editProtocolValue}
                                       onChange={(e) => setEditProtocolValue(e.target.value)}
-                                      className="w-full bg-white border border-neutral-300 rounded-lg px-2 py-1 text-[10px] uppercase font-bold text-black outline-none focus:border-[#000080] font-mono"
+                                      className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-[10px] uppercase font-bold text-white outline-none focus:border-purple-500 font-mono"
                                       placeholder="e.g. EXT, GITHUB, FB"
                                     />
                                   </div>
                                 </div>
                                 <div>
-                                  <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider block mb-0.5 font-mono">DESCRIPTION</label>
+                                  <label className="text-[8px] font-bold text-neutral-400 uppercase tracking-wider block mb-0.5 font-mono">DESCRIPTION</label>
                                   <input
                                     type="text"
                                     value={editDescValue}
                                     onChange={(e) => setEditDescValue(e.target.value)}
-                                    className="w-full bg-white border border-neutral-300 rounded-lg px-2 py-1 text-[10.5px] text-neutral-700 outline-none focus:border-[#000080] font-mono"
+                                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-[10.5px] text-neutral-300 outline-none focus:border-purple-500 font-mono"
                                     placeholder="Enter short description..."
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider block mb-0.5 font-mono">FILE DESTINATION URL</label>
+                                  <label className="text-[8px] font-bold text-neutral-400 uppercase tracking-wider block mb-0.5 font-mono">FILE DESTINATION URL</label>
                                   <input
                                     type="text"
                                     value={editLinkValue}
                                     onChange={(e) => setEditLinkValue(e.target.value)}
-                                    className="w-full bg-white border border-neutral-300 rounded-lg px-2.5 py-1 text-[10.5px] font-mono text-black outline-none focus:border-[#000080]"
+                                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2.5 py-1 text-[10.5px] font-mono text-white outline-none focus:border-purple-500"
                                     placeholder="Enter URL link..."
                                   />
                                   {renderGoogleDriveDiagnostic(editLinkValue, setEditLinkValue)}
                                 </div>
-                                <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-neutral-250 font-mono">
+                                <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-neutral-800 font-mono">
                                   <button
                                     type="button"
                                     onClick={() => handleSaveLink(item.id, item.type)}
-                                    className="px-2.5 py-1 bg-[#000080] hover:bg-[#0000df] text-white text-[9px] uppercase tracking-wider font-extrabold rounded-md flex items-center gap-1 cursor-pointer transition-colors"
+                                    className="px-2.5 py-1 bg-purple-600 hover:bg-purple-750 text-white text-[9px] uppercase tracking-wider font-extrabold rounded-md flex items-center gap-1 cursor-pointer transition-colors"
                                   >
                                     <Check size={10} /> Save Changes
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => setEditingItemId(null)}
-                                    className="px-2.5 py-1 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 text-[9px] uppercase tracking-wider font-extrabold rounded-md flex items-center gap-1 cursor-pointer transition-colors"
+                                    className="px-2.5 py-1 bg-neutral-900 hover:bg-neutral-850 text-neutral-300 text-[9px] uppercase tracking-wider font-extrabold rounded-md flex items-center gap-1 cursor-pointer transition-colors border border-neutral-800"
                                   >
                                     <X size={10} /> Cancel
                                   </button>
@@ -1069,7 +1069,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                                 href={item.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[9px] text-[#000080] hover:text-[#0000df] hover:underline cursor-pointer break-all block font-medium"
+                                className="text-[9px] text-purple-400 hover:text-purple-350 hover:underline cursor-pointer break-all block font-medium font-mono"
                               >
                                 {item.link}
                               </a>
@@ -1089,7 +1089,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                                     setEditCategoryValue(item.type);
                                     setEditLinkValue(item.link || '');
                                   }}
-                                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-600 hover:text-black font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded-lg cursor-pointer flex items-center gap-1"
+                                  className="px-3 py-1.5 bg-neutral-900 border border-neutral-850 hover:bg-neutral-800 text-neutral-300 hover:text-white font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded-lg cursor-pointer flex items-center gap-1"
                                   title="Edit item attributes"
                                 >
                                   <Pencil size={10} /> Edit
@@ -1098,7 +1098,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                                   href={item.link}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 hover:text-[#000080] font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded-lg cursor-pointer flex items-center gap-1 no-underline"
+                                  className="px-3 py-1.5 bg-neutral-900 border border-neutral-850 hover:bg-neutral-800 text-neutral-300 hover:text-white font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded-lg cursor-pointer flex items-center gap-1 no-underline"
                                   title="Go to file destination"
                                 >
                                   Open <ExternalLink size={10} />
@@ -1106,7 +1106,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                                 <button
                                   type="button"
                                   onClick={() => handleUnlink(item.id, item.type as any)}
-                                  className="p-1.5 hover:bg-red-50 hover:text-red-600 text-neutral-450 border border-transparent hover:border-red-200 rounded-lg transition-all cursor-pointer"
+                                  className="p-1.5 hover:bg-red-955/40 hover:text-red-400 text-neutral-500 border border-transparent hover:border-red-900/30 rounded-lg transition-all cursor-pointer"
                                   title="Sever uplink"
                                 >
                                   <Trash2 size={13} />
@@ -1120,14 +1120,14 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                   </div>
                   
                   {/* Cancel Controls */}
-                  <div className="flex items-center justify-between pt-4 border-t border-neutral-100 mt-2 shrink-0">
-                    <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-450">
+                  <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-2 shrink-0">
+                    <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500">
                       SECURE TERMINAL DIRECTORY INDEX
                     </span>
                     <button 
                       type="button"
                       onClick={() => setIsModalOpen(false)}
-                      className="px-4 py-2 bg-neutral-50 border border-neutral-200 hover:border-neutral-300 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] text-neutral-600 hover:text-black transition-all cursor-pointer text-center"
+                      className="px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] text-neutral-300 hover:text-white transition-all cursor-pointer text-center"
                     >
                       DISCONNECT CONSOLE
                     </button>
@@ -1150,10 +1150,10 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
               damping: 12,
               delay: 0.2
             }}
-            className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.85] mb-6"
+            className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.85] mb-6 text-white"
           >
             Shadow<br />
-            <span className="text-gray-200">Project.</span>
+            <span className="text-purple-500">Project.</span>
           </motion.h2>
 
           <motion.div 
@@ -1164,7 +1164,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
               delay: 0.8,
               ease: "easeOut"
             }}
-            className="inline-block px-3 py-1 bg-black text-white font-mono text-[10px] uppercase tracking-[0.3em] mb-4 md:mb-6 font-bold"
+            className="inline-block px-3 py-1 bg-neutral-900 border border-neutral-800 text-purple-400 font-mono text-[10px] uppercase tracking-[0.3em] mb-4 md:mb-6 font-bold"
           >
             By: Ian Gabionza // V.1.0
           </motion.div>
@@ -1180,7 +1180,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                 }
               }
             }}
-            className="text-lg md:text-xl font-bold uppercase tracking-tight text-gray-400 max-w-2xl leading-tight mb-6"
+            className="text-lg md:text-xl font-bold uppercase tracking-tight text-neutral-400 max-w-2xl leading-tight mb-6"
           >
             {"As an aspiring and dedicated PC technician, I am committed to getting systems running at their absolute best. I have the diagnostic tools and technical toolkits ready to troubleshoot the issue. To ensure a complete setup, I also provide access to a curated selection of essential software and utility files.".split(" ").map((word, i) => (
               <motion.span
@@ -1208,10 +1208,10 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={onEnter}
-            className="group flex items-center gap-4 px-8 py-3 bg-black text-white font-black uppercase tracking-widest text-xs hover:bg-gray-800 transition-all duration-1500 ease-in-out"
+            className="group flex items-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs hover:bg-neutral-200 transition-all duration-200"
           >
             Enter Archive
-            <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-1000" />
+            <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500" />
           </motion.button>
         </div>
       </div>
