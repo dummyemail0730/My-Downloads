@@ -1,7 +1,7 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check } from 'lucide-react';
-import shadowBg from '../assets/images/shadow_background_1779198051469.png';
+import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
 export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => void; hasPlayed?: boolean }) {
@@ -39,6 +39,37 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Security Lockout and Authentication State trackers
+  const [passwordAttempts, setPasswordAttempts] = useState(() => {
+    const saved = localStorage.getItem('shadow_admin_password_attempts');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(() => {
+    const saved = localStorage.getItem('shadow_admin_lockout_until');
+    return saved ? parseInt(saved, 10) : null;
+  });
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (lockoutUntil && lockoutUntil > currentTime) {
+      interval = setInterval(() => {
+        const now = Date.now();
+        setCurrentTime(now);
+        if (now >= lockoutUntil) {
+          // Lockout naturally expired
+          setLockoutUntil(null);
+          localStorage.removeItem('shadow_admin_lockout_until');
+          setPasswordAttempts(0);
+          localStorage.removeItem('shadow_admin_password_attempts');
+        }
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [lockoutUntil, currentTime]);
 
   // Tab dynamic state
   const [activeTab, setActiveTab] = useState<'uplink' | 'linked'>('uplink');
@@ -618,15 +649,40 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
               <form 
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (passwordInput === 'KGab0730') {
+                  
+                  const isLocked = lockoutUntil !== null && Date.now() < lockoutUntil;
+                  if (isLocked) {
+                    setPasswordError('Too many unsuccessful login attempts. Please try again in 5 minutes.');
+                    return;
+                  }
+
+                  if (passwordInput.trim().toLowerCase() === 'kgab0730') {
                     setIsAuthenticated(true);
                     setShowPasswordModal(false);
                     setPasswordError('');
                     setPasswordInput('');
                     setIsModalOpen(true);
+                    
+                    // Reset security tracker
+                    setPasswordAttempts(0);
+                    setLockoutUntil(null);
+                    localStorage.removeItem('shadow_admin_password_attempts');
+                    localStorage.removeItem('shadow_admin_lockout_until');
                   } else {
-                    setPasswordError('INVALID DECRYPTION KEY');
+                    const nextAttempts = passwordAttempts + 1;
+                    setPasswordAttempts(nextAttempts);
+                    localStorage.setItem('shadow_admin_password_attempts', nextAttempts.toString());
                     setPasswordInput('');
+
+                    if (nextAttempts >= 3) {
+                      const lockTime = Date.now() + 5 * 60 * 1000; // 5 minutes lockout
+                      setLockoutUntil(lockTime);
+                      localStorage.setItem('shadow_admin_lockout_until', lockTime.toString());
+                      setPasswordError('Too many unsuccessful login attempts. Please try again in 5 minutes.');
+                    } else {
+                      const remaining = 3 - nextAttempts;
+                      setPasswordError(`INVALID DECRYPTION KEY. (attempts remaining: ${remaining}/3)`);
+                    }
                   }
                 }}
                 className="space-y-4 relative z-10"
@@ -635,31 +691,43 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                   <input 
                     type="password"
                     value={passwordInput}
+                    disabled={lockoutUntil !== null && Date.now() < lockoutUntil}
                     onChange={(e) => {
                       setPasswordInput(e.target.value);
                       if (passwordError) setPasswordError('');
                     }}
-                    placeholder="ENTER PASSCODE"
-                    className="w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em]"
+                    placeholder={lockoutUntil !== null && Date.now() < lockoutUntil ? "LOCKED OUT" : "ENTER PASSCODE"}
+                    className={`w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em] ${lockoutUntil !== null && Date.now() < lockoutUntil ? 'opacity-45 cursor-not-allowed border-red-950 text-neutral-600' : ''}`}
                     autoFocus
-                    required
+                    required={!(lockoutUntil !== null && Date.now() < lockoutUntil)}
                   />
-                  {passwordError && (
-                    <motion.p 
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-[9px] text-red-500 font-bold uppercase tracking-widest text-center mt-2.5"
-                    >
-                      ☠ {passwordError} ☠
-                    </motion.p>
-                  )}
+                  {(() => {
+                    const isLocked = lockoutUntil !== null && Date.now() < lockoutUntil;
+                    const errorMsg = isLocked ? 'Too many unsuccessful login attempts. Please try again in 5 minutes.' : passwordError;
+                    
+                    if (!errorMsg) return null;
+                    return (
+                      <motion.p 
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-[9px] text-red-500 font-bold uppercase tracking-widest text-center mt-2.5 leading-relaxed px-1"
+                      >
+                        ☠ {errorMsg} ☠
+                      </motion.p>
+                    );
+                  })()}
                 </div>
 
                 <button 
                   type="submit"
-                  className="w-full py-2.5 bg-red-950/40 hover:bg-red-900/50 border border-red-900/40 text-red-400 font-black uppercase tracking-[0.2em] text-[9px] rounded-xl transition-all cursor-pointer select-none active:scale-95"
+                  disabled={lockoutUntil !== null && Date.now() < lockoutUntil}
+                  className={`w-full py-2.5 border font-black uppercase tracking-[0.2em] text-[9px] rounded-xl transition-all cursor-pointer select-none active:scale-95 ${
+                    lockoutUntil !== null && Date.now() < lockoutUntil
+                      ? 'bg-neutral-900/40 border-neutral-850 text-neutral-600 cursor-not-allowed'
+                      : 'bg-red-950/40 hover:bg-red-900/50 border-red-900/40 text-red-400'
+                  }`}
                 >
-                  DECRYPT & AUTHENTICATE
+                  {lockoutUntil !== null && Date.now() < lockoutUntil ? 'TACTICAL UPLINK BLOCKED' : 'DECRYPT & AUTHENTICATE'}
                 </button>
               </form>
             </motion.div>
@@ -1166,7 +1234,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
             }}
             className="inline-block px-3 py-1 bg-neutral-900 border border-neutral-800 text-purple-400 font-mono text-[10px] uppercase tracking-[0.3em] mb-4 md:mb-6 font-bold"
           >
-            By: Ian Gabionza // V.1.0
+            By: Adrian Gabionza // V.1.0
           </motion.div>
 
           <motion.div 

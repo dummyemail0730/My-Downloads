@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Folder, RotateCcw } from 'lucide-react';
+import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
-import MusicView from './components/MusicView';
-import PhotosView from './components/PhotosView';
+import AnimeView from './components/AnimeView';
+import GamesView from './components/GamesView';
 import ToolsView from './components/ToolsView';
 import ExpertiseView from './components/ExpertiseView';
 import ShadowProject from './components/ShadowProject';
 import LoadingScreen from './components/LoadingScreen';
-import shadowBg from './assets/images/shadow_background_1779198051469.png';
+import shadowBg from './assets/images/shadow_master_atomic_1779279129608.png';
+import ownerIdPhoto from './assets/images/owner_id_photo_1779279731967.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from './constants';
 
 // Automatically merge custom duplicates on startup
@@ -172,8 +173,8 @@ try {
 
 const TABS = [
   { id: 'SOFTWARE', label: '01 Software' },
-  { id: 'MUSIC', label: '02 Music' },
-  { id: 'PHOTOS', label: '03 Photos' },
+  { id: 'ANIME', label: '02 Anime' },
+  { id: 'GAMES', label: '03 Games' },
   { id: 'TOOLS', label: '04 End-User Tools' }
 ];
 
@@ -183,6 +184,8 @@ export default function App() {
   const [showArchive, setShowArchive] = useState(false);
   const [introPlayed, setIntroPlayed] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
+  const [showOwnerDetails, setShowOwnerDetails] = useState(false);
+  const [copiedText, setCopiedText] = useState<'EMAIL' | 'KEY' | 'PHONE' | null>(null);
 
   useEffect(() => {
     if (showArchive) {
@@ -242,10 +245,10 @@ export default function App() {
     switch (activeTab) {
       case 'SOFTWARE':
         return <SoftwareView />;
-      case 'MUSIC':
-        return <MusicView />;
-      case 'PHOTOS':
-        return <PhotosView />;
+      case 'ANIME':
+        return <AnimeView />;
+      case 'GAMES':
+        return <GamesView />;
       case 'TOOLS':
         return <ToolsView />;
       case 'EXPERTISE':
@@ -332,6 +335,7 @@ export default function App() {
             tabs={TABS} 
             onHomeClick={() => setShowArchive(false)}
             onExpertiseClick={() => setActiveTab('EXPERTISE')}
+            onShowOwnerClick={() => setShowOwnerDetails(true)}
           />
  
           {/* Content Area */}
@@ -400,6 +404,173 @@ export default function App() {
           <RotateCcw size={14} className="relative z-20 group-hover:rotate-180 transition-transform duration-700 ease-out text-neutral-400 group-hover:text-purple-400" />
         </motion.button>
       </div>
+
+      {/* Immersive Owner Account Modal */}
+      <AnimatePresence>
+        {showOwnerDetails && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowOwnerDetails(false)}
+              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            />
+
+            {/* Futuristic ID / Calling Card Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, rotateX: 20, y: 30 }}
+              animate={{ opacity: 1, scale: 1, rotateX: 0, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, rotateX: -20, y: 30 }}
+              transition={{ type: "spring", damping: 25, stiffness: 150 }}
+              className="relative w-full max-w-[420px] bg-neutral-950 border border-purple-500/40 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.35)] font-mono text-neutral-200 z-10 p-1"
+            >
+              {/* Outer tech styling / glow */}
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-purple-600 via-violet-400 to-indigo-600" />
+              
+              <div className="p-6 md:p-8 bg-neutral-950 rounded-[22px] relative">
+                {/* Holographic light scanlines */}
+                <div className="absolute inset-0 pointer-events-none opacity-5 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[size:100%_4px,6px_100%]" />
+                
+                {/* Top Corner Decors */}
+                <span className="absolute top-4 left-4 text-[7px] text-neutral-700 font-bold tracking-widest">// LEVEL_4_ACCESS</span>
+                
+                {/* Close Button */}
+                <button
+                  onClick={() => setShowOwnerDetails(false)}
+                  className="absolute top-4 right-4 text-neutral-500 hover:text-white hover:rotate-90 transition-all duration-300 cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+
+                {/* Cyber Card Header */}
+                <div className="text-center pt-2 mb-6">
+                  <p className="text-[9px] uppercase tracking-[0.3em] text-purple-400 font-black mb-1">
+                    SHADOW GARDEN OPERATIVE ID
+                  </p>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                    Owner Contact Info
+                  </h3>
+                </div>
+
+                {/* ID Card Layout - Photo & General Info */}
+                <div className="flex flex-col sm:flex-row gap-5 items-center pb-5 border-b border-neutral-900/80 mb-5 relative z-10">
+                  {/* Photo Section */}
+                  <div className="relative group shrink-0 w-28 h-28 sm:w-24 sm:h-24">
+                    {/* Futuristic target corners */}
+                    <div className="absolute -top-1.5 -left-1.5 w-3 h-3 border-t-2 border-l-2 border-purple-500" />
+                    <div className="absolute -top-1.5 -right-1.5 w-3 h-3 border-t-2 border-r-2 border-purple-500" />
+                    <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 border-b-2 border-l-2 border-purple-500" />
+                    <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 border-b-2 border-r-2 border-purple-500" />
+                    
+                    {/* Live red vertical target scan laser overlay */}
+                    <div className="absolute top-0 inset-x-0 h-0.5 bg-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.8)] animate-[bounce_2.5s_infinite] pointer-events-none z-10" />
+
+                    <div className="w-full h-full rounded-lg overflow-hidden border border-neutral-800 bg-neutral-900 pr-px">
+                      <img 
+                        src={ownerIdPhoto} 
+                        alt="Adrian Gabionza Portrait ID" 
+                        className="w-full h-full object-cover filter brightness-[1.1] contrast-[1.05]"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    
+                    {/* Status Badge */}
+                    <div className="absolute -bottom-2 translate-y-0.5 left-1/2 -translate-x-1/2 bg-purple-950 border border-purple-500 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded text-purple-400 whitespace-nowrap shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+                      VERIFIED OWNER
+                    </div>
+                  </div>
+
+                  {/* Identity Badges */}
+                  <div className="text-center sm:text-left flex-1 space-y-2 mt-2 sm:mt-0">
+                    <div>
+                      <span className="text-[7px] text-neutral-500 font-bold block mb-px">UPLINK_IDENTITY_REG</span>
+                      <h4 className="text-white text-base font-black tracking-tight uppercase">
+                        Adrian Gabionza
+                      </h4>
+                    </div>
+                    <div>
+                      <span className="text-[7px] text-neutral-500 font-bold block mb-px">AFFILIATION</span>
+                      <p className="text-[10px] text-purple-400 font-bold uppercase tracking-wide flex items-center justify-center sm:justify-start gap-1">
+                        <Shield size={10} className="inline" />
+                        Shadow Project Commander
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Rows Details */}
+                <div className="space-y-3 relative z-10 text-[11px]">
+                  
+                  {/* Contact Number Callout */}
+                  <div className="bg-purple-950/20 border border-purple-500/20 px-4 py-3.5 rounded-xl hover:border-purple-500/35 transition-colors group">
+                    <span className="text-[7.5px] text-purple-400 font-extrabold block uppercase tracking-widest mb-1">
+                      MOBILE VOICE COMMS
+                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-extrabold font-mono text-sm tracking-widest flex items-center gap-2">
+                        <Phone size={13} className="text-purple-400 animate-pulse" />
+                        0993 618 8535
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText('09936188535');
+                          setCopiedText('PHONE');
+                          setTimeout(() => setCopiedText(null), 2000);
+                        }}
+                        className={`p-1.5 rounded-lg border transition-all duration-300 cursor-pointer ${
+                          copiedText === 'PHONE' 
+                            ? 'border-green-500/50 bg-green-950/30 text-green-400' 
+                            : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900 text-neutral-400 group-hover:text-white'
+                        }`}
+                      >
+                        {copiedText === 'PHONE' ? (
+                          <span className="text-[8px] px-1 font-black flex items-center gap-1 uppercase">
+                            <Check size={10} /> Copied
+                          </span>
+                        ) : (
+                          <Copy size={12} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Mail Comms */}
+                  <div className="bg-neutral-900/60 border border-neutral-900 px-4 py-3 rounded-xl flex items-center justify-between hover:border-neutral-850 transition-colors">
+                    <div>
+                      <span className="text-[7px] text-neutral-500 font-bold block uppercase mb-1">EMAIL TRANSMITTER</span>
+                      <span className="text-zinc-300 font-bold font-mono">
+                        adriangabionza1990@gmail.com
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText('adriangabionza1990@gmail.com');
+                        setCopiedText('EMAIL');
+                        setTimeout(() => setCopiedText(null), 2000);
+                      }}
+                      className={`p-1.5 rounded border transition-colors cursor-pointer ${
+                        copiedText === 'EMAIL' 
+                          ? 'border-green-500/40 bg-green-950/20 text-green-400' 
+                          : 'border-neutral-800 bg-neutral-950 hover:bg-neutral-900 text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      {copiedText === 'EMAIL' ? <Check size={11} /> : <Copy size={11} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Holographic Footer */}
+                <div className="mt-6 pt-4 border-t border-neutral-900 flex items-center justify-between text-[8px] text-neutral-500">
+                  <span>DEPLOYED VIA SHADOW PROJECT COMMAND</span>
+                  <span className="text-emerald-500 font-bold animate-pulse">● UPLINK ACTIVE</span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

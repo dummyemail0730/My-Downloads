@@ -21,6 +21,7 @@ const BOOT_MESSAGES = [
 export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const [progress, setProgress] = useState(0);
   const [activeMessage, setActiveMessage] = useState(BOOT_MESSAGES[0].text);
+  const [isMuted] = useState(false);
 
   const smokeParticles = useMemo(() => {
     return Array.from({ length: 14 }).map((_, i) => ({
@@ -33,10 +34,10 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
       duration: Math.random() * 12 + 18, // 18s to 30s
       delay: Math.random() * -25, // pre-warmed so there's smoke already visible
       color: i % 3 === 0 
-        ? 'rgba(168, 85, 247, 0.09)' // Purple smoky wisp
+        ? 'rgba(220, 220, 220, 0.07)' // Light grey smoke
         : i % 3 === 1
-        ? 'rgba(99, 102, 241, 0.07)'  // Indigo smoky wisp
-        : 'rgba(255, 255, 255, 0.05)' // White/Grey smoky wisp
+        ? 'rgba(150, 150, 150, 0.05)' // Darker grey smoke
+        : 'rgba(255, 255, 255, 0.08)' // White smoke
     }));
   }, []);
 
@@ -121,7 +122,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
       </svg>
 
       {/* Background Radial Shadows and Grid Overlay */}
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,rgba(56,15,90,0.1)_0%,rgba(0,0,0,0.95)_80%)] pointer-events-none" />
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,rgba(40,40,40,0.1)_0%,rgba(0,0,0,0.95)_80%)] pointer-events-none" />
       <div className="absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.003)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.003)_1px,transparent_1px)] bg-[size:30px_30px] opacity-40 pointer-events-none" />
       
       {/* Laser light scan effect sweeping across background */}
@@ -129,7 +130,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
         <motion.div 
           animate={{ y: ['-100%', '200%'] }}
           transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
-          className="w-full h-2 bg-gradient-to-r from-transparent via-purple-500/30 to-transparent blur-sm"
+          className="w-full h-2 bg-gradient-to-r from-transparent via-neutral-500/30 to-transparent blur-sm"
         />
       </div>
 
@@ -140,14 +141,14 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 rounded-full border border-purple-500/20 border-t-purple-500/70 border-b-purple-500/60 blur-[1px]"
+            className="absolute inset-0 rounded-full border border-neutral-800 border-t-neutral-400 border-b-neutral-500 blur-[1px]"
           />
           <motion.div
             animate={{ rotate: -360 }}
             transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute -inset-3 rounded-full border border-neutral-800/50 border-r-purple-600/40 border-l-purple-600/40 opacity-50 blur-[2px]"
+            className="absolute -inset-3 rounded-full border border-neutral-800/50 border-r-neutral-700/40 border-l-neutral-700/40 opacity-50 blur-[2px]"
           />
-          <div className="absolute inset-2 bg-[radial-gradient(circle_at_center,rgba(112,26,117,0.15)_0%,transparent_70%)] blur-2xl rounded-full" />
+          <div className="absolute inset-2 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_70%)] blur-2xl rounded-full" />
           
           {/* Main Logo Container */}
           <motion.div
@@ -159,7 +160,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
             <img 
               src={shadowLogoMain} 
               alt="Shadow Project Logo"
-              className="w-full h-full object-cover filter drop-shadow-[0_0_25px_rgba(168,85,247,0.5)] relative z-10"
+              className="w-full h-full object-cover filter grayscale drop-shadow-[0_0_25px_rgba(255,255,255,0.4)] relative z-10 animate-pulse"
               referrerPolicy="no-referrer"
             />
           </motion.div>
@@ -173,14 +174,14 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
               DECIDED BY THE SHADOWS
             </span>
             <h2 className="text-sm uppercase tracking-[0.25em] font-black text-white flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-purple-500 animate-ping" />
+              <span className="inline-block w-2 h-2 rounded-full bg-white animate-ping" />
               SHADOW SYSTEM INTRUSION
             </h2>
           </div>
 
           {/* Scrolling Active Boot Message Indicator with static height */}
           <div className="h-6 flex items-center justify-center">
-            <p className="text-[10px] uppercase font-bold tracking-[0.15em] text-purple-400 text-center animate-pulse">
+            <p className="text-[10px] uppercase font-bold tracking-[0.15em] text-neutral-300 text-center animate-pulse">
               {activeMessage}
             </p>
           </div>
@@ -190,7 +191,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
         <div className="w-full space-y-2 px-6">
           <div className="flex justify-between items-center text-[10px] font-mono font-bold tracking-widest text-neutral-400">
             <span>UPLINK_SYS_BUSY</span>
-            <span className="text-white bg-purple-950/40 border border-purple-500/30 px-1.5 py-0.5 rounded text-[9px]">
+            <span className="text-white bg-neutral-900 border border-neutral-700 px-1.5 py-0.5 rounded text-[9px]">
               {progress}%
             </span>
           </div>
@@ -198,7 +199,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
           {/* Progress Bar Container */}
           <div className="h-[3px] w-full bg-neutral-900 border border-neutral-800 rounded-full overflow-hidden relative">
             <motion.div 
-              className="h-full bg-gradient-to-r from-purple-800 via-purple-500 to-indigo-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+              className="h-full bg-gradient-to-r from-neutral-800 via-neutral-100 to-neutral-400 shadow-[0_0_10px_rgba(255,255,255,0.3)]"
               style={{ width: `${progress}%` }}
               layoutId="loading-progress-bar"
             />
@@ -210,8 +211,44 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
           </div>
         </div>
 
+        {/* Hidden YouTube Theme Audio Stream */}
+        {!isMuted && (
+          <iframe
+            src="https://www.youtube.com/embed/9iQVgj4z-I4?autoplay=1&mute=0&playlist=9iQVgj4z-I4&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1"
+            allow="autoplay"
+            title="Shadow Theme OST"
+            className="absolute w-0 h-0 pointer-events-none opacity-0 invisible"
+          />
+        )}
+
+        {/* Dynamic Stylized Equalizer and Streaming Info */}
+        <div className="mt-6 w-full max-w-xs flex flex-col items-center gap-2">
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes shadow-eq {
+              0% { height: 4px; }
+              100% { height: 14px; }
+            }
+            .shadow-bar {
+              animation: shadow-eq 0.6s ease-in-out infinite alternate;
+            }
+          `}} />
+          
+          <div className="w-full py-3 px-4 rounded-xl border bg-purple-950/20 border-purple-500/30 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.12)] flex items-center justify-center gap-3">
+            <span className="flex items-end gap-[1.5px] h-3.5 mb-0.5">
+              <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0s' }} />
+              <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.2s', animationDuration: '0.4s' }} />
+              <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.1s', animationDuration: '0.5s' }} />
+              <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.3s', animationDuration: '0.3s' }} />
+            </span>
+            <span className="text-[9px] font-mono uppercase tracking-[0.2em] font-bold">🔊 SHADOW THEME: "HIGHEST" ACTIVE</span>
+          </div>
+          <p className="text-[7px] text-purple-450 uppercase tracking-[0.3em] font-black animate-pulse">
+            EMINENCE OF SHADOW BROADCAST // ONLINE
+          </p>
+        </div>
+
         {/* Aesthetic Counter Down Remaining Time */}
-        <div className="mt-8 text-[9px] text-neutral-500 uppercase tracking-widest font-semibold flex items-center gap-2 bg-neutral-950 border border-neutral-900 px-3 py-1.5 rounded-full">
+        <div className="mt-6 text-[9px] text-neutral-500 uppercase tracking-widest font-semibold flex items-center gap-2 bg-neutral-950 border border-neutral-900 px-3 py-1.5 rounded-full">
           <span>TIME REMAINING:</span>
           <span className="font-bold text-neutral-300 font-mono">
             {Math.max(0, Math.ceil((100 - progress) / 10))}s

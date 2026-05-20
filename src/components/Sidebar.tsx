@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { ArrowLeft, Target } from 'lucide-react';
+import { ArrowLeft, Target, User } from 'lucide-react';
 
 interface Tab {
   id: string;
@@ -12,9 +12,10 @@ interface SidebarProps {
   tabs: Tab[];
   onHomeClick: () => void;
   onExpertiseClick: () => void;
+  onShowOwnerClick: () => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, onExpertiseClick }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, onExpertiseClick, onShowOwnerClick }: SidebarProps) {
   return (
     <nav className="w-20 md:w-72 border-r border-neutral-900 flex flex-col bg-bg-sidebar shrink-0">
       <div className="p-4 md:p-6 border-b border-neutral-900">
@@ -80,6 +81,18 @@ export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, on
             </div>
             <span className="hidden md:inline font-mono text-[10px] font-bold uppercase tracking-tighter cursor-pointer">
               Areas_of_Expertise
+            </span>
+          </button>
+
+          <button 
+            onClick={onShowOwnerClick}
+            className="flex items-center gap-2 group transition-opacity opacity-60 hover:opacity-100 text-neutral-300 hover:text-white"
+          >
+            <div className="w-4 h-4 bg-neutral-950 border border-neutral-800 flex items-center justify-center text-white">
+              <User className="w-3 h-3 text-purple-400" />
+            </div>
+            <span className="hidden md:inline font-mono text-[10px] font-bold uppercase tracking-tighter cursor-pointer">
+              Owner Contact Info
             </span>
           </button>
         </div>
