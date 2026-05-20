@@ -93,12 +93,12 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className="w-full h-full relative rounded-2xl overflow-hidden flex items-center justify-center p-2"
+            className="w-full h-full relative rounded-full overflow-hidden flex items-center justify-center"
           >
             <img 
               src={shadowLogoMain} 
               alt="Shadow Project Logo"
-              className="w-full h-full object-contain filter drop-shadow-[0_0_15px_rgba(112,26,117,0.4)]"
+              className="w-full h-full object-cover filter drop-shadow-[0_0_25px_rgba(168,85,247,0.5)] relative z-10"
               referrerPolicy="no-referrer"
             />
           </motion.div>

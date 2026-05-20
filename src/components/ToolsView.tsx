@@ -60,8 +60,8 @@ export default function ToolsView() {
   });
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-black">
+    <div className="h-full flex flex-col bg-neutral-950">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-neutral-900">
         {tools.map((tool, idx) => {
           const Tag = tool.link ? motion.a : motion.div;
           const bgImage = TOOL_BG_IMAGES[idx % TOOL_BG_IMAGES.length];
@@ -76,7 +76,7 @@ export default function ToolsView() {
                 target: "_blank",
                 rel: "noopener noreferrer"
               } : {})}
-              className={`flex items-start gap-4 p-5 bg-neutral-950 border-r border-b border-black group text-white relative overflow-hidden transition-all duration-300 select-none ${
+              className={`border-r border-b border-neutral-900 p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-300 group text-white ${
                 tool.link ? 'cursor-pointer' : 'cursor-default'
               }`}
             >
@@ -91,41 +91,48 @@ export default function ToolsView() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/30 group-hover:from-black/95 group-hover:via-black/60 group-hover:to-black/35 transition-all duration-300" />
               </div>
 
-              {/* Icon */}
-              <div className="mt-1 p-2 border border-white/20 group-hover:border-white transition-colors bg-black/40 group-hover:bg-neutral-900 text-white shrink-0 relative z-10 shadow-lg">
-                {getIcon(tool.category)}
-              </div>
-
-              {/* Main Info */}
-              <div className="flex-1 min-w-0 relative z-10">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <h3 className="text-lg font-black uppercase tracking-tighter truncate text-white">
-                    {tool.name}
-                  </h3>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-[8px] font-mono font-bold bg-white text-black px-1.5 py-0.5 group-hover:bg-cyan-400 group-hover:text-black transition-colors rounded">
+              {/* Top part / main content */}
+              <div className="relative z-10">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-2 border border-white/20 group-hover:border-purple-500/50 transition-colors bg-black/40 group-hover:bg-neutral-900 text-purple-400 shrink-0 relative z-10 shadow-lg rounded">
+                    {getIcon(tool.category)}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[8px] font-mono font-bold bg-neutral-900 text-neutral-300 border border-neutral-800 px-1.5 py-0.5 group-hover:bg-cyan-400 group-hover:text-black transition-colors rounded">
                       V{tool.version}
                     </span>
                     {tool.link && (
-                      <ExternalLink size={11} className="opacity-70 group-hover:opacity-100 transition-opacity text-white" />
+                      <ExternalLink size={14} className="opacity-70 group-hover:opacity-100 transition-opacity text-neutral-400 group-hover:text-purple-300" />
                     )}
                   </div>
                 </div>
-                <p className="text-[10px] text-neutral-300 font-medium mb-3 group-hover:text-white transition-colors leading-tight min-h-[2.5rem] flex items-center">
+
+                <h3 className="text-xl font-black uppercase tracking-tighter leading-tight mb-2 text-neutral-100 group-hover:text-purple-300 transition-colors">
+                  {tool.name}
+                </h3>
+                
+                <p className="text-[11px] leading-relaxed max-w-sm font-medium text-neutral-400 group-hover:text-neutral-200 transition-colors">
                   {tool.description}
                 </p>
+              </div>
+
+              {/* Bottom footer bar matching SoftwareView */}
+              <div className="mt-8 flex justify-between items-end border-t border-neutral-800 group-hover:border-neutral-700 pt-3 transition-colors relative z-10">
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] font-black border-b border-white/20 group-hover:border-white text-neutral-300 group-hover:text-white transition-colors">
-                    SYS://{tool.category.toUpperCase().slice(0, 15)}
+                  <span className="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded bg-neutral-950/60 text-neutral-300 border border-neutral-800/80 group-hover:bg-neutral-800 group-hover:text-white transition-colors">
+                    {tool.category.toUpperCase()}
                   </span>
                 </div>
+                <span className="text-[10px] font-mono font-bold uppercase text-neutral-500 group-hover:text-neutral-300 transition-colors">
+                  SYS://{tool.category.toUpperCase().slice(0, 15)}
+                </span>
               </div>
             </Tag>
           );
         })}
         {/* Empty filler blocks to maintain grid-cols-3 bento-grid integrity */}
         {(tools.length % 3 !== 0) && Array.from({ length: 3 - (tools.length % 3) }).map((_, i) => (
-          <div key={`filler-${i}`} className="border-b border-black border-r border-black p-5 hidden lg:block bg-gray-50/20 last:border-r-0"></div>
+          <div key={`filler-${i}`} className="border-b border-neutral-900 border-r border-neutral-900 p-5 hidden lg:block bg-neutral-900/10 last:border-r-0"></div>
         ))}
       </div>
     </div>
