@@ -17,7 +17,18 @@ const getIcon = (category: string) => {
 export default function ToolsView() {
   const [tools] = useState<Tool[]>(() => {
     const saved = localStorage.getItem('custom_tools');
-    const loaded = saved ? JSON.parse(saved) : STATIC_TOOLS;
+    let loaded = saved ? JSON.parse(saved) : [...STATIC_TOOLS];
+    
+    // Ensure new static tools (e.g. newly added IDs 5 and 6) are merged even if custom_tools exists
+    if (saved && Array.isArray(loaded)) {
+      const loadedIds = new Set(loaded.map((t: any) => t.id));
+      for (const staticTool of STATIC_TOOLS) {
+        if (!loadedIds.has(staticTool.id)) {
+          loaded.push(staticTool);
+        }
+      }
+    }
+
     return loaded.map((tool: Tool) => {
       const staticTool = STATIC_TOOLS.find(t => t.id === tool.id);
       if (staticTool) {
@@ -33,7 +44,7 @@ export default function ToolsView() {
   });
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-white">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-black">
         {tools.map((tool, idx) => {
           const Tag = tool.link ? motion.a : motion.div;
@@ -81,6 +92,10 @@ export default function ToolsView() {
             </Tag>
           );
         })}
+        {/* Empty filler blocks to maintain grid-cols-3 bento-grid integrity */}
+        {(tools.length % 3 !== 0) && Array.from({ length: 3 - (tools.length % 3) }).map((_, i) => (
+          <div key={`filler-${i}`} className="border-b border-black border-r border-black p-5 hidden lg:block bg-gray-50/20 last:border-r-0"></div>
+        ))}
       </div>
     </div>
   );
