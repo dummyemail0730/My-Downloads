@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Folder } from 'lucide-react';
+import { Folder, RotateCcw } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
 import MusicView from './components/MusicView';
@@ -8,6 +8,7 @@ import PhotosView from './components/PhotosView';
 import ToolsView from './components/ToolsView';
 import ExpertiseView from './components/ExpertiseView';
 import ShadowProject from './components/ShadowProject';
+import LoadingScreen from './components/LoadingScreen';
 import shadowBg from './assets/images/shadow_background_1779198051469.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from './constants';
 
@@ -177,6 +178,7 @@ const TABS = [
 ];
 
 export default function App() {
+  const [appLoading, setAppLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('EXPERTISE');
   const [showArchive, setShowArchive] = useState(false);
   const [introPlayed, setIntroPlayed] = useState(false);
@@ -212,14 +214,41 @@ export default function App() {
     }
   };
 
+  if (appLoading) {
+    return <LoadingScreen onComplete={() => setAppLoading(false)} />;
+  }
+
   if (!showArchive) {
     return (
-      <div className="h-screen w-full bg-black overflow-hidden flex items-center justify-center p-0 md:p-8">
+      <div className="h-screen w-full bg-black overflow-hidden flex items-center justify-center p-0 md:p-8 relative">
         <div className="w-full h-full max-w-7xl bg-white border-[12px] md:border-[16px] border-black overflow-hidden relative shadow-2xl">
           <ShadowProject 
             onEnter={() => setShowArchive(true)} 
             hasPlayed={introPlayed}
           />
+        </div>
+
+        {/* Floating System Reset Loading Button */}
+        <div className="fixed bottom-6 right-6 md:right-8 z-50 group flex items-center gap-2">
+          {/* Tooltip */}
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-neutral-950/90 text-white border border-purple-500/30 px-2.5 py-1 text-[9px] font-mono tracking-widest uppercase rounded shadow-lg pointer-events-none whitespace-nowrap">
+            RE-INITIATE LOADING
+          </span>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setAppLoading(true)}
+            className="w-10 h-10 rounded-full bg-neutral-950 border border-neutral-800 text-white flex items-center justify-center relative cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.8)] focus:outline-none"
+            title="Re-initiate loading"
+          >
+            {/* Glowing ring */}
+            <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 opacity-0 group-hover:opacity-75 blur-[2px] transition-all duration-500" />
+            
+            {/* Inner fill to cover ring */}
+            <div className="absolute inset-[1px] rounded-full bg-neutral-950 group-hover:bg-neutral-900 transition-colors duration-300 z-10" />
+            
+            <RotateCcw size={14} className="relative z-20 group-hover:rotate-180 transition-transform duration-700 ease-out text-neutral-400 group-hover:text-purple-400" />
+          </motion.button>
         </div>
       </div>
     );
@@ -306,6 +335,29 @@ export default function App() {
             <a href="#" className="hidden sm:inline hover:text-gray-400 transition-colors">MAIL://HELO@ARCHIVE</a>
           </div>
         </footer>
+      </div>
+
+      {/* Floating System Reset Loading Button */}
+      <div className="fixed bottom-14 right-6 md:right-8 z-50 group flex items-center gap-2">
+        {/* Tooltip */}
+        <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-neutral-950/90 text-white border border-purple-500/30 px-2.5 py-1 text-[9px] font-mono tracking-widest uppercase rounded shadow-lg pointer-events-none whitespace-nowrap">
+          RE-INITIATE LOADING
+        </span>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setAppLoading(true)}
+          className="w-10 h-10 rounded-full bg-neutral-950 border border-neutral-800 text-white flex items-center justify-center relative cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.8)] focus:outline-none"
+          title="Re-initiate loading"
+        >
+          {/* Glowing ring */}
+          <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 opacity-0 group-hover:opacity-75 blur-[2px] transition-all duration-500" />
+          
+          {/* Inner fill to cover ring */}
+          <div className="absolute inset-[1px] rounded-full bg-neutral-950 group-hover:bg-neutral-900 transition-colors duration-300 z-10" />
+          
+          <RotateCcw size={14} className="relative z-20 group-hover:rotate-180 transition-transform duration-700 ease-out text-neutral-400 group-hover:text-purple-400" />
+        </motion.button>
       </div>
     </div>
   );

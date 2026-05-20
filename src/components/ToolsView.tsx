@@ -4,6 +4,22 @@ import { TOOLS as STATIC_TOOLS } from '../constants';
 import { Terminal, Cpu, Database, ExternalLink } from 'lucide-react';
 import { Tool } from '../types';
 
+import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
+import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
+import shadowMysteriousAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
+import shadowMoonRain from '../assets/images/shadow_moon_rain_1779250676888.png';
+import shadowNeonElectricity from '../assets/images/shadow_neon_electricity_1779250694461.png';
+import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
+
+const TOOL_BG_IMAGES = [
+  shadowOnRoof,
+  shadowDarkBlade,
+  shadowMysteriousAura,
+  shadowMoonRain,
+  shadowNeonElectricity,
+  shadowClockTower
+];
+
 const getIcon = (category: string) => {
   const normCategory = category.toUpperCase();
   if (normCategory.includes('EXT') || normCategory.includes('DEV') || normCategory.includes('CPU') || normCategory.includes('W10')) {
@@ -48,6 +64,7 @@ export default function ToolsView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-black">
         {tools.map((tool, idx) => {
           const Tag = tool.link ? motion.a : motion.div;
+          const bgImage = TOOL_BG_IMAGES[idx % TOOL_BG_IMAGES.length];
           return (
             <Tag
               key={tool.id}
@@ -59,32 +76,46 @@ export default function ToolsView() {
                 target: "_blank",
                 rel: "noopener noreferrer"
               } : {})}
-              className={`flex items-start gap-4 p-5 bg-white border-r border-b border-black group hover:bg-black hover:text-white transition-colors select-none ${
+              className={`flex items-start gap-4 p-5 bg-neutral-950 border-r border-b border-black group text-white relative overflow-hidden transition-all duration-300 select-none ${
                 tool.link ? 'cursor-pointer' : 'cursor-default'
               }`}
             >
-              <div className="mt-1 p-2 border border-black group-hover:border-white transition-colors bg-white group-hover:bg-neutral-900 text-black group-hover:text-white shrink-0">
+              {/* Background Image of Shadow from Shadow Garden */}
+              <div className="absolute inset-0 z-0 overflow-hidden">
+                <img 
+                  src={bgImage} 
+                  alt="" 
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-[0.75] group-hover:brightness-[0.85]"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/30 group-hover:from-black/95 group-hover:via-black/60 group-hover:to-black/35 transition-all duration-300" />
+              </div>
+
+              {/* Icon */}
+              <div className="mt-1 p-2 border border-white/20 group-hover:border-white transition-colors bg-black/40 group-hover:bg-neutral-900 text-white shrink-0 relative z-10 shadow-lg">
                 {getIcon(tool.category)}
               </div>
-              <div className="flex-1 min-w-0">
+
+              {/* Main Info */}
+              <div className="flex-1 min-w-0 relative z-10">
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <h3 className="text-lg font-black uppercase tracking-tighter truncate text-neutral-900 group-hover:text-white transition-colors">
+                  <h3 className="text-lg font-black uppercase tracking-tighter truncate text-white">
                     {tool.name}
                   </h3>
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-[8px] font-mono font-bold bg-black text-white px-1.5 py-0.5 group-hover:bg-white group-hover:text-black transition-colors rounded">
+                    <span className="text-[8px] font-mono font-bold bg-white text-black px-1.5 py-0.5 group-hover:bg-cyan-400 group-hover:text-black transition-colors rounded">
                       V{tool.version}
                     </span>
                     {tool.link && (
-                      <ExternalLink size={11} className="opacity-40 group-hover:opacity-100 transition-opacity text-neutral-400 group-hover:text-white" />
+                      <ExternalLink size={11} className="opacity-70 group-hover:opacity-100 transition-opacity text-white" />
                     )}
                   </div>
                 </div>
-                <p className="text-[10px] opacity-60 font-medium mb-3 group-hover:opacity-80 leading-tight">
+                <p className="text-[10px] text-neutral-300 font-medium mb-3 group-hover:text-white transition-colors leading-tight min-h-[2.5rem] flex items-center">
                   {tool.description}
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] font-black border-b border-black group-hover:border-white transition-colors">
+                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] font-black border-b border-white/20 group-hover:border-white text-neutral-300 group-hover:text-white transition-colors">
                     SYS://{tool.category.toUpperCase().slice(0, 15)}
                   </span>
                 </div>
