@@ -28,7 +28,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
               damping: 12,
               delay: 0.2
             }}
-            className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-[0.85] mb-6"
+            className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.85] mb-6"
           >
             Shadow<br />
             <span className="text-gray-200">Project.</span>
@@ -58,9 +58,9 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                 }
               }
             }}
-            className="text-lg md:text-xl font-bold uppercase tracking-tight text-gray-400 max-w-2xl leading-tight mb-8"
+            className="text-lg md:text-xl font-bold uppercase tracking-tight text-gray-400 max-w-2xl leading-tight mb-6"
           >
-            {"As an aspiring and dedicated PC technician, I am committed to getting systems running at their absolute best. I have the diagnostic tools and technical toolkits ready to troubleshoot the issue. To ensure a complete setup, I also provide access to a curated selection of essential software and utility files completely free of charge.".split(" ").map((word, i) => (
+            {"As an aspiring and dedicated PC technician, I am committed to getting systems running at their absolute best. I have the diagnostic tools and technical toolkits ready to troubleshoot the issue. To ensure a complete setup, I also provide access to a curated selection of essential software and utility files.".split(" ").map((word, i) => (
               <motion.span
                 key={i}
                 variants={{
@@ -76,17 +76,33 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
           </motion.div>
 
           <motion.button 
-            initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={skip ? { duration: 0 } : { delay: 2.8 }}
+            initial={skip ? { opacity: 1 } : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={skip ? { duration: 0 } : { 
+              duration: 5.0, 
+              ease: "easeInOut", 
+              delay: 3.0 
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onEnter}
-            className="group flex items-center gap-4 px-8 py-3 bg-black text-white font-black uppercase tracking-widest text-xs hover:bg-gray-900 transition-colors"
+            className="group flex items-center gap-4 px-8 py-3 bg-black text-white font-black uppercase tracking-widest text-xs hover:bg-gray-800 transition-all duration-1500 ease-in-out"
           >
             Enter Archive
-            <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-1000" />
           </motion.button>
         </div>
       </div>
+
+      {/* Bottom Info */}
+      <motion.div 
+        initial={skip ? { opacity: 0.4 } : { opacity: 0 }}
+        animate={{ opacity: 0.4 }}
+        transition={skip ? { duration: 0 } : { delay: 4.5, duration: 2 }}
+        className="absolute bottom-8 right-8 md:bottom-12 md:right-12 z-20"
+      >
+        <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Last Modified: MAY 2026</span>
+      </motion.div>
     </div>
   );
 }

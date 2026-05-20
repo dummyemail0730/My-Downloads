@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { ArrowLeft, Target } from 'lucide-react';
 
 interface Tab {
   id: string;
@@ -10,9 +11,10 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   tabs: Tab[];
   onHomeClick: () => void;
+  onExpertiseClick: () => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, onExpertiseClick }: SidebarProps) {
   return (
     <nav className="w-20 md:w-72 border-r border-black flex flex-col bg-bg-sidebar shrink-0">
       <div className="p-4 md:p-6 border-b border-black">
@@ -56,16 +58,28 @@ export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick }: 
       </div>
 
       <div className="flex-1 p-4 md:p-6 flex flex-col justify-end">
-        <div className="mb-6">
+        <div className="mb-6 space-y-4">
           <button 
             onClick={onHomeClick}
             className="flex items-center gap-2 group transition-opacity opacity-60 hover:opacity-100"
           >
-            <div className="w-4 h-4 bg-black flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-white rotate-45" />
+            <div className="w-4 h-4 bg-black flex items-center justify-center text-white">
+              <ArrowLeft className="w-3 h-3" />
             </div>
             <span className="hidden md:inline font-mono text-[10px] font-bold uppercase tracking-tighter cursor-pointer">
               Return_Home
+            </span>
+          </button>
+
+          <button 
+            onClick={onExpertiseClick}
+            className={`flex items-center gap-2 group transition-opacity ${activeTab === 'EXPERTISE' ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
+          >
+            <div className="w-4 h-4 bg-black flex items-center justify-center text-white">
+              <Target className="w-3 h-3" />
+            </div>
+            <span className="hidden md:inline font-mono text-[10px] font-bold uppercase tracking-tighter cursor-pointer">
+              Areas_of_Expertise
             </span>
           </button>
         </div>
