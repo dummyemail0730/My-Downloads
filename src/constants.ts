@@ -13,13 +13,15 @@ export const PROJECTS: Project[] = [
     description: 'all-in-one, bootable Windows Preinstallation Environment (WinPE)',
     tags: ['Rust', 'Vulkan', 'Graphics'],
     image: shadowOnRoof,
+    link: 'https://drive.google.com/file/d/1Lz',
   },
   {
     id: '2',
     title: 'G.S W10 ISO',
-    description: 'A minimalist design system component library for enterprise dashboard applications.',
-    tags: ['React', 'Tailwind', 'Design Systems'],
+    description: 'Ghost Spectre ISO',
+    tags: ['OS', 'Utility', 'Windows'],
     image: shadowDarkBlade,
+    link: 'https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing',
   },
   {
     id: '3',

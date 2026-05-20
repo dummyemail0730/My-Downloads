@@ -28,17 +28,18 @@ export default function SoftwareView() {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-full border-b border-black">
       {projects.map((project, idx) => {
         const hasBgImage = !!project.image;
+        const Tag = project.link ? motion.a : motion.div;
         return (
-          <motion.div
+          <Tag
             key={project.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: idx * 0.05 }}
-            onClick={() => {
-              if (project.link) {
-                window.open(project.link, '_blank', 'noopener,noreferrer');
-              }
-            }}
+            {...(project.link ? {
+              href: project.link,
+              target: "_blank",
+              rel: "noopener noreferrer"
+            } : {})}
             className={`border-r border-b border-black p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-300 group ${
               project.link ? 'cursor-pointer' : 'cursor-default'
             } ${
@@ -104,7 +105,7 @@ export default function SoftwareView() {
                 BUILD://{project.id.length < 3 && !isNaN(Number(project.id)) ? project.id.padStart(2, '0') : 'CUSTOM'}
               </span>
             </div>
-          </motion.div>
+          </Tag>
         );
       })}
       {/* Empty filler block to maintain grid integrity if needed */}

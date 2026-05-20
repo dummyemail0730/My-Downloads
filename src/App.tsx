@@ -9,6 +9,165 @@ import ToolsView from './components/ToolsView';
 import ExpertiseView from './components/ExpertiseView';
 import ShadowProject from './components/ShadowProject';
 import shadowBg from './assets/images/shadow_background_1779198051469.png';
+import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from './constants';
+
+// Automatically merge custom duplicates on startup
+try {
+  // 1. Process custom_projects
+  const saved = localStorage.getItem('custom_projects');
+  let projectsList = saved ? JSON.parse(saved) : [...STATIC_PROJECTS];
+  if (Array.isArray(projectsList)) {
+    // Clean specific W11 duplicates
+    let w11CustomIdx = projectsList.findIndex((p: any) => 
+      p.title && p.id !== '1' && (
+        p.title.toLowerCase().includes('custom os') || 
+        p.title.toLowerCase().includes('w11 custom')
+      )
+    );
+    while (w11CustomIdx !== -1) {
+      const customLink = projectsList[w11CustomIdx].link;
+      const customDesc = projectsList[w11CustomIdx].description;
+      const targetIdx = projectsList.findIndex((p: any) => p.id === '1' || p.title === 'G.S. W11 ISO');
+      
+      if (targetIdx !== -1) {
+        if (customLink) projectsList[targetIdx].link = customLink;
+        if (customDesc) projectsList[targetIdx].description = customDesc;
+      } else {
+        projectsList.push({
+          id: '1',
+          title: 'G.S. W11 ISO',
+          description: customDesc || 'all-in-one, bootable Windows Preinstallation Environment (WinPE)',
+          link: customLink || 'https://drive.google.com/file/d/1Lz'
+        });
+      }
+      projectsList.splice(w11CustomIdx, 1);
+      w11CustomIdx = projectsList.findIndex((p: any) => 
+        p.title && p.id !== '1' && (
+          p.title.toLowerCase().includes('custom os') || 
+          p.title.toLowerCase().includes('w11 custom')
+        )
+      );
+    }
+
+    // Clean specific W10 duplicates
+    let w10CustomIdx = projectsList.findIndex((p: any) => 
+      p.title && p.id !== '2' && (
+        p.title.toLowerCase().replace(/[\s\.]/g, '').includes('w10')
+      )
+    );
+    while (w10CustomIdx !== -1) {
+      const customLink = projectsList[w10CustomIdx].link;
+      const customDesc = projectsList[w10CustomIdx].description;
+      const customTags = projectsList[w10CustomIdx].tags;
+      const targetIdx = projectsList.findIndex((p: any) => p.id === '2' || p.title === 'G.S W10 ISO');
+      
+      if (targetIdx !== -1) {
+        if (customLink) projectsList[targetIdx].link = customLink;
+        if (customDesc) projectsList[targetIdx].description = customDesc;
+        if (customTags) projectsList[targetIdx].tags = customTags;
+      } else {
+        projectsList.push({
+          id: '2',
+          title: 'G.S W10 ISO',
+          description: customDesc || 'Ghost Spectre ISO',
+          link: customLink || '',
+          tags: customTags || ['OS', 'Utility', 'Windows']
+        });
+      }
+      projectsList.splice(w10CustomIdx, 1);
+      w10CustomIdx = projectsList.findIndex((p: any) => 
+        p.title && p.id !== '2' && (
+          p.title.toLowerCase().replace(/[\s\.]/g, '').includes('w10')
+        )
+      );
+    }
+
+    // Generic Name-Based Deduplication for Software/Projects
+    for (const staticProj of STATIC_PROJECTS) {
+      const dupIdx = projectsList.findIndex((p: any) => 
+        p.id !== staticProj.id && 
+        p.title && 
+        p.title.toLowerCase().trim() === staticProj.title.toLowerCase().trim()
+      );
+      
+      if (dupIdx !== -1) {
+        const dupItem = projectsList[dupIdx];
+        const targetIdx = projectsList.findIndex((p: any) => p.id === staticProj.id);
+        if (targetIdx !== -1) {
+          if (dupItem.link) projectsList[targetIdx].link = dupItem.link;
+          if (dupItem.description) projectsList[targetIdx].description = dupItem.description;
+          if (dupItem.tags) projectsList[targetIdx].tags = dupItem.tags;
+          if (dupItem.image) projectsList[targetIdx].image = dupItem.image;
+        } else {
+          projectsList.push({
+            ...staticProj,
+            link: dupItem.link || '',
+            description: dupItem.description || staticProj.description,
+            tags: dupItem.tags || staticProj.tags
+          });
+        }
+        projectsList.splice(dupIdx, 1);
+      }
+    }
+
+    // Ensure Microsoft Office (id '3') has its permanent correct link in local storage
+    const msofficeIdx = projectsList.findIndex((p: any) => p.id === '3' || (p.title && p.title.toLowerCase().includes('microsoft office')));
+    if (msofficeIdx !== -1) {
+      if (!projectsList[msofficeIdx].link) {
+        projectsList[msofficeIdx].link = 'https://drive.google.com/file/d/1O_MSOfficeLTSC2021';
+      }
+    }
+
+    // Ensure G.S W10 ISO (id '2') has its permanent correct link in local storage
+    const w10Idx = projectsList.findIndex((p: any) => p.id === '2' || (p.title && p.title.toLowerCase().includes('w10')));
+    if (w10Idx !== -1) {
+      if (!projectsList[w10Idx].link) {
+        projectsList[w10Idx].link = 'https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing';
+      }
+    }
+
+    localStorage.setItem('custom_projects', JSON.stringify(projectsList));
+  }
+
+  // 2. Process custom_tools generic duplicate detection & automatic consolidation
+  const savedTools = localStorage.getItem('custom_tools');
+  let toolsList = savedTools ? JSON.parse(savedTools) : [...STATIC_TOOLS];
+  if (Array.isArray(toolsList)) {
+    let hasMadeChanges = false;
+    for (const staticTool of STATIC_TOOLS) {
+      const dupIdx = toolsList.findIndex((t: any) => 
+        t.id !== staticTool.id && 
+        t.name && 
+        t.name.toLowerCase().trim() === staticTool.name.toLowerCase().trim()
+      );
+      
+      if (dupIdx !== -1) {
+        const dupItem = toolsList[dupIdx];
+        const targetIdx = toolsList.findIndex((t: any) => t.id === staticTool.id);
+        if (targetIdx !== -1) {
+          if (dupItem.link) toolsList[targetIdx].link = dupItem.link;
+          if (dupItem.description) toolsList[targetIdx].description = dupItem.description;
+          if (dupItem.category) toolsList[targetIdx].category = dupItem.category;
+        } else {
+          toolsList.push({
+            ...staticTool,
+            link: dupItem.link || '',
+            description: dupItem.description || staticTool.description,
+            category: dupItem.category || staticTool.category
+          });
+        }
+        toolsList.splice(dupIdx, 1);
+        hasMadeChanges = true;
+      }
+    }
+    if (hasMadeChanges) {
+      localStorage.setItem('custom_tools', JSON.stringify(toolsList));
+    }
+  }
+
+} catch (e) {
+  console.error('Migration error:', e);
+}
 
 const TABS = [
   { id: 'SOFTWARE', label: '01 Software' },
@@ -18,7 +177,7 @@ const TABS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('SOFTWARE');
+  const [activeTab, setActiveTab] = useState('EXPERTISE');
   const [showArchive, setShowArchive] = useState(false);
   const [introPlayed, setIntroPlayed] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());

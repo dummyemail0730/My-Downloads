@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2 } from 'lucide-react';
+import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_background_1779198051469.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
@@ -12,14 +12,27 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
     return localStorage.getItem('admin_console_link') || 'https://drive.google.com';
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<{ id: string; type: string } | null>(null);
+  const [editLinkValue, setEditLinkValue] = useState('');
+  const [editNameValue, setEditNameValue] = useState('');
+  const [editDescValue, setEditDescValue] = useState('');
+  const [editProtocolValue, setEditProtocolValue] = useState('EXT');
+  const [editCategoryValue, setEditCategoryValue] = useState('SOFTWARE');
   
   // High-fidelity Admin Console Form States (Pre-populated matching user's reference image!)
-  const [gameTitle, setGameTitle] = useState('Utorrent');
+  const [gameTitle, setGameTitle] = useState('');
   const [category, setCategory] = useState('SOFTWARE');
-  const [description, setDescription] = useState('Utorrent installer.exe');
-  const [gameFile, setGameFile] = useState('https://drive.google.com/file/d/1Lz');
+  const [description, setDescription] = useState('');
+  const [gameFile, setGameFile] = useState('');
   const [linkType, setLinkType] = useState('EXT'); // GITHUB | FB | EXT
   const [successStatus, setSuccessStatus] = useState<string | null>(null);
+
+  // Google Drive Accounts dropdown list - strictly Primary G-Drive and Secondary G-Drive Mirror
+  const driveAccounts = [
+    { name: 'PRIMARY G-DRIVE // MAIN CLOUD', url: 'https://drive.google.com/file/d/1Lz' },
+    { name: 'SECONDARY G-DRIVE // CLOUD MIRROR', url: 'https://drive.google.com/file/d/1O_MSOfficeLTSC2021' },
+  ];
+  const [selectedDriveUrl, setSelectedDriveUrl] = useState<string>('CUSTOM_URL');
 
   // Decryption Passcode states
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -31,6 +44,29 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
   const [activeTab, setActiveTab] = useState<'uplink' | 'linked'>('uplink');
   const [unlinkTrigger, setUnlinkTrigger] = useState(0);
 
+  const handleAbortTransit = () => {
+    // 1. Reset all form input states
+    setGameTitle('');
+    setCategory('SOFTWARE');
+    setDescription('');
+    setGameFile('');
+    setLinkType('EXT');
+    setSelectedDriveUrl('CUSTOM_URL');
+    setSuccessStatus(null);
+    
+    // 2. Clear all custom entries signed up or configured in localStorage
+    localStorage.removeItem('custom_projects');
+    localStorage.removeItem('custom_tools');
+    localStorage.removeItem('admin_console_link');
+    
+    // Reset core reference link
+    setConsoleLink('https://drive.google.com');
+
+    // 3. Close the admin console and return to the home screen
+    setIsModalOpen(false);
+    setActiveTab('uplink');
+  };
+
   const getLinkedItems = () => {
     // Read from localStorage with fallback to predefined list
     const savedProjects = localStorage.getItem('custom_projects');
@@ -41,6 +77,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
         const isDbPlaceholder = proj.description?.includes('database') || proj.tags?.includes('C++');
         return {
           ...staticProj,
+          title: proj.title || staticProj.title,
           description: isDbPlaceholder ? staticProj.description : (proj.description || staticProj.description),
           link: proj.link || staticProj.link,
           tags: isDbPlaceholder ? staticProj.tags : (proj.tags || staticProj.tags)
@@ -86,6 +123,129 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
     ];
   };
 
+  const renderGoogleDriveDiagnostic = (url: string, setUrlValue?: (val: string) => void) => {
+    const trimmed = url.trim();
+    if (!trimmed) return null;
+
+    const isDrive = trimmed.includes('drive.google.com') || trimmed.includes('docs.google.com');
+    if (!isDrive) return null;
+
+    // Detect sharing structure
+    const isPublicLooking = trimmed.includes('usp=sharing') || trimmed.includes('/view') || trimmed.includes('/open?id=') || trimmed.includes('export=download');
+    
+    // Extract file or folder ID
+    let type = 'RESOURCE';
+    let fileId = '';
+    if (trimmed.includes('/file/d/')) {
+      type = 'FILE';
+      const parts = trimmed.split('/file/d/');
+      if (parts[1]) {
+        fileId = parts[1].split('/')[0];
+      }
+    } else if (trimmed.includes('/folders/')) {
+      type = 'FOLDER';
+      const parts = trimmed.split('/folders/');
+      if (parts[1]) {
+        fileId = parts[1].split('?')[0].split('/')[0];
+      }
+    } else if (trimmed.includes('/document/d/')) {
+      type = 'DOC';
+      const parts = trimmed.split('/document/d/');
+      if (parts[1]) {
+        fileId = parts[1].split('/')[0];
+      }
+    } else if (trimmed.includes('/spreadsheets/d/')) {
+      type = 'SHEET';
+      const parts = trimmed.split('/spreadsheets/d/');
+      if (parts[1]) {
+        fileId = parts[1].split('/')[0];
+      }
+    }
+
+    const hasPrivateIndicator = trimmed.includes('/edit');
+    const directDlLink = fileId && type === 'FILE' ? `https://docs.google.com/uc?export=download&id=${fileId}` : '';
+
+    return (
+      <div className="mt-3.5 p-4 bg-blue-50/70 border border-[#000080]/15 rounded-2xl text-left select-none animate-fadeIn transition-all">
+        <div className="flex items-start gap-3">
+          <div className="px-1.5 py-0.5 bg-[#000080]/10 text-[#000080] font-mono text-[8px] font-black rounded uppercase tracking-wider mt-0.5 shrink-0">
+            DRIVE ASSIST
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="text-[#000080] font-extrabold uppercase text-[10px] tracking-wide block mb-0.5">
+              Google Drive Link Diagnostic
+            </span>
+            <p className="text-[9px] uppercase tracking-wider text-neutral-600 leading-none font-mono">
+              DETECTED STATUS: <strong className="text-black">{type} SHARE LINK ID MATCHED</strong>
+            </p>
+            
+            {/* Checklist items */}
+            <div className="mt-3 space-y-2 border-t border-[#000080]/10 pt-2.5 font-mono text-[9px] uppercase tracking-wider text-[#555a64]">
+              {/* Permission check */}
+              <div className="flex items-start gap-1.5 text-neutral-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#000080] shrink-0 mt-1" />
+                <p className="leading-tight">
+                  🔑 <strong>Is Access Public?</strong> Google Drive files are strictly restricted by default. Ensure sharing is switched to <strong className="text-[#000080] font-bold">"Anyone with the link"</strong>!
+                </p>
+              </div>
+              
+              {/* Guidance checklist */}
+              <div className="pl-4 space-y-1 text-neutral-500 font-medium list-none text-[8.5px]">
+                <div>• In Drive, click <strong className="text-neutral-700 font-black">"SHARE"</strong> on your driver/utility file.</div>
+                <div>• Change access from <strong className="text-neutral-700">"RESTRICTED"</strong> to <strong className="text-neutral-700 font-bold bg-amber-100/50 px-1 py-0.5 rounded border border-amber-200">"ANYONE WITH THE LINK"</strong>.</div>
+                <div>• Copy the link and confirm it is pasted here.</div>
+              </div>
+
+              {hasPrivateIndicator && (
+                <div className="mt-2.5 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 flex items-start gap-1.5">
+                  <ShieldAlert size={12} className="shrink-0 mt-0.5 text-amber-600" />
+                  <div>
+                    <span className="font-extrabold text-[8.5px] block leading-none">⚠️ CONTAINS WORKSPACE EDIT TAG</span>
+                    <p className="text-[8px] font-medium leading-normal mt-1 uppercase text-neutral-600">
+                      This link contains "/edit" pointing to the file editor. Shared items are best linked using the sharing/viewer link form.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Direct Download Converter Button */}
+              {directDlLink && setUrlValue && trimmed !== directDlLink && (
+                <div className="mt-3 pt-1 border-t border-[#000080]/5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUrlValue(directDlLink);
+                    }}
+                    className="w-full text-center py-1.5 bg-white hover:bg-[#000080]/5 border border-[#000080]/20 hover:border-[#000080]/50 text-[#000080] font-black uppercase text-[8px] tracking-widest rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm font-mono active:scale-[0.98]"
+                  >
+                    <Sparkles size={9} className="animate-pulse" />
+                    CONVERT TO DIRECT DOWNLOAD SYSTEM LINK ⚡
+                  </button>
+                  <p className="text-[7.5px] text-neutral-400 mt-1 leading-normal text-center font-mono">
+                    Bypasses the Google Drive web previewer and downloads the driver package directly!
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Test Link Button */}
+            <div className="mt-3 flex justify-end">
+              <a
+                href={trimmed}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#000080] hover:bg-neutral-900 text-white hover:text-green-300 font-bold uppercase text-[8px] tracking-widest rounded-lg cursor-pointer font-mono shadow-sm transition-colors"
+              >
+                <ExternalLink size={9} />
+                <span>Test Link Open (Bypass Sandbox popup block)</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleUnlink = (id: string, type: 'SOFTWARE' | 'TOOL') => {
     if (type === 'SOFTWARE') {
       const saved = localStorage.getItem('custom_projects');
@@ -127,6 +287,161 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
     setTimeout(() => {
       setSuccessStatus(null);
     }, 850);
+  };
+
+  const handleSaveLink = (id: string, type: string) => {
+    const targetType = editCategoryValue.trim().toUpperCase(); // 'SOFTWARE' or 'TOOL'
+    const originalType = type.trim().toUpperCase(); // 'SOFTWARE' or 'TOOL'
+
+    if (targetType === originalType) {
+      // Regular save in place
+      if (originalType === 'SOFTWARE') {
+        const saved = localStorage.getItem('custom_projects');
+        const projectsList = saved ? JSON.parse(saved) : [...STATIC_PROJECTS];
+        
+        const existingIdx = projectsList.findIndex((p: any) => p.id === id);
+        if (existingIdx !== -1) {
+          projectsList[existingIdx].title = editNameValue.trim();
+          projectsList[existingIdx].description = editDescValue.trim();
+          projectsList[existingIdx].tags = [editProtocolValue.trim()];
+          projectsList[existingIdx].link = editLinkValue.trim();
+          localStorage.setItem('custom_projects', JSON.stringify(projectsList));
+        } else {
+          const staticProj = STATIC_PROJECTS.find(p => p.id === id);
+          const baseProj = staticProj || { id, title: '', description: '', tags: [] };
+          const newProj = {
+            ...baseProj,
+            title: editNameValue.trim(),
+            description: editDescValue.trim(),
+            tags: [editProtocolValue.trim()],
+            link: editLinkValue.trim()
+          };
+          projectsList.push(newProj);
+          localStorage.setItem('custom_projects', JSON.stringify(projectsList));
+        }
+      } else {
+        const saved = localStorage.getItem('custom_tools');
+        const toolsList = saved ? JSON.parse(saved) : [...STATIC_TOOLS];
+        
+        const existingIdx = toolsList.findIndex((t: any) => t.id === id);
+        if (existingIdx !== -1) {
+          toolsList[existingIdx].name = editNameValue.trim();
+          toolsList[existingIdx].description = editDescValue.trim();
+          toolsList[existingIdx].category = editProtocolValue.trim();
+          toolsList[existingIdx].link = editLinkValue.trim();
+          localStorage.setItem('custom_tools', JSON.stringify(toolsList));
+        } else {
+          const staticTool = STATIC_TOOLS.find(t => t.id === id);
+          const baseTool = staticTool || { id, name: '', description: '', category: 'EXT' };
+          const newTool = {
+            ...baseTool,
+            name: editNameValue.trim(),
+            description: editDescValue.trim(),
+            category: editProtocolValue.trim(),
+            link: editLinkValue.trim()
+          };
+          toolsList.push(newTool);
+          localStorage.setItem('custom_tools', JSON.stringify(toolsList));
+        }
+      }
+    } else {
+      // Category change (relocation)
+      // 1. Remove from original category list
+      if (originalType === 'SOFTWARE') {
+        const saved = localStorage.getItem('custom_projects');
+        if (saved) {
+          const projectsList = JSON.parse(saved);
+          const existingIdx = projectsList.findIndex((p: any) => p.id === id);
+          if (existingIdx !== -1) {
+            const isStatic = STATIC_PROJECTS.some(p => p.id === id);
+            let updatedList;
+            if (isStatic) {
+              updatedList = [...projectsList];
+              delete updatedList[existingIdx].link;
+            } else {
+              updatedList = projectsList.filter((p: any) => p.id !== id);
+            }
+            localStorage.setItem('custom_projects', JSON.stringify(updatedList));
+          }
+        }
+      } else {
+        const saved = localStorage.getItem('custom_tools');
+        if (saved) {
+          const toolsList = JSON.parse(saved);
+          const existingIdx = toolsList.findIndex((t: any) => t.id === id);
+          if (existingIdx !== -1) {
+            const isStatic = STATIC_TOOLS.some(t => t.id === id);
+            let updatedList;
+            if (isStatic) {
+              updatedList = [...toolsList];
+              delete updatedList[existingIdx].link;
+            } else {
+              updatedList = toolsList.filter((t: any) => t.id !== id);
+            }
+            localStorage.setItem('custom_tools', JSON.stringify(updatedList));
+          }
+        }
+      }
+
+      // 2. Add as fresh custom entry to target category list
+      if (targetType === 'SOFTWARE') {
+        const saved = localStorage.getItem('custom_projects');
+        const projectsList = saved ? JSON.parse(saved) : [...STATIC_PROJECTS];
+        const editName = editNameValue.trim();
+        const existingIdx = projectsList.findIndex((p: any) => p.title.toLowerCase().trim() === editName.toLowerCase());
+        
+        if (existingIdx !== -1) {
+          projectsList[existingIdx].title = editName;
+          projectsList[existingIdx].description = editDescValue.trim();
+          projectsList[existingIdx].tags = [editProtocolValue.trim()];
+          projectsList[existingIdx].link = editLinkValue.trim();
+        } else {
+          const newProj = {
+            id: String(Date.now()), // Brand new ID for the relocated item
+            title: editName,
+            description: editDescValue.trim(),
+            tags: [editProtocolValue.trim()],
+            link: editLinkValue.trim()
+          };
+          projectsList.push(newProj);
+        }
+        localStorage.setItem('custom_projects', JSON.stringify(projectsList));
+      } else {
+        const saved = localStorage.getItem('custom_tools');
+        const toolsList = saved ? JSON.parse(saved) : [...STATIC_TOOLS];
+        const editName = editNameValue.trim();
+        const existingIdx = toolsList.findIndex((t: any) => t.name.toLowerCase().trim() === editName.toLowerCase());
+        
+        if (existingIdx !== -1) {
+          toolsList[existingIdx].name = editName;
+          toolsList[existingIdx].description = editDescValue.trim();
+          toolsList[existingIdx].category = editProtocolValue.trim();
+          toolsList[existingIdx].link = editLinkValue.trim();
+        } else {
+          const newTool = {
+            id: String(Date.now()), // Brand new ID for the relocated item
+            name: editName,
+            description: editDescValue.trim(),
+            category: editProtocolValue.trim(),
+            link: editLinkValue.trim()
+          };
+          toolsList.push(newTool);
+        }
+        localStorage.setItem('custom_tools', JSON.stringify(toolsList));
+      }
+    }
+    
+    setEditingItemId(null);
+    setEditNameValue('');
+    setEditDescValue('');
+    setEditProtocolValue('EXT');
+    setEditCategoryValue('SOFTWARE');
+    setEditLinkValue('');
+    setUnlinkTrigger(prev => prev + 1);
+    setSuccessStatus('ITEM UPDATED SUCCESSFULLY');
+    setTimeout(() => {
+      setSuccessStatus(null);
+    }, 1000);
   };
 
   const handleUpdateProtocol = (e: FormEvent) => {
@@ -253,26 +568,26 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
       {/* Secure Passcode Decryption Modal */}
       <AnimatePresence>
         {showPasswordModal && (
-          <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-[#08090b] border-2 border-neutral-800/80 w-full max-w-sm rounded-3xl shadow-[0_0_50px_rgba(239,68,68,0.04)] relative z-50 overflow-hidden p-6 md:p-8 text-neutral-200 font-mono"
+              className="bg-white border-2 border-neutral-200 w-full max-w-sm rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-neutral-900 font-mono"
             >
               {/* Grid overlay decoration */}
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-30" />
-              <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-red-500/30 rounded-tl-lg pointer-events-none" />
-              <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-red-500/30 rounded-tr-lg pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-red-500/30 rounded-bl-lg pointer-events-none" />
-              <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-red-500/30 rounded-br-lg pointer-events-none" />
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-30" />
+              <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-red-500/20 rounded-tl-lg pointer-events-none" />
+              <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-red-500/20 rounded-tr-lg pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-red-500/20 rounded-bl-lg pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-red-500/20 rounded-br-lg pointer-events-none" />
 
               {/* Close Button UI */}
-              <div className="flex justify-between items-center mb-6 pb-3 border-b border-neutral-900 relative z-10">
+              <div className="flex justify-between items-center mb-6 pb-3 border-b border-neutral-100 relative z-10">
                 <div className="flex items-center gap-2">
-                  <Lock className="text-red-500/85 w-3.5 h-3.5 animate-pulse" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-500">Access Restricted</span>
+                  <Lock className="text-red-500 w-3.5 h-3.5 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-600">Access Restricted</span>
                 </div>
                 <button
                   type="button"
@@ -281,7 +596,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                     setPasswordError('');
                     setPasswordInput('');
                   }}
-                  className="p-1 hover:bg-neutral-950 text-neutral-500 hover:text-white rounded-md transition-colors cursor-pointer"
+                  className="p-1 hover:bg-neutral-100 text-neutral-400 hover:text-black rounded-md transition-colors cursor-pointer"
                   title="Close secure prompt"
                 >
                   <X size={16} />
@@ -290,10 +605,10 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
 
               {/* Icon & Message */}
               <div className="text-center mb-6 relative z-10">
-                <div className="w-12 h-12 rounded-full bg-red-950/20 border border-red-500/20 flex items-center justify-center mx-auto mb-3">
-                  <ShieldAlert className="text-red-500 w-6 h-6 animate-pulse" />
+                <div className="w-12 h-12 rounded-full bg-red-50 border border-red-100 flex items-center justify-center mx-auto mb-3">
+                  <ShieldAlert className="text-red-500 w-6 h-6" />
                 </div>
-                <h4 className="text-xs uppercase tracking-[0.2em] font-black text-neutral-300 mb-1">Decryption Key Required</h4>
+                <h4 className="text-xs uppercase tracking-[0.2em] font-black text-neutral-800 mb-1">Decryption Key Required</h4>
                 <p className="text-[9px] uppercase tracking-wider text-neutral-500 leading-relaxed">
                   Enter admin passcode to authorize tactical cog-uplink connection.
                 </p>
@@ -325,7 +640,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                       if (passwordError) setPasswordError('');
                     }}
                     placeholder="ENTER PASSCODE"
-                    className="w-full text-center rounded-xl bg-neutral-950/80 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-red-500/85 focus:ring-1 focus:ring-red-500/20 outline-none transition-all placeholder:text-neutral-800 font-semibold uppercase tracking-[0.15em]"
+                    className="w-full text-center rounded-xl bg-neutral-50 border border-neutral-200 p-3 text-black font-mono text-xs focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-all placeholder:text-neutral-300 font-semibold uppercase tracking-[0.15em]"
                     autoFocus
                     required
                   />
@@ -338,14 +653,11 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                       ☠ {passwordError} ☠
                     </motion.p>
                   )}
-                  <p className="text-[8px] text-neutral-600 uppercase text-center mt-3 tracking-wider">
-                    Hint: Use passcode <span className="text-neutral-400 font-bold font-mono">KGab0730</span> to authorize
-                  </p>
                 </div>
 
                 <button 
                   type="submit"
-                  className="w-full py-2.5 bg-red-950/20 hover:bg-red-950/40 border border-red-500/20 hover:border-red-500/40 text-red-400 font-black uppercase tracking-[0.2em] text-[9px] rounded-xl transition-all cursor-pointer select-none active:scale-95"
+                  className="w-full py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black uppercase tracking-[0.2em] text-[9px] rounded-xl transition-all cursor-pointer select-none active:scale-95"
                 >
                   DECRYPT & AUTHENTICATE
                 </button>
@@ -358,13 +670,13 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
       {/* High-Fidelity Tactical Uplink Console (Original, cybernetic double-column editor) */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto">
             <motion.div 
               initial={{ opacity: 0, scale: 0.96, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 30 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-[#08090b] border-2 border-neutral-800/60 w-full max-w-xl rounded-3xl shadow-[0_0_80px_rgba(6,182,212,0.06)] relative z-50 overflow-hidden p-6 md:p-8 text-neutral-200 font-mono"
+              className="bg-white border-2 border-neutral-200 w-full max-w-xl rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-neutral-950 font-mono"
             >
               {/* Interactive Holographic style overrides */}
               <style dangerouslySetInnerHTML={{__html: `
@@ -388,11 +700,11 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
               `}} />
 
               {/* Futuristic Grid Overlay decoration */}
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40" />
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-cyan-500/40 rounded-tl-xl pointer-events-none" />
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-cyan-500/40 rounded-tr-xl pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-cyan-500/40 rounded-bl-xl pointer-events-none" />
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-cyan-500/40 rounded-br-xl pointer-events-none" />
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.015)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-30" />
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-900/15 rounded-tl-xl pointer-events-none" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-900/15 rounded-tr-xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-900/15 rounded-bl-xl pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-900/15 rounded-br-xl pointer-events-none" />
 
               {/* Success Toast Overlay inside Modal */}
               <AnimatePresence>
@@ -401,48 +713,48 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-x-0 inset-y-0 bg-[#08090b]/98 backdrop-blur-md z-50 flex flex-col items-center justify-center text-center p-6 gap-4"
+                    className="absolute inset-x-0 inset-y-0 bg-white/98 z-50 flex flex-col items-center justify-center text-center p-6 gap-4"
                   >
                     <div className="relative">
-                      <div className="absolute inset-0 bg-cyan-400/30 rounded-full blur-xl animate-pulse" />
-                      <CheckCircle className="text-cyan-400 w-20 h-20 animate-bounce relative z-10" />
+                      <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
+                      <CheckCircle className="text-[#000080] w-20 h-20 animate-bounce relative z-10" />
                     </div>
                     <div>
-                      <h3 className="text-cyan-400 font-black uppercase text-lg tracking-[0.4em] mb-1">{successStatus}</h3>
-                      <p className="text-neutral-400 font-mono text-[10px] uppercase tracking-widest max-w-md mx-auto">
+                      <h3 className="text-[#000080] font-black uppercase text-lg tracking-[0.4em] mb-1">{successStatus}</h3>
+                      <p className="text-neutral-500 font-mono text-[10px] uppercase tracking-widest max-w-md mx-auto">
                         Data packets synchronized // Virtual memory addresses mapped successfully
                       </p>
                     </div>
-                    <div className="h-[2px] w-32 bg-cyan-950 rounded-full overflow-hidden mt-2">
-                      <div className="h-full bg-cyan-400 w-full animate-infinite-loading" />
+                    <div className="h-[2px] w-32 bg-neutral-100 rounded-full overflow-hidden mt-2">
+                      <div className="h-full bg-[#000080] w-full animate-infinite-loading" />
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
               {/* Header Interface */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-neutral-900 gap-4 relative z-10">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-neutral-100 gap-4 relative z-10">
                 <div className="flex items-center gap-3">
-                  <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-950/40 border border-cyan-500/30">
-                    <Activity size={14} className="text-cyan-400 animate-pulse" />
+                  <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 border border-blue-900/10">
+                    <Activity size={14} className="text-[#000080] animate-pulse" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping" />
-                      <span className="text-xs uppercase tracking-[0.25em] text-cyan-400 font-black">TACTICAL COG-UPLINK</span>
+                      <span className="w-1.5 h-1.5 bg-[#000080] rounded-full animate-ping" />
+                      <span className="text-xs uppercase tracking-[0.25em] text-[#000080] font-black">TACTICAL COG-UPLINK</span>
                     </div>
-                    <p className="text-[9px] uppercase tracking-widest text-[#555a64] mt-0.5">CONSOLE TERMINAL v2.5 // SECURITY: RESTRICTED</p>
+                    <p className="text-[9px] uppercase tracking-widest text-[#555a64] mt-0.5 animate-pulse">CONSOLE TERMINAL v2.5 // SECURITY: RESTRICTED</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                  <div className="px-2.5 py-1 bg-neutral-900 border border-neutral-800 rounded-md text-[9px] uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <div className="px-2.5 py-1 bg-neutral-50 border border-neutral-200 rounded-md text-[9px] uppercase tracking-wider text-neutral-600 flex items-center gap-1.5 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     LINK: COMPATIBLE
                   </div>
                   <button 
                     onClick={() => setIsModalOpen(false)}
-                    className="p-1.5 hover:bg-neutral-950 text-neutral-400 hover:text-white rounded-lg transition-colors cursor-pointer border border-transparent hover:border-neutral-800"
+                    className="p-1.5 hover:bg-neutral-100 text-neutral-400 hover:text-black rounded-lg transition-colors cursor-pointer border border-transparent hover:border-neutral-200"
                     title="Close console uplink"
                   >
                     <X size={18} />
@@ -451,14 +763,14 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
               </div>
 
               {/* Tabs Switcher */}
-              <div className="flex border-b border-neutral-900 mb-5 relative z-10">
+              <div className="flex border-b border-neutral-100 mb-5 relative z-10">
                 <button
                   type="button"
                   onClick={() => setActiveTab('uplink')}
                   className={`pb-2.5 px-3 font-mono text-[10px] uppercase tracking-[0.2em] font-bold border-b-2 transition-all cursor-pointer ${
                     activeTab === 'uplink'
-                      ? 'border-cyan-400 text-cyan-400 font-extrabold'
-                      : 'border-transparent text-neutral-500 hover:text-neutral-300'
+                      ? 'border-[#000080] text-[#000080] font-extrabold'
+                      : 'border-transparent text-neutral-400 hover:text-neutral-600'
                   }`}
                 >
                   [01] LINK UPLINK PROTOCOL
@@ -468,13 +780,13 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                   onClick={() => setActiveTab('linked')}
                   className={`pb-2.5 px-3 font-mono text-[10px] uppercase tracking-[0.2em] font-bold border-b-2 transition-all cursor-pointer relative ${
                     activeTab === 'linked'
-                      ? 'border-cyan-400 text-cyan-400 font-extrabold'
-                      : 'border-transparent text-neutral-500 hover:text-neutral-300'
+                      ? 'border-[#000080] text-[#000080] font-extrabold'
+                      : 'border-transparent text-neutral-400 hover:text-neutral-600'
                   }`}
                 >
                   [02] VIEW LINKED DIRECTORY
                   {getLinkedItems().length > 0 && (
-                    <span className="ml-1.5 px-1.5 py-0.5 bg-cyan-500 text-black font-black text-[9px] rounded-full">
+                    <span className="ml-1.5 px-1.5 py-0.5 bg-[#000080] text-white font-black text-[9px] rounded-full">
                       {getLinkedItems().length}
                     </span>
                   )}
@@ -487,7 +799,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                   
                   {/* PROGRAM ID */}
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-500/80 mb-1.5 block">
+                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#000080] mb-1.5 block">
                       [01] PROGRAM OR GAME ID
                     </label>
                     <input 
@@ -495,7 +807,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                       value={gameTitle}
                       onChange={(e) => setGameTitle(e.target.value)}
                       placeholder="e.g. UTORRENT"
-                      className="w-full rounded-xl bg-neutral-950/80 hover:bg-neutral-950 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-cyan-500/90 focus:ring-1 focus:ring-cyan-500/20 outline-none uppercase transition-all placeholder:text-neutral-700 font-semibold"
+                      className="w-full rounded-xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 p-3 text-black font-mono text-xs focus:border-[#000080] focus:ring-1 focus:ring-[#000080]/15 outline-none uppercase transition-all placeholder:text-neutral-300 font-semibold"
                       required
                     />
                   </div>
@@ -503,29 +815,29 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                   {/* CATEGORY & PROTOCOL TYPE */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-500/80 mb-1.5 block">
+                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#000080] mb-1.5 block">
                         [02] TARGET MEMORY CATEGORY
                       </label>
                       <div className="relative">
                         <select
                           value={category}
                           onChange={(e) => setCategory(e.target.value)}
-                          className="w-full rounded-xl bg-neutral-950/80 border border-neutral-800 p-3 pr-10 text-white font-mono text-xs focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer hover:bg-[#0e0f12]"
+                          className="w-full rounded-xl bg-neutral-50 border border-neutral-200 p-3 pr-10 text-black font-mono text-xs focus:border-[#000080] outline-none transition-all appearance-none cursor-pointer hover:bg-neutral-100"
                         >
                           <option value="SOFTWARE">SOFTWARE DIRECTORY [01]</option>
                           <option value="TOOLS">END-USER UTILITIES [04]</option>
                         </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-neutral-500">
-                          <ChevronRight size={13} className="rotate-90 text-cyan-400" />
+                        <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-[#000080]">
+                          <ChevronRight size={13} className="rotate-90 text-[#000080]" />
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-500/80 mb-1.5 block">
+                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#000080] mb-1.5 block">
                         [03] PROTOCOL TYPE
                       </label>
-                      <div className="flex bg-neutral-950/80 border border-neutral-800 rounded-xl p-1 gap-1 h-[42px] items-center">
+                      <div className="flex bg-neutral-50 border border-neutral-200 rounded-xl p-1 gap-1 h-[42px] items-center">
                         {['GITHUB', 'FB', 'EXT'].map((opt) => (
                           <button
                             key={opt}
@@ -533,8 +845,8 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                             onClick={() => setLinkType(opt)}
                             className={`flex-1 text-center py-1.5 font-mono text-[9px] font-black uppercase tracking-widest rounded-lg transition-all select-none cursor-pointer ${
                               linkType === opt 
-                                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold' 
-                                : 'text-neutral-500 hover:text-neutral-300'
+                                ? 'bg-[#000080]/5 text-[#000080] border border-[#000080]/10 font-bold' 
+                                : 'text-neutral-400 hover:text-neutral-600'
                             }`}
                           >
                             {opt}
@@ -546,7 +858,7 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
 
                   {/* DESCRIPTION */}
                   <div>
-                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-500/80 mb-1.5 block">
+                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#000080] mb-1.5 block">
                       [04] BINARY OR CONTEXT SHORT DESCRIPTION
                     </label>
                     <textarea 
@@ -554,44 +866,87 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Provide details about installer and system dependencies..."
                       rows={2}
-                      className="w-full rounded-xl bg-neutral-950/80 hover:bg-neutral-950 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 outline-none transition-all resize-none placeholder:text-neutral-700"
+                      className="w-full rounded-xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 p-3 text-black font-mono text-xs focus:border-[#000080] focus:ring-1 focus:ring-[#000080]/15 outline-none transition-all resize-none placeholder:text-neutral-300"
                       required
                     />
                   </div>
 
                   {/* FILE LINK */}
-                  <div>
-                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-500/80 mb-1.5 block">
+                  <div className="space-y-3">
+                    <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#000080] block">
                       [05] FILE LINK (DRIVE FILE / DOWNLOAD)
                     </label>
-                    <div className="relative flex items-center">
-                      <LinkIcon size={13} className="text-neutral-600 absolute left-3.5" />
-                      <input 
-                        type="text" 
-                        value={gameFile}
-                        onChange={(e) => setGameFile(e.target.value)}
-                        placeholder="File destination URL"
-                        className="w-full rounded-xl bg-neutral-950/80 hover:bg-neutral-950 border border-neutral-800 pl-10 pr-3 py-3 text-white font-mono text-xs focus:border-cyan-500/90 outline-none transition-all placeholder:text-neutral-700 font-semibold"
-                        required
-                      />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                      {/* Select Drive Dropdown */}
+                      <div className="relative sm:col-span-5">
+                        <select
+                          value={selectedDriveUrl}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSelectedDriveUrl(val);
+                            if (val !== 'CUSTOM_URL') {
+                              setGameFile(val);
+                            }
+                          }}
+                          className="w-full rounded-xl bg-neutral-50 border border-neutral-200 p-3 pr-10 text-black font-mono text-xs focus:border-[#000080] outline-none transition-all appearance-none cursor-pointer hover:bg-neutral-100 font-semibold uppercase"
+                        >
+                          {driveAccounts.map((account, index) => (
+                            <option key={index} value={account.url} className="text-black bg-white uppercase">
+                              {account.name}
+                            </option>
+                          ))}
+                          <option value="CUSTOM_URL" className="text-[#000080] bg-white font-black uppercase">
+                            ⚙ [CUSTOM URL / MANUAL INPUT]
+                          </option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-[#000080]">
+                          <ChevronRight size={13} className="rotate-90 text-[#000080]" />
+                        </div>
+                      </div>
+
+                      {/* Display / edit input URL based on selection */}
+                      <div className="relative flex items-center sm:col-span-7">
+                        <LinkIcon size={13} className="text-neutral-450 absolute left-3.5" />
+                        <input 
+                          type="text" 
+                          value={gameFile}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setGameFile(val);
+                            // If user edits the text, check if it matches any pre-existing drive account URL, 
+                            // otherwise switch to CUSTOM_URL
+                            const matchedAccount = driveAccounts.find(acc => acc.url === val);
+                            if (matchedAccount) {
+                              setSelectedDriveUrl(val);
+                            } else {
+                              setSelectedDriveUrl('CUSTOM_URL');
+                            }
+                          }}
+                          placeholder="Enter your file destination URL (e.g. Google Drive link)"
+                          className="w-full rounded-xl border bg-white border-neutral-300 focus:border-[#000080]/90 placeholder:text-neutral-400 pl-10 pr-3 py-3 text-black font-mono text-xs outline-none transition-all font-semibold"
+                          required
+                        />
+                      </div>
                     </div>
+                    {renderGoogleDriveDiagnostic(gameFile, setGameFile)}
                   </div>
 
                   {/* Cancel / Sync Footer Controls */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-neutral-900 mt-6 gap-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-neutral-100 mt-6 gap-4">
                     <button 
                       type="button"
-                      onClick={() => setIsModalOpen(false)}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-neutral-950 border border-neutral-800 hover:border-neutral-700 rounded-xl font-mono text-[10px] uppercase tracking-[0.15em] hover:text-white transition-all cursor-pointer text-center text-neutral-400"
+                      onClick={handleAbortTransit}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-neutral-50 border border-neutral-200 hover:border-neutral-300 rounded-xl font-mono text-[10px] uppercase tracking-[0.15em] text-neutral-600 hover:text-black transition-all cursor-pointer text-center"
                     >
                       ABORT TRANSIT
                     </button>
                     
                     <button 
                       type="submit"
-                      className="w-full sm:w-auto relative group flex items-center justify-center gap-2 px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer shadow-[0_0_20px_rgba(6,182,212,0.2)] active:scale-95"
+                      className="w-full sm:w-auto relative group flex items-center justify-center gap-2 px-6 py-2.5 bg-[#000080] hover:bg-blue-900 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer shadow-lg active:scale-95"
                     >
-                      <Sparkles size={12} className="text-black group-hover:rotate-12 transition-transform" />
+                      <Sparkles size={12} className="text-white group-hover:rotate-12 transition-transform" />
                       SYNC UPLINK PROTOCOL
                     </button>
                   </div>
@@ -602,10 +957,10 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                 <div className="space-y-4 relative z-10 flex flex-col h-[340px]">
                   <div className="flex-1 overflow-y-auto pr-1 space-y-3 select-none">
                     {getLinkedItems().length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-800/80 rounded-2xl">
-                        <LinkIcon className="text-neutral-700 w-10 h-10 mb-2 animate-pulse" />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">No active links registered</span>
-                        <p className="text-[9px] uppercase tracking-wider text-neutral-600 mt-1 max-w-xs">
+                      <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-200 bg-neutral-50 rounded-2xl">
+                        <LinkIcon className="text-neutral-300 w-10 h-10 mb-2" />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">No active links registered</span>
+                        <p className="text-[9px] uppercase tracking-wider text-neutral-500 mt-1 max-w-xs">
                           Uplink a software directory program or end-user utility to populate terminal memory.
                         </p>
                       </div>
@@ -613,52 +968,151 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                       getLinkedItems().map((item) => (
                         <div 
                           key={`${item.type}-${item.id}`}
-                          className="p-4 rounded-xl bg-neutral-950/80 border border-neutral-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-cyan-500/30 transition-all group"
+                          className="p-4 rounded-xl bg-neutral-50 border border-neutral-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-neutral-300 transition-all group"
                         >
-                          <div className="min-w-0 flex-1">
+                          <div className="min-w-0 flex-1 w-full">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <span className={`text-[8px] font-bold font-mono px-1.5 py-0.5 rounded ${
                                 item.type === 'SOFTWARE' 
-                                  ? 'bg-[#1e1a12] text-[#f59e0b] border border-[#f59e0b]/20' 
-                                  : 'bg-[#12222a] text-cyan-400 border border-cyan-500/20'
+                                  ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                                  : 'bg-blue-50 text-[#000080] border border-blue-200'
                               }`}>
                                 {item.type}
                               </span>
                               <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-400">
                                 {item.protocol}
                               </span>
-                              <h4 className="text-xs uppercase font-black tracking-tight text-white truncate max-w-[160px]">
+                              <h4 className="text-xs uppercase font-extrabold tracking-tight text-neutral-900 truncate max-w-[160px]">
                                 {item.name}
                               </h4>
                             </div>
                             <p className="text-[10px] text-neutral-500 truncate max-w-[340px] mb-1.5">
                               {item.description}
                             </p>
-                            <span 
-                              className="text-[9px] text-cyan-500/80 hover:text-cyan-400 hover:underline cursor-pointer break-all block font-medium"
-                              onClick={() => window.open(item.link, '_blank', 'noopener,noreferrer')}
-                            >
-                              {item.link}
-                            </span>
+                            
+                            {editingItemId?.id === item.id && editingItemId?.type === item.type ? (
+                              <div className="mt-2 p-3 bg-neutral-100 rounded-xl border border-neutral-300 flex flex-col gap-2.5 w-full text-left">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                  <div>
+                                    <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider block mb-0.5 font-mono">ITEM NAME / TITLE</label>
+                                    <input
+                                      type="text"
+                                      value={editNameValue}
+                                      onChange={(e) => setEditNameValue(e.target.value)}
+                                      className="w-full bg-white border border-neutral-300 rounded-lg px-2 py-1 text-[10px] uppercase font-bold text-black outline-none focus:border-[#000080] font-mono"
+                                      placeholder="Name / Title"
+                                      autoFocus
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider block mb-0.5 font-mono">TARGET MEMORY CATEGORY</label>
+                                    <select
+                                      value={editCategoryValue}
+                                      onChange={(e) => setEditCategoryValue(e.target.value)}
+                                      className="w-full bg-white border border-neutral-300 rounded-lg px-1.5 py-[5px] text-[10px] uppercase font-bold text-[#000080] outline-none focus:border-[#000080] font-mono cursor-pointer"
+                                    >
+                                      <option value="SOFTWARE">SOFTWARE DIRECTORY</option>
+                                      <option value="TOOL">END-USER UTILITY</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider block mb-0.5 font-mono">PROTOCOL TYPE</label>
+                                    <input
+                                      type="text"
+                                      value={editProtocolValue}
+                                      onChange={(e) => setEditProtocolValue(e.target.value)}
+                                      className="w-full bg-white border border-neutral-300 rounded-lg px-2 py-1 text-[10px] uppercase font-bold text-black outline-none focus:border-[#000080] font-mono"
+                                      placeholder="e.g. EXT, GITHUB, FB"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider block mb-0.5 font-mono">DESCRIPTION</label>
+                                  <input
+                                    type="text"
+                                    value={editDescValue}
+                                    onChange={(e) => setEditDescValue(e.target.value)}
+                                    className="w-full bg-white border border-neutral-300 rounded-lg px-2 py-1 text-[10.5px] text-neutral-700 outline-none focus:border-[#000080] font-mono"
+                                    placeholder="Enter short description..."
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider block mb-0.5 font-mono">FILE DESTINATION URL</label>
+                                  <input
+                                    type="text"
+                                    value={editLinkValue}
+                                    onChange={(e) => setEditLinkValue(e.target.value)}
+                                    className="w-full bg-white border border-neutral-300 rounded-lg px-2.5 py-1 text-[10.5px] font-mono text-black outline-none focus:border-[#000080]"
+                                    placeholder="Enter URL link..."
+                                  />
+                                  {renderGoogleDriveDiagnostic(editLinkValue, setEditLinkValue)}
+                                </div>
+                                <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-neutral-250 font-mono">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveLink(item.id, item.type)}
+                                    className="px-2.5 py-1 bg-[#000080] hover:bg-[#0000df] text-white text-[9px] uppercase tracking-wider font-extrabold rounded-md flex items-center gap-1 cursor-pointer transition-colors"
+                                  >
+                                    <Check size={10} /> Save Changes
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingItemId(null)}
+                                    className="px-2.5 py-1 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 text-[9px] uppercase tracking-wider font-extrabold rounded-md flex items-center gap-1 cursor-pointer transition-colors"
+                                  >
+                                    <X size={10} /> Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <a 
+                                href={item.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[9px] text-[#000080] hover:text-[#0000df] hover:underline cursor-pointer break-all block font-medium"
+                              >
+                                {item.link}
+                              </a>
+                            )}
                           </div>
                           
                           <div className="flex items-center gap-2 shrink-0 self-end sm:self-center w-full sm:w-auto justify-end">
-                            <button
-                              type="button"
-                              onClick={() => window.open(item.link, '_blank', 'noopener,noreferrer')}
-                              className="px-3 py-1.5 bg-neutral-900 border border-neutral-800 hover:bg-neutral-850 text-neutral-300 hover:text-cyan-400 font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded-lg cursor-pointer flex items-center gap-1"
-                              title="Go to file destination"
-                            >
-                              Open <ExternalLink size={10} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleUnlink(item.id, item.type as any)}
-                              className="p-1.5 hover:bg-red-500/10 hover:text-red-400 text-neutral-500 border border-transparent hover:border-red-500/20 rounded-lg transition-all cursor-pointer"
-                              title="Sever uplink"
-                            >
-                              <Trash2 size={13} />
-                            </button>
+                            {!(editingItemId?.id === item.id && editingItemId?.type === item.type) ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingItemId({ id: item.id, type: item.type });
+                                    setEditNameValue(item.name || '');
+                                    setEditDescValue(item.description || '');
+                                    setEditProtocolValue(item.protocol || 'EXT');
+                                    setEditCategoryValue(item.type);
+                                    setEditLinkValue(item.link || '');
+                                  }}
+                                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-600 hover:text-black font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded-lg cursor-pointer flex items-center gap-1"
+                                  title="Edit item attributes"
+                                >
+                                  <Pencil size={10} /> Edit
+                                </button>
+                                <a
+                                  href={item.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 hover:text-[#000080] font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded-lg cursor-pointer flex items-center gap-1 no-underline"
+                                  title="Go to file destination"
+                                >
+                                  Open <ExternalLink size={10} />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUnlink(item.id, item.type as any)}
+                                  className="p-1.5 hover:bg-red-50 hover:text-red-600 text-neutral-450 border border-transparent hover:border-red-200 rounded-lg transition-all cursor-pointer"
+                                  title="Sever uplink"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </>
+                            ) : null}
                           </div>
                         </div>
                       ))
@@ -666,14 +1120,14 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
                   </div>
                   
                   {/* Cancel Controls */}
-                  <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-2 shrink-0">
-                    <span className="text-[8px] uppercase tracking-[0.15em] text-[#555a64]">
+                  <div className="flex items-center justify-between pt-4 border-t border-neutral-100 mt-2 shrink-0">
+                    <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-450">
                       SECURE TERMINAL DIRECTORY INDEX
                     </span>
                     <button 
                       type="button"
                       onClick={() => setIsModalOpen(false)}
-                      className="px-4 py-2 bg-neutral-950 border border-neutral-800 hover:border-neutral-700 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] hover:text-white transition-all cursor-pointer text-center text-neutral-400"
+                      className="px-4 py-2 bg-neutral-50 border border-neutral-200 hover:border-neutral-300 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] text-neutral-600 hover:text-black transition-all cursor-pointer text-center"
                     >
                       DISCONNECT CONSOLE
                     </button>
