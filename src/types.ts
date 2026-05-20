@@ -28,4 +28,6 @@ export interface Tool {
   version: string;
   description: string;
   category: string;
+  link?: string;
+  image?: string;
 }

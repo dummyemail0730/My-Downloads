@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Folder } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
 import MusicView from './components/MusicView';
@@ -13,7 +14,7 @@ const TABS = [
   { id: 'SOFTWARE', label: '01 Software' },
   { id: 'MUSIC', label: '02 Music' },
   { id: 'PHOTOS', label: '03 Photos' },
-  { id: 'TOOLS', label: '04 Dev Tools' }
+  { id: 'TOOLS', label: '04 End-User Tools' }
 ];
 
 export default function App() {
@@ -82,10 +83,10 @@ export default function App() {
           <header className="h-24 border-b border-black flex items-center justify-between px-8 bg-white/90 backdrop-blur-sm shrink-0 pointer-events-none sm:pointer-events-auto">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-black flex items-center justify-center cursor-default hover:bg-gray-800 transition-colors pointer-events-auto">
-              <span className="text-white font-black text-xl">A</span>
+              <Folder className="text-white" size={20} strokeWidth={2.5} />
             </div>
             <div>
-              <h1 className="text-xl font-black uppercase tracking-tighter leading-none">Data Depository</h1>
+              <h1 className="text-xl font-black uppercase tracking-tighter leading-none">Tech Archive</h1>
               <p className="text-[10px] uppercase tracking-widest opacity-60">Design & Development / 2026 Edition</p>
             </div>
           </div>

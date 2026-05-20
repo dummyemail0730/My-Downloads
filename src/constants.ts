@@ -1,41 +1,54 @@
 import { Project, Track, Photo, Tool } from './types';
+import shadowOnRoof from './assets/images/shadow_on_roof_1779250618867.png';
+import shadowDarkBlade from './assets/images/shadow_dark_blade_1779250640689.png';
+import shadowMysteriousAura from './assets/images/shadow_mysterious_aura_1779250659900.png';
+import shadowMoonRain from './assets/images/shadow_moon_rain_1779250676888.png';
+import shadowNeonElectricity from './assets/images/shadow_neon_electricity_1779250694461.png';
+import shadowClockTower from './assets/images/shadow_clock_tower_1779250710506.png';
 
 export const PROJECTS: Project[] = [
   {
     id: '1',
     title: 'G.S. W11 ISO',
-    description: 'A high-performance real-time raytracing renderer for distributed systems using Rust and Vulkan.',
+    description: 'all-in-one, bootable Windows Preinstallation Environment (WinPE)',
     tags: ['Rust', 'Vulkan', 'Graphics'],
+    image: shadowOnRoof,
   },
   {
     id: '2',
     title: 'G.S W10 ISO',
     description: 'A minimalist design system component library for enterprise dashboard applications.',
     tags: ['React', 'Tailwind', 'Design Systems'],
+    image: shadowDarkBlade,
   },
   {
     id: '3',
-    title: 'Nexus DB',
-    description: 'High-concurrency time-series database optimized for financial telemetry and ultra-low latency.',
-    tags: ['C++', 'NoSQL', 'Database'],
+    title: 'Microsoft Office',
+    description: 'Complete productivity suite featuring Microsoft Word, Excel, PowerPoint, and Outlook pre-activated and pre-configured.',
+    tags: ['Office', 'Utility', 'Productivity'],
+    image: shadowMysteriousAura,
+    link: 'https://drive.google.com/file/d/1O_MSOfficeLTSC2021',
   },
   {
     id: '4',
     title: 'Omni Script',
     description: 'Custom scripting language for procedural animation and generative architecture patterns.',
     tags: ['LLVM', 'Compiler', 'Generative'],
+    image: shadowMoonRain,
   },
   {
     id: '5',
     title: 'Aether CMS',
     description: 'Headless content management system with a focus on developer experience and speed.',
     tags: ['Go', 'PostgreSQL', 'API'],
+    image: shadowNeonElectricity,
   },
   {
     id: '6',
     title: 'Nova Dashboard',
     description: 'Real-time analytics engine with modular layout components and D3 integrations.',
     tags: ['TypeScript', 'D3.js', 'React'],
+    image: shadowClockTower,
   }
 ];
 
@@ -58,7 +71,7 @@ export const PHOTOS: Photo[] = [
 ];
 
 export const TOOLS: Tool[] = [
-  { id: '1', name: 'TECHNICAL TOOLKIT', version: '2.4.0', description: 'modified version of Windows 11 designed to be lightweight', category: 'W10 & W11' },
+  { id: '1', name: 'TECHNICAL TOOLKIT', version: '2.4.0', description: 'all-in-one, bootable Windows Preinstallation Environment (WinPE)', category: 'W10 & W11' },
   { id: '2', name: '3DP CHIP', version: '1.2.1', description: 'driver utility', category: 'W10 & OLDER' },
   { id: '3', name: 'DDU', version: '0.8.5', description: 'Display Driver Uninstaller', category: 'W11, W10, W8, W7,' },
   { id: '4', name: 'CPU-Z', version: '1.0.2', description: 'system profiling and monitoring utility', category: 'W11, W10, W8,W7, Vista, & XP' },
