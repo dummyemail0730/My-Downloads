@@ -298,7 +298,7 @@ export default function App() {
   return (
     <div className="h-screen w-full flex flex-col bg-bg-primary text-text-main overflow-hidden relative">
         {/* Ambient Background Image */}
-        <div className="absolute inset-0 z-0 opacity-[0.05] pointer-events-none">
+        <div className="absolute inset-0 z-0 opacity-[0.15] pointer-events-none">
           <img 
             src={shadowBg} 
             alt="" 

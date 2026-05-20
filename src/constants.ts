@@ -64,12 +64,12 @@ export const TRACKS: Track[] = [
 ];
 
 export const PHOTOS: Photo[] = [
-  { id: '1', url: 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e', caption: 'Golden Hour in Kyoto', location: 'Japan' },
-  { id: '2', url: 'https://images.unsplash.com/photo-1449034446853-66c86144b0ad', caption: 'Golden Gate Bridge Fog', location: 'San Francisco' },
-  { id: '3', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b', caption: 'Misty Alpine Peaks', location: 'Switzerland' },
-  { id: '4', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb', caption: 'Mirror Lake Reflection', location: 'Yosemite' },
-  { id: '5', url: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e', caption: 'Rural Horizon', location: 'Italy' },
-  { id: '6', url: 'https://images.unsplash.com/photo-1433838552652-f9a46b332c40', caption: 'Floating Balloons', location: 'Cappadocia' },
+  { id: '1', url: shadowOnRoof, caption: 'Shadow on the Roof', location: 'Midgar Kingdom' },
+  { id: '2', url: shadowDarkBlade, caption: 'Cid Kagenou’s Blade', location: 'Shadow Garden HQ' },
+  { id: '3', url: shadowMysteriousAura, caption: 'I Am Atomic Aura', location: 'Sanctuary' },
+  { id: '4', url: shadowMoonRain, caption: 'Midnight Rain Shadow', location: 'Alexia Castle' },
+  { id: '5', url: shadowNeonElectricity, caption: 'Overdrive Energy Core', location: 'Corporate Sector' },
+  { id: '6', url: shadowClockTower, caption: 'Clock Tower Sentinel', location: 'Lawless City' },
 ];
 
 export const TOOLS: Tool[] = [

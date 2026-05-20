@@ -1,21 +1,21 @@
 import { motion } from 'motion/react';
 import { Cpu, Binary } from 'lucide-react';
 
-import hardwareBg from '../assets/images/hardware_background_1779204942117.png';
-import systemRecoveryBg from '../assets/images/system_recovery_bg_1779205058378.png';
+import shadowMysteriousAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
+import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
 
 const SKILLS = [
   {
     category: "Hardware Maintenance",
     icon: <Cpu className="w-5 h-5" />,
     items: ["PC Diagnostics", "Hardware Optimization", "Computer Assembly And Replacement", "Thermal Management", "Hardware Cross-Compatibility & Validation"],
-    backgroundImage: hardwareBg
+    backgroundImage: shadowMysteriousAura
   },
   {
     category: "System Recovery and Deployment",
     icon: <Binary className="w-5 h-5" />,
     items: ["BIOS Update", "Full-System Imaging & Deployment", "MBR to GPT Conversion", "Disk Image Creation", "File Restoration", "Boot Repair", "Password Reset"],
-    backgroundImage: systemRecoveryBg
+    backgroundImage: shadowDarkBlade
   }
 ];
 
