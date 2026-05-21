@@ -17,8 +17,8 @@ interface SidebarProps {
 
 export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, onExpertiseClick, onShowOwnerClick }: SidebarProps) {
   return (
-    <nav className="w-20 md:w-72 border-r border-neutral-900 flex flex-col bg-bg-sidebar shrink-0">
-      <div className="p-4 md:p-6 border-b border-neutral-900">
+    <nav className="w-28 md:w-72 border-r border-neutral-900 flex flex-col bg-bg-sidebar shrink-0">
+      <div className="p-3 md:p-6 border-b border-neutral-900">
         <p className="hidden md:block text-[11px] font-black uppercase mb-4 opacity-40 tracking-widest text-neutral-400">Navigation</p>
         <ul className="space-y-2">
           {tabs.map((tab) => {
@@ -27,16 +27,24 @@ export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, on
               <li key={tab.id}>
                 <button
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center justify-between px-2 md:px-4 py-3 border border-transparent transition-all duration-200 group relative
+                  className={`w-full flex flex-col md:flex-row items-center justify-center md:justify-between px-1 md:px-4 py-3 md:py-3 border rounded-lg transition-all duration-350 group relative min-h-[82px] md:min-h-0
                     ${isActive 
-                      ? 'bg-neutral-900 text-white font-black border-neutral-800' 
-                      : 'hover:border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-900/60 font-bold'
+                      ? 'bg-purple-950/40 text-white font-black border-purple-500 shadow-[0_0_18px_rgba(168,85,247,0.55)]' 
+                      : 'border-purple-500/25 bg-neutral-900/50 shadow-[0_0_8px_rgba(168,85,247,0.15)] hover:border-purple-500/50 hover:shadow-[0_0_12px_rgba(168,85,247,0.35)] text-neutral-400 hover:text-white hover:bg-purple-950/10 font-bold'
                     }
                   `}
                 >
-                  <span className="uppercase text-[10px] md:text-xs tracking-tighter">
-                    <span className="hidden md:inline">{tab.label}</span>
-                    <span className="md:hidden">{tab.label.split(' ')[0]}</span>
+                  {/* Desktop Label */}
+                  <span className="hidden md:block uppercase text-xs tracking-tighter w-full text-left whitespace-nowrap overflow-hidden text-ellipsis">
+                    {tab.label}
+                  </span>
+                  {/* Mobile Label stacked vertically downwards */}
+                  <span className="md:hidden uppercase text-[9px] font-black tracking-normal flex flex-col items-center leading-none gap-0.5">
+                    {tab.label.split('').map((char, index) => (
+                      <span key={index} className="block select-none">
+                        {char}
+                      </span>
+                    ))}
                   </span>
                   {isActive && (
                     <motion.span 
@@ -58,41 +66,52 @@ export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, on
         </ul>
       </div>
 
-      <div className="flex-1 p-4 md:p-6 flex flex-col justify-end">
-        <div className="mb-6 space-y-4">
+      <div className="flex-1 p-2 md:p-6 flex flex-col justify-end">
+        <div className="mb-4 space-y-4 md:space-y-4">
           <button 
             onClick={onHomeClick}
-            className="flex items-center gap-2 group transition-opacity opacity-60 hover:opacity-100 text-neutral-300 hover:text-white"
+            className="w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 pb-1 md:pb-0 group transition-all duration-300 text-neutral-400 hover:text-white"
           >
-            <div className="w-4 h-4 bg-neutral-950 border border-neutral-800 flex items-center justify-center text-white">
-              <ArrowLeft className="w-3 h-3" />
+            <div className="w-8 h-8 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center text-neutral-400 group-hover:text-purple-400 group-hover:border-purple-500/50 transition-all shadow-[0_0_8px_rgba(168,85,247,0.05)] group-hover:shadow-[0_0_12px_rgba(168,85,247,0.25)] shrink-0">
+              <ArrowLeft className="w-4 h-4" />
             </div>
-            <span className="hidden md:inline font-mono text-[10px] font-bold uppercase tracking-tighter cursor-pointer">
-              Return_Home
+            <span className="font-mono text-[9px] md:text-[10px] font-extrabold uppercase tracking-wider leading-[1.15] text-center md:text-left block cursor-pointer">
+              <span className="md:hidden">RETURN<br/>HOME</span>
+              <span className="hidden md:inline">Return_Home</span>
             </span>
           </button>
 
           <button 
             onClick={onExpertiseClick}
-            className={`flex items-center gap-2 group transition-opacity ${activeTab === 'EXPERTISE' ? 'opacity-100 text-white' : 'opacity-60 hover:opacity-100 text-neutral-300 hover:text-white'}`}
+            className={`w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 pb-1 md:pb-0 group transition-all duration-300 ${
+              activeTab === 'EXPERTISE' 
+                ? 'text-white' 
+                : 'text-neutral-400 hover:text-white'
+            }`}
           >
-            <div className="w-4 h-4 bg-neutral-950 border border-neutral-800 flex items-center justify-center text-white">
-              <Target className="w-3 h-3" />
+            <div className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all shrink-0 ${
+              activeTab === 'EXPERTISE'
+                ? 'bg-purple-950/40 border-purple-500 text-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.35)]'
+                : 'bg-neutral-950 border-neutral-800 text-neutral-400 group-hover:text-purple-400 group-hover:border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.05)] group-hover:shadow-[0_0_12px_rgba(168,85,247,0.25)]'
+            }`}>
+              <Target className="w-4 h-4" />
             </div>
-            <span className="hidden md:inline font-mono text-[10px] font-bold uppercase tracking-tighter cursor-pointer">
-              Areas_of_Expertise
+            <span className="font-mono text-[9px] md:text-[10px] font-extrabold uppercase tracking-wider leading-[1.15] text-center md:text-left block cursor-pointer">
+              <span className="md:hidden">AREAS<br/>OF EXP</span>
+              <span className="hidden md:inline">Areas_of_Expertise</span>
             </span>
           </button>
 
           <button 
             onClick={onShowOwnerClick}
-            className="flex items-center gap-2 group transition-opacity opacity-60 hover:opacity-100 text-neutral-300 hover:text-white"
+            className="w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 pb-1 md:pb-0 group transition-all duration-305 text-neutral-400 hover:text-white"
           >
-            <div className="w-4 h-4 bg-neutral-950 border border-neutral-800 flex items-center justify-center text-white">
-              <User className="w-3 h-3 text-purple-400" />
+            <div className="w-8 h-8 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center text-neutral-400 group-hover:text-purple-400 group-hover:border-purple-500/50 transition-all shadow-[0_0_8px_rgba(168,85,247,0.05)] group-hover:shadow-[0_0_12px_rgba(168,85,247,0.25)] shrink-0">
+              <User className="w-4 h-4 text-purple-400" />
             </div>
-            <span className="hidden md:inline font-mono text-[10px] font-bold uppercase tracking-tighter cursor-pointer">
-              Owner Contact Info
+            <span className="font-mono text-[9px] md:text-[10px] font-extrabold uppercase tracking-wider leading-[1.15] text-center md:text-left block cursor-pointer">
+              <span className="md:hidden">OWNER<br/>CONTACT</span>
+              <span className="hidden md:inline">Owner Contact Info</span>
             </span>
           </button>
         </div>

@@ -10,8 +10,10 @@ import shadowMysteriousAura from '../assets/images/shadow_mysterious_aura_177925
 import shadowMoonRain from '../assets/images/shadow_moon_rain_1779250676888.png';
 import shadowNeonElectricity from '../assets/images/shadow_neon_electricity_1779250694461.png';
 import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
+import shadowMasterAtomic from '../assets/images/shadow_master_atomic_1779279129608.png';
 
 const TOOL_BG_IMAGES = [
+  shadowMasterAtomic,
   shadowOnRoof,
   shadowDarkBlade,
   shadowMysteriousAura,
@@ -45,18 +47,20 @@ export default function ToolsView() {
       }
     }
 
-    return loaded.map((tool: Tool) => {
-      const staticTool = STATIC_TOOLS.find(t => t.id === tool.id);
-      if (staticTool) {
-        return {
-          ...staticTool,
-          description: tool.description || staticTool.description,
-          link: tool.link || staticTool.link,
-          category: tool.category || staticTool.category
-        };
-      }
-      return tool;
-    });
+    return loaded
+      .filter((tool: Tool) => STATIC_TOOLS.some(t => t.id === tool.id))
+      .map((tool: Tool) => {
+        const staticTool = STATIC_TOOLS.find(t => t.id === tool.id);
+        if (staticTool) {
+          return {
+            ...staticTool,
+            description: tool.description || staticTool.description,
+            link: tool.link || staticTool.link,
+            category: tool.category || staticTool.category
+          };
+        }
+        return tool;
+      });
   });
 
   return (
@@ -64,7 +68,7 @@ export default function ToolsView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-neutral-900">
         {tools.map((tool, idx) => {
           const Tag = tool.link ? motion.a : motion.div;
-          const bgImage = TOOL_BG_IMAGES[idx % TOOL_BG_IMAGES.length];
+          const bgImage = shadowMasterAtomic;
           return (
             <Tag
               key={tool.id}
@@ -80,15 +84,15 @@ export default function ToolsView() {
                 tool.link ? 'cursor-pointer' : 'cursor-default'
               }`}
             >
-              {/* Background Image of Shadow from Shadow Garden */}
+              {/* Background Image of Cid Kagenou with purple gradient blending */}
               <div className="absolute inset-0 z-0 overflow-hidden">
                 <img 
                   src={bgImage} 
                   alt="" 
-                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-[0.75] group-hover:brightness-[0.85]"
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-[0.65] group-hover:brightness-[0.75]"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/30 group-hover:from-black/95 group-hover:via-black/60 group-hover:to-black/35 transition-all duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-purple-950/45 to-black/30 group-hover:from-black/95 group-hover:via-purple-900/50 group-hover:to-black/35 transition-all duration-350 z-10" />
               </div>
 
               {/* Top part / main content */}
@@ -97,12 +101,12 @@ export default function ToolsView() {
                   <div className="p-2 border border-white/20 group-hover:border-purple-500/50 transition-colors bg-black/40 group-hover:bg-neutral-900 text-purple-400 shrink-0 relative z-10 shadow-lg rounded">
                     {getIcon(tool.category)}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[8px] font-mono font-bold bg-neutral-900 text-neutral-300 border border-neutral-800 px-1.5 py-0.5 group-hover:bg-cyan-400 group-hover:text-black transition-colors rounded">
+                  <div className="flex items-center gap-1.55">
+                    <span className="text-[8px] font-mono font-bold bg-neutral-900 text-neutral-300 border border-neutral-800 px-1.5 py-0.5 group-hover:bg-purple-500 group-hover:text-black transition-all duration-300 rounded">
                       V{tool.version}
                     </span>
                     {tool.link && (
-                      <ExternalLink size={14} className="opacity-70 group-hover:opacity-100 transition-opacity text-neutral-400 group-hover:text-purple-300" />
+                      <ExternalLink size={14} className="opacity-45 group-hover:opacity-100 transition-opacity text-neutral-400 group-hover:text-purple-300" />
                     )}
                   </div>
                 </div>
@@ -119,11 +123,11 @@ export default function ToolsView() {
               {/* Bottom footer bar matching SoftwareView */}
               <div className="mt-8 flex justify-between items-end border-t border-neutral-800 group-hover:border-neutral-700 pt-3 transition-colors relative z-10">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded bg-neutral-950/60 text-neutral-300 border border-neutral-800/80 group-hover:bg-neutral-800 group-hover:text-white transition-colors">
+                  <span className="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded bg-neutral-950/60 text-purple-300 border border-neutral-800/80 group-hover:bg-neutral-800 group-hover:text-white transition-all duration-300">
                     {tool.category.toUpperCase()}
                   </span>
                 </div>
-                <span className="text-[10px] font-mono font-bold uppercase text-neutral-500 group-hover:text-neutral-300 transition-colors">
+                <span className="text-[10px] font-mono font-bold uppercase text-neutral-500 group-hover:text-purple-300 transition-all duration-300 font-mono">
                   SYS://{tool.category.toUpperCase().slice(0, 15)}
                 </span>
               </div>

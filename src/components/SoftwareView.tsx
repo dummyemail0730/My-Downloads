@@ -8,20 +8,22 @@ export default function SoftwareView() {
   const [projects] = useState<Project[]>(() => {
     const saved = localStorage.getItem('custom_projects');
     const loaded = saved ? JSON.parse(saved) : STATIC_PROJECTS;
-    return loaded.map((proj: Project) => {
-      // Find the corresponding static project to merge newly updated details/assets
-      const staticProj = STATIC_PROJECTS.find(p => p.id === proj.id);
-      if (staticProj) {
-        const isDbPlaceholder = proj.description?.includes('database') || proj.tags?.includes('C++');
-        return {
-          ...staticProj,
-          description: isDbPlaceholder ? staticProj.description : (proj.description || staticProj.description),
-          link: proj.link || staticProj.link,
-          tags: isDbPlaceholder ? staticProj.tags : (proj.tags || staticProj.tags)
-        };
-      }
-      return proj;
-    });
+    return loaded
+      .filter((proj: Project) => STATIC_PROJECTS.some(p => p.id === proj.id))
+      .map((proj: Project) => {
+        // Find the corresponding static project to merge newly updated details/assets
+        const staticProj = STATIC_PROJECTS.find(p => p.id === proj.id);
+        if (staticProj) {
+          const isDbPlaceholder = proj.description?.includes('database') || proj.tags?.includes('C++');
+          return {
+            ...staticProj,
+            description: isDbPlaceholder ? staticProj.description : (proj.description || staticProj.description),
+            link: proj.link || staticProj.link,
+            tags: isDbPlaceholder ? staticProj.tags : (proj.tags || staticProj.tags)
+          };
+        }
+        return proj;
+      });
   });
 
   return (

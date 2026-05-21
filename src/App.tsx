@@ -172,10 +172,10 @@ try {
 }
 
 const TABS = [
-  { id: 'SOFTWARE', label: '01 Software' },
-  { id: 'ANIME', label: '02 Anime' },
-  { id: 'GAMES', label: '03 Games' },
-  { id: 'TOOLS', label: '04 End-User Tools' }
+  { id: 'SOFTWARE', label: 'Software' },
+  { id: 'ANIME', label: 'Anime' },
+  { id: 'GAMES', label: 'Games' },
+  { id: 'TOOLS', label: 'Tools' }
 ];
 
 export default function App() {
@@ -299,7 +299,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen w-full flex flex-col bg-bg-primary text-text-main overflow-hidden relative">
+    <div className="h-[110vh] md:h-screen w-full flex flex-col bg-bg-primary text-text-main overflow-y-auto md:overflow-hidden no-scrollbar relative">
         {/* Ambient Background Image */}
         <div className="absolute inset-0 z-0 opacity-[0.15] pointer-events-none">
           <img 
@@ -310,7 +310,7 @@ export default function App() {
           />
         </div>
         
-        <div className="flex-1 flex flex-col overflow-hidden relative z-10">
+        <div className="flex-1 flex flex-col overflow-visible md:overflow-hidden relative z-10">
           {/* Header Section */}
           <header className="h-24 border-b border-neutral-900 flex items-center justify-between px-8 bg-neutral-950/95 backdrop-blur-md shrink-0 pointer-events-none sm:pointer-events-auto">
           <div className="flex items-center gap-4">
@@ -318,7 +318,7 @@ export default function App() {
               <Folder className="text-purple-400" size={20} strokeWidth={2.5} />
             </div>
             <div>
-              <h1 className="text-xl font-black uppercase tracking-tighter leading-none text-white">Tech Archive</h1>
+              <h1 className="text-xl font-black uppercase tracking-tighter leading-none text-white">Digital Archive</h1>
               <p className="text-[10px] uppercase tracking-widest text-neutral-400">Design & Development / 2026 Edition</p>
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function App() {
         </header>
  
         {/* Main Content Layout */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-visible md:overflow-hidden">
           {/* Sidebar / Navigation */}
           <Sidebar 
             activeTab={activeTab} 
@@ -339,17 +339,11 @@ export default function App() {
           />
  
           {/* Content Area */}
-          <main className="flex-1 flex flex-col bg-neutral-950 overflow-hidden">
-            <div className="p-4 md:p-6 border-b border-neutral-900 flex items-end justify-between bg-zinc-900/45 shrink-0">
+          <main className="flex-1 flex flex-col bg-neutral-950 overflow-visible md:overflow-hidden">
+            <div className="p-4 md:p-6 border-b border-neutral-900 flex items-center justify-between bg-zinc-900/45 shrink-0">
               <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none text-white">
                 {activeTab.replace('_', ' ')}
               </h2>
-              <div className="text-right flex flex-col items-end">
-                <p className="text-[9px] uppercase font-black text-neutral-500">SECTION</p>
-                <p className="text-xl md:text-2xl font-mono leading-none font-bold text-neutral-300">
-                  {activeTab === 'EXPERTISE' ? 'EXP' : TABS.find(t => t.id === activeTab)?.label.split(' ')[0]}
-                </p>
-              </div>
             </div>
  
             <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-neutral-950">
