@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone } from 'lucide-react';
+import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
 import AnimeView from './components/AnimeView';
@@ -9,6 +9,7 @@ import ToolsView from './components/ToolsView';
 import ExpertiseView from './components/ExpertiseView';
 import ShadowProject from './components/ShadowProject';
 import LoadingScreen from './components/LoadingScreen';
+import ShadowLoreView from './components/ShadowLoreView';
 import shadowBg from './assets/images/shadow_master_atomic_1779279129608.png';
 import ownerIdPhoto from './assets/images/owner_id_photo_1779279731967.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from './constants';
@@ -182,6 +183,7 @@ export default function App() {
   const [appLoading, setAppLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('EXPERTISE');
   const [showArchive, setShowArchive] = useState(false);
+  const [showShadowLoreOnly, setShowShadowLoreOnly] = useState(false);
   const [introPlayed, setIntroPlayed] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [showOwnerDetails, setShowOwnerDetails] = useState(false);
@@ -262,13 +264,42 @@ export default function App() {
     return <LoadingScreen onComplete={() => setAppLoading(false)} />;
   }
 
+  if (showShadowLoreOnly) {
+    return (
+      <div className="min-h-screen w-full bg-neutral-950 overflow-y-auto no-scrollbar relative flex flex-col font-mono text-neutral-300">
+        {/* Simple top bar with Back button */}
+        <div className="h-16 border-b border-neutral-900 bg-neutral-950/95 backdrop-blur-md flex items-center justify-between px-6 shrink-0 relative z-50">
+          <button 
+            onClick={() => setShowShadowLoreOnly(false)}
+            className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-widest text-neutral-400 hover:text-white transition-colors cursor-pointer"
+          >
+            <ChevronLeft size={14} />
+            Back to Gateway
+          </button>
+          
+          <div className="flex items-center gap-1.5 font-mono text-[10px] text-purple-400 font-bold uppercase">
+            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" />
+            SHADOW_GARDEN_SECURE_LORE
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-8">
+          <ShadowLoreView />
+        </div>
+      </div>
+    );
+  }
+
   if (!showArchive) {
     return (
-      <div className="h-screen w-full bg-black overflow-hidden flex items-center justify-center p-0 md:p-8 relative">
-        <div className="w-full h-full max-w-7xl bg-neutral-950 border-[12px] md:border-[16px] border-neutral-900 overflow-hidden relative shadow-2xl">
+      <div className="min-h-screen w-full bg-black overflow-y-auto no-scrollbar flex items-start justify-center p-0 relative">
+        <div className="w-full min-h-screen bg-neutral-950 overflow-y-auto no-scrollbar relative shadow-2xl">
           <ShadowProject 
             onEnter={() => setShowArchive(true)} 
             hasPlayed={introPlayed}
+            onShowShadowLore={() => {
+              setShowShadowLoreOnly(true);
+            }}
           />
         </div>
 
@@ -299,7 +330,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-[110vh] md:h-screen w-full flex flex-col bg-bg-primary text-text-main overflow-y-auto md:overflow-hidden no-scrollbar relative">
+    <div className="min-h-screen w-full flex flex-col bg-bg-primary text-text-main overflow-y-auto no-scrollbar relative">
         {/* Ambient Background Image */}
         <div className="absolute inset-0 z-0 opacity-[0.15] pointer-events-none">
           <img 
@@ -310,7 +341,7 @@ export default function App() {
           />
         </div>
         
-        <div className="flex-1 flex flex-col overflow-visible md:overflow-hidden relative z-10">
+        <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar relative z-10">
           {/* Header Section */}
           <header className="h-24 border-b border-neutral-900 flex items-center justify-between px-8 bg-neutral-950/95 backdrop-blur-md shrink-0 pointer-events-none sm:pointer-events-auto">
           <div className="flex items-center gap-4">
@@ -327,7 +358,7 @@ export default function App() {
         </header>
  
         {/* Main Content Layout */}
-        <div className="flex-1 flex overflow-visible md:overflow-hidden">
+        <div className="flex-1 flex overflow-y-auto no-scrollbar">
           {/* Sidebar / Navigation */}
           <Sidebar 
             activeTab={activeTab} 
@@ -339,7 +370,7 @@ export default function App() {
           />
  
           {/* Content Area */}
-          <main className="flex-1 flex flex-col bg-neutral-950 overflow-visible md:overflow-hidden">
+          <main className="flex-1 flex flex-col bg-neutral-950 overflow-y-auto no-scrollbar">
             <div className="p-4 md:p-6 border-b border-neutral-900 flex items-center justify-between bg-zinc-900/45 shrink-0">
               <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none text-white">
                 {activeTab.replace('_', ' ')}

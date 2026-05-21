@@ -21,7 +21,30 @@ const BOOT_MESSAGES = [
 export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const [progress, setProgress] = useState(0);
   const [activeMessage, setActiveMessage] = useState(BOOT_MESSAGES[0].text);
-  const [isMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  useEffect(() => {
+    // Automatically unmute/play the audio on any user gesture
+    const enableAudio = () => {
+      setIsMuted(false);
+      setHasInteracted(true);
+    };
+
+    // Keep it unmuted from start to attempt autoplay
+    setIsMuted(false);
+
+    // Register interaction listeners to bypass browser play restriction on any user activity
+    window.addEventListener('click', enableAudio, { once: true });
+    window.addEventListener('keydown', enableAudio, { once: true });
+    window.addEventListener('touchstart', enableAudio, { once: true });
+
+    return () => {
+      window.removeEventListener('click', enableAudio);
+      window.removeEventListener('keydown', enableAudio);
+      window.removeEventListener('touchstart', enableAudio);
+    };
+  }, []);
 
   const smokeParticles = useMemo(() => {
     return Array.from({ length: 14 }).map((_, i) => ({
@@ -77,7 +100,13 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
   }, [progress]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 select-none overflow-hidden font-mono text-white">
+    <div 
+      onClick={() => {
+        setIsMuted(false);
+        setHasInteracted(true);
+      }}
+      className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 select-none overflow-hidden font-mono text-white cursor-pointer"
+    >
       {/* Dynamic Animated Smoke Layer */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-80" style={{ filter: 'url(#shadow-smoke-filter)' }}>
         {smokeParticles.map((p) => (
@@ -214,10 +243,20 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
         {/* Hidden YouTube Theme Audio Stream */}
         {!isMuted && (
           <iframe
+            key={hasInteracted ? 'interacted' : 'initial'}
             src="https://www.youtube.com/embed/9iQVgj4z-I4?autoplay=1&mute=0&playlist=9iQVgj4z-I4&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1"
-            allow="autoplay"
+            allow="autoplay; encrypted-media"
             title="Shadow Theme OST"
-            className="absolute w-0 h-0 pointer-events-none opacity-0 invisible"
+            style={{
+              position: 'fixed',
+              width: '320px',
+              height: '240px',
+              top: '-2000px',
+              left: '-2000px',
+              pointerEvents: 'none',
+              opacity: 0.001,
+              zIndex: -9999
+            }}
           />
         )}
 
@@ -233,16 +272,20 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
             }
           `}} />
           
-          <div className="w-full py-3 px-4 rounded-xl border bg-purple-950/20 border-purple-500/30 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.12)] flex items-center justify-center gap-3">
+          <div 
+            className="w-full py-3 px-4 rounded-xl border bg-purple-950/10 border-purple-500/20 text-purple-400 hover:text-white shadow-[0_0_15px_rgba(168,85,247,0.08)] flex items-center justify-center gap-3 select-none relative overflow-hidden"
+          >
             <span className="flex items-end gap-[1.5px] h-3.5 mb-0.5">
               <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0s' }} />
               <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.2s', animationDuration: '0.4s' }} />
               <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.1s', animationDuration: '0.5s' }} />
               <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.3s', animationDuration: '0.3s' }} />
             </span>
-            <span className="text-[9px] font-mono uppercase tracking-[0.2em] font-bold">🔊 SHADOW THEME: "HIGHEST" ACTIVE</span>
+            <span className="text-[9px] font-mono uppercase tracking-[0.2em] font-extrabold text-neutral-200">
+              🔊 SHADOW THEME: "HIGHEST" ACTIVE
+            </span>
           </div>
-          <p className="text-[7px] text-purple-450 uppercase tracking-[0.3em] font-black animate-pulse">
+          <p className="text-[7px] text-purple-400 uppercase tracking-[0.3em] font-black animate-pulse">
             EMINENCE OF SHADOW BROADCAST // ONLINE
           </p>
         </div>

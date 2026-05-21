@@ -27,7 +27,7 @@ export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, on
               <li key={tab.id}>
                 <button
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex flex-col md:flex-row items-center justify-center md:justify-between px-1 md:px-4 py-3 md:py-3 border rounded-lg transition-all duration-350 group relative min-h-[82px] md:min-h-0
+                  className={`w-full flex flex-col md:flex-row items-center justify-center md:justify-between px-1 md:px-4 py-3 md:py-3 border rounded-lg transition-all duration-350 group relative min-h-[58px] md:min-h-0
                     ${isActive 
                       ? 'bg-purple-950/40 text-white font-black border-purple-500 shadow-[0_0_18px_rgba(168,85,247,0.55)]' 
                       : 'border-purple-500/25 bg-neutral-900/50 shadow-[0_0_8px_rgba(168,85,247,0.15)] hover:border-purple-500/50 hover:shadow-[0_0_12px_rgba(168,85,247,0.35)] text-neutral-400 hover:text-white hover:bg-purple-950/10 font-bold'
@@ -38,13 +38,9 @@ export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, on
                   <span className="hidden md:block uppercase text-xs tracking-tighter w-full text-left whitespace-nowrap overflow-hidden text-ellipsis">
                     {tab.label}
                   </span>
-                  {/* Mobile Label stacked vertically downwards */}
-                  <span className="md:hidden uppercase text-[9px] font-black tracking-normal flex flex-col items-center leading-none gap-0.5">
-                    {tab.label.split('').map((char, index) => (
-                      <span key={index} className="block select-none">
-                        {char}
-                      </span>
-                    ))}
+                  {/* Mobile Label */}
+                  <span className="md:hidden uppercase text-[10px] font-mono tracking-wider font-extrabold block select-none">
+                    {tab.label}
                   </span>
                   {isActive && (
                     <motion.span 

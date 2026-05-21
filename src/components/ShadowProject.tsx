@@ -1,10 +1,10 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check } from 'lucide-react';
+import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
-export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => void; hasPlayed?: boolean }) {
+export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void }) {
   const skip = hasPlayed;
   
   // Custom Google Drive / File link state
@@ -74,6 +74,31 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
   // Tab dynamic state
   const [activeTab, setActiveTab] = useState<'uplink' | 'linked'>('uplink');
   const [unlinkTrigger, setUnlinkTrigger] = useState(0);
+
+  // --- SUGGESTIONS STATE ---
+  const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
+
+  const [suggestions, setSuggestions] = useState<Array<{ id: string; text: string; date: string; category: string; status: string }>>(() => {
+    const saved = localStorage.getItem('shadow_suggestions');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const defaults = [
+      { id: 's1', text: 'Add automatic shadow driver updater utility', date: 'MAY 20, 2026', category: 'UTILITY', status: 'NEW' },
+      { id: 's2', text: 'Integrate fallback mirror link if Google Drive is in heavy usage limit', date: 'MAY 18, 2026', category: 'NETWORK', status: 'PENDING' },
+      { id: 's3', text: 'Increase sound bite rate for live TV/anime audio channel', date: 'MAY 15, 2026', category: 'MEDIA', status: 'RESOLVED' },
+    ];
+    localStorage.setItem('shadow_suggestions', JSON.stringify(defaults));
+    return defaults;
+  });
+
+  const [newSuggestionText, setNewSuggestionText] = useState('');
+  const [newSuggestionCategory, setNewSuggestionCategory] = useState('SYSTEM');
+  const [newSuggestionStatus, setNewSuggestionStatus] = useState('NEW');
 
   const handleAbortTransit = () => {
     // 1. Reset all form input states
@@ -544,9 +569,9 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
   };
 
   return (
-    <div className="h-full flex flex-col p-8 md:p-12 bg-black text-white relative overflow-hidden">
+    <div className="min-h-[200vh] w-full flex flex-col bg-black text-white relative overflow-y-auto no-scrollbar scroll-smooth">
       {/* Background Image */}
-      <div className="absolute inset-0 z-0 opacity-15 pointer-events-none">
+      <div className="fixed inset-0 z-0 opacity-15 pointer-events-none">
         <img 
           src={shadowBg} 
           alt="Background" 
@@ -1207,84 +1232,507 @@ export default function ShadowProject({ onEnter, hasPlayed }: { onEnter: () => v
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col justify-center max-w-4xl relative z-10">
-        <div>
-          <motion.h2 
-            initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: -100 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={skip ? { duration: 0 } : { 
-              type: "spring",
-              stiffness: 300,
-              damping: 12,
-              delay: 0.2
-            }}
-            className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.85] mb-6 text-white"
-          >
-            Shadow<br />
-            <span className="text-purple-500">Project.</span>
-          </motion.h2>
+      {/* Suggestions Database Console Modal */}
+      <AnimatePresence>
+        {isSuggestionModalOpen && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto w-full" id="suggestion-database-modal">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 30 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-4xl rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono flex flex-col max-h-[90vh]"
+            >
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-20" />
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-purple-500/30 rounded-tl-xl pointer-events-none" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-purple-500/30 rounded-tr-xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-purple-500/30 rounded-bl-xl pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-500/30 rounded-br-xl pointer-events-none" />
 
-          <motion.div 
-            initial={skip ? { opacity: 1, x: 0 } : { opacity: 0, x: -100 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={skip ? { duration: 0 } : { 
-              duration: 0.8,
-              delay: 0.8,
-              ease: "easeOut"
-            }}
-            className="inline-block px-3 py-1 bg-neutral-900 border border-neutral-800 text-purple-400 font-mono text-[10px] uppercase tracking-[0.3em] mb-4 md:mb-6 font-bold"
-          >
-            By: Adrian Gabionza // V.1.0
-          </motion.div>
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6 pb-4 border-b border-neutral-900 relative z-10 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded-lg bg-purple-950/40 border border-purple-500/30 text-purple-400">
+                    <Sparkles className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-extrabold uppercase tracking-[0.2em] text-white">
+                      Tactical Suggestions Console
+                    </h3>
+                    <p className="text-[9px] uppercase tracking-wider text-purple-400 font-bold mt-0.5">
+                      // DIRECT DATABASE UPLINK SECURED
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsSuggestionModalOpen(false)}
+                  className="p-1.5 border border-neutral-850 hover:border-neutral-700 hover:bg-neutral-900 text-neutral-400 hover:text-white rounded-lg transition-all cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
-          <motion.div 
-            initial={skip ? "visible" : "hidden"}
-            animate="visible"
-            variants={{
-              visible: {
-                transition: {
-                  staggerChildren: skip ? 0 : 0.04,
-                  delayChildren: skip ? 0 : 1.4
+              {/* Main Content Area: Split Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 overflow-y-auto no-scrollbar pb-4 flex-1">
+                
+                {/* Left Column: Form */}
+                <div className="lg:col-span-5 flex flex-col gap-5 border-r border-neutral-900/65 pr-0 lg:pr-6">
+                  <div>
+                    <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold mb-1">
+                      Log New Suggestion
+                    </h4>
+                    <p className="text-[8px] uppercase tracking-wider text-neutral-500 leading-normal">
+                      Input diagnostic recommendation, categorized and tracked securely in the local browser state directory.
+                    </p>
+                  </div>
+
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!newSuggestionText.trim()) return;
+
+                      const newSugg = {
+                        id: 's_' + Date.now(),
+                        text: newSuggestionText.trim(),
+                        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(),
+                        category: newSuggestionCategory,
+                        status: newSuggestionStatus
+                      };
+
+                      const updated = [newSugg, ...suggestions];
+                      setSuggestions(updated);
+                      localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+                      
+                      // Reset inputs
+                      setNewSuggestionText('');
+                      setNewSuggestionCategory('SYSTEM');
+                      setNewSuggestionStatus('NEW');
+                    }}
+                    className="space-y-4"
+                  >
+                    <div>
+                      <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                        Suggestion Prompt / Code Draft
+                      </label>
+                      <textarea
+                        value={newSuggestionText}
+                        onChange={(e) => setNewSuggestionText(e.target.value)}
+                        placeholder="ENTER SUGGESTED SYSTEM OPTIMIZATION..."
+                        rows={4}
+                        required
+                        className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white p-3 rounded-xl resize-none outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-mono text-[9px] uppercase font-bold tracking-[0.20em] transition-all hover:brightness-110 active:scale-95 cursor-pointer rounded-xl flex items-center justify-center gap-2 shadow-lg"
+                    >
+                      <Send size={11} className="animate-pulse" />
+                      <span>Send Suggestion</span>
+                    </button>
+                  </form>
+                </div>
+
+                {/* Right Column: Listing Table */}
+                <div className="lg:col-span-7 flex flex-col gap-4 overflow-hidden">
+                  <div className="flex justify-between items-center bg-neutral-900/40 p-3 rounded-xl border border-neutral-900/65">
+                    <div>
+                      <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold">
+                        Database Memory Index ({suggestions.length})
+                      </h4>
+                      <p className="text-[8px] uppercase tracking-wider text-neutral-500 mt-0.5">
+                        Synced suggestions entries persistent to user space.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 pr-1 max-h-[350px]">
+                    {suggestions.length === 0 ? (
+                      <div className="h-44 border border-dashed border-neutral-900 text-neutral-600 rounded-2xl flex flex-col items-center justify-center text-center p-6 gap-2">
+                        <ShieldAlert size={20} className="opacity-40 animate-pulse text-purple-400" />
+                        <span className="text-[9px] uppercase tracking-widest font-bold">DIRECTORY ARCHIVES VACANT</span>
+                        <span className="text-[8px] uppercase tracking-wider opacity-60">Log recommendations above to begin live data feed.</span>
+                      </div>
+                    ) : (
+                      suggestions.map((item) => (
+                        <div 
+                          key={item.id}
+                          className="border border-neutral-900/60 hover:border-purple-500/20 bg-neutral-950 p-4 rounded-xl relative group transition-all duration-300"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex flex-col gap-1.5 flex-1 select-none">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="px-1.5 py-0.5 bg-purple-950/30 border border-purple-500/20 text-purple-400 font-mono text-[7.5px] uppercase tracking-widest rounded text-[7.5px]">
+                                  {item.category}
+                                </span>
+                                <span 
+                                  className={`px-1.5 py-0.5 font-mono text-[7.5px] uppercase tracking-widest rounded border cursor-pointer select-none text-[7.5px] ${
+                                    item.status === 'NEW' 
+                                      ? 'bg-purple-500/10 border-purple-500/35 text-purple-400 font-extrabold animate-pulse'
+                                      : item.status === 'PENDING'
+                                      ? 'bg-amber-500/10 border-amber-500/35 text-amber-400 font-bold'
+                                      : 'bg-emerald-500/10 border-emerald-500/35 text-emerald-400 font-bold'
+                                  }`}
+                                  onClick={() => {
+                                    const nextStatus = item.status === 'NEW' ? 'PENDING' : item.status === 'PENDING' ? 'RESOLVED' : 'NEW';
+                                    const updated = suggestions.map(s => s.id === item.id ? { ...s, status: nextStatus } : s);
+                                    setSuggestions(updated);
+                                    localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+                                  }}
+                                  title="Click to cycle status"
+                                >
+                                  STATUS: {item.status}
+                                </span>
+                                <span className="text-[7.5px] font-mono text-neutral-500 uppercase font-black uppercase">
+                                  {item.date}
+                                </span>
+                              </div>
+
+                              <p className="text-[10px] text-neutral-200 leading-relaxed font-sans uppercase break-words text-left">
+                                {item.text}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => {
+                                  const updated = suggestions.filter(s => s.id !== item.id);
+                                  setSuggestions(updated);
+                                  localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+                                }}
+                                className="p-1.5 hover:bg-red-955/40 hover:text-red-400 text-neutral-500 border border-transparent hover:border-red-900/30 rounded-lg transition-all cursor-pointer ml-1 animate-none flex items-center justify-center"
+                                title="Purge suggestion item"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer cancel controls */}
+              <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-4 shrink-0">
+                <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500">
+                  SHADOW SUGGESTIONS SYSTEM GATEWAY // PE PLATFORM
+                </span>
+                <button 
+                  type="button"
+                  onClick={() => setIsSuggestionModalOpen(false)}
+                  className="px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 hover:text-white rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] text-neutral-300 transition-all cursor-pointer text-center"
+                >
+                  Close Gateway
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Section 1: Hero Entry Lounge (Takes min-h-screen) */}
+      <div className="min-h-screen w-full relative z-10 flex flex-col justify-between">
+        {/* Centered text container to constraint screen stretch */}
+        <div className="max-w-6xl mx-auto w-full px-8 md:px-12 pt-4 pb-20 md:pt-10 md:pb-24 flex-1 flex flex-col justify-between">
+          <div className="flex flex-col max-w-4xl mt-3 mb-auto sm:mt-6 sm:mb-auto md:mt-6 md:mb-auto">
+          <div>
+            <motion.h2 
+              initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: -100 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={skip ? { duration: 0 } : { 
+                type: "spring",
+                stiffness: 300,
+                damping: 12,
+                delay: 0.2
+              }}
+              className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.85] mb-4 text-white"
+            >
+              Shadow<br />
+              <span className="text-purple-500">Project.</span>
+            </motion.h2>
+
+            <motion.div 
+              initial={skip ? { opacity: 1, x: 0 } : { opacity: 0, x: -100 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={skip ? { duration: 0 } : { 
+                duration: 0.8,
+                delay: 0.8,
+                ease: "easeOut"
+              }}
+              className="inline-block px-3 py-1 bg-neutral-900 border border-neutral-800 text-purple-400 font-mono text-[10px] uppercase tracking-[0.3em] mb-3 md:mb-4 font-bold"
+            >
+              By: Adrian Gabionza // V.1.0
+            </motion.div>
+
+            <motion.div 
+              initial={skip ? "visible" : "hidden"}
+              animate="visible"
+              variants={{
+                visible: {
+                  transition: {
+                    staggerChildren: skip ? 0 : 0.04,
+                    delayChildren: skip ? 0 : 1.4
+                  }
                 }
-              }
-            }}
-            className="text-lg md:text-xl font-bold uppercase tracking-tight text-neutral-400 max-w-2xl leading-tight mb-6"
-          >
-            {"As an aspiring and dedicated PC technician, I am committed to getting systems running at their absolute best. I have the diagnostic tools and technical toolkits ready to troubleshoot the issue. To ensure a complete setup, I also provide access to a curated selection of essential software and utility files.".split(" ").map((word, i) => (
-              <motion.span
-                key={i}
-                variants={{
-                  hidden: { opacity: 0, y: 5 },
-                  visible: { opacity: 1, y: 0 }
-                }}
-                transition={skip ? { duration: 0 } : undefined}
-                className="inline-block mr-[0.3em]"
-              >
-                {word}
-              </motion.span>
-            ))}
-          </motion.div>
+              }}
+              className="space-y-3 mb-4"
+            >
+              <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight text-purple-400 max-w-2xl leading-snug">
+                {"WE LURK IN THE SHADOWS TO SERVE THE LIGHT CONFIGURATIONS.".split(" ").map((word, i) => (
+                  <motion.span
+                    key={`header-${i}`}
+                    variants={{
+                      hidden: { opacity: 0, y: 5 },
+                      visible: { opacity: 1, y: 0 }
+                    }}
+                    transition={skip ? { duration: 0 } : undefined}
+                    className="inline-block mr-[0.3em]"
+                  >
+                    {word}
+                  </motion.span>
+                ))}
+              </h3>
+              <p className="text-base md:text-lg font-bold uppercase tracking-tight text-neutral-400 max-w-2xl leading-relaxed">
+                {"To survive in the tech world, one must operate from the shadows—lurking in the background while ensuring systems run at their absolute best. When a computer crashes or performance drops, the diagnostics are already in motion. The tools are ready. The technical toolkits are prepared to troubleshoot any issue.".split(" ").map((word, i) => (
+                  <motion.span
+                    key={`body-${i}`}
+                    variants={{
+                      hidden: { opacity: 0, y: 5 },
+                      visible: { opacity: 1, y: 0 }
+                    }}
+                    transition={skip ? { duration: 0 } : undefined}
+                    className="inline-block mr-[0.3em]"
+                  >
+                    {word}
+                  </motion.span>
+                ))}
+              </p>
+            </motion.div>
 
-          <motion.button 
-            initial={skip ? { opacity: 1 } : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={skip ? { duration: 0 } : { 
-              duration: 5.0, 
-              ease: "easeInOut", 
-              delay: 3.0 
-            }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={onEnter}
-            className="group flex items-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs hover:bg-neutral-200 transition-all duration-200"
-          >
-            Enter Archive
-            <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500" />
-          </motion.button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <motion.button 
+                initial={skip ? { opacity: 1 } : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={skip ? { duration: 0 } : { 
+                  duration: 5.0, 
+                  ease: "easeInOut", 
+                  delay: 3.0 
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onEnter}
+                className="group flex items-center justify-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs hover:bg-neutral-200 transition-all duration-200 cursor-pointer"
+              >
+                Enter Archive
+                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500" />
+              </motion.button>
+              
+              <motion.button 
+                initial={skip ? { opacity: 1 } : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={skip ? { duration: 0 } : { 
+                  duration: 5.0, 
+                  ease: "easeInOut", 
+                  delay: 3.2 
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onShowShadowLore}
+                className="group flex items-center justify-center gap-4 px-8 py-3 bg-purple-950/40 border border-purple-500/40 text-purple-300 font-black uppercase tracking-widest text-xs hover:bg-purple-900/60 hover:border-purple-400 transition-all duration-200 shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer"
+              >
+                Know More About Shadow
+                <Sparkles size={16} className="text-purple-400 group-hover:rotate-12 transition-transform duration-300" />
+              </motion.button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Bottom Info */}
+        {/* Scroll Indicator helper for Section 2 - Vertical and aligned to Left Hand Side */}
+        <motion.div 
+          initial={skip ? { opacity: 0.9 } : { opacity: 0 }}
+          animate={{ opacity: 0.9 }}
+          transition={skip ? { duration: 0 } : { delay: 4.2, duration: 1.5 }}
+          className="absolute left-4 md:left-6 bottom-10 md:bottom-14 flex flex-col items-center gap-3 group cursor-pointer z-30"
+          onClick={() => {
+            const nextSection = document.getElementById('operational-specs');
+            if (nextSection) {
+              nextSection.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+        >
+          <motion.div
+            animate={{ y: [0, -8, 0] }}
+            transition={{
+              repeat: Infinity,
+              duration: 3,
+              ease: "easeInOut"
+            }}
+            className="flex flex-col items-center gap-3"
+          >
+            <div className="h-12 w-[1px] bg-gradient-to-b from-transparent via-purple-500/30 to-purple-500/70" />
+            
+            <div className="w-6 h-6 rounded-full border border-purple-500/40 bg-purple-950/20 flex items-center justify-center text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)] transition-colors group-hover:border-purple-400">
+              <ChevronRight size={11} className="rotate-90" />
+            </div>
+            
+            <span 
+              className="hidden md:inline-block text-[11px] font-mono tracking-[0.15em] text-purple-400 font-extrabold uppercase select-none"
+              style={{ writingMode: 'vertical-rl', textOrientation: 'upright' }}
+            >
+              SCROLL DOWN
+            </span>
+          </motion.div>
+        </motion.div>
+      </div>
+
+      {/* Section 2: Operational Specifications & Diagnostics Desk */}
+      <div id="operational-specs" className="min-h-screen w-full flex flex-col justify-center py-16 md:py-24 border-t border-neutral-900 bg-neutral-950/70 backdrop-blur-sm relative z-10 px-8 md:px-12 max-w-6xl mx-auto">
+        <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping" />
+              <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-purple-400 font-bold">// INTEGRITY MONITOR</span>
+            </div>
+            <h3 className="text-3xl md:text-4xl font-extrabold uppercase tracking-tighter text-white">
+              System Specs & Diagnostic Status
+            </h3>
+          </div>
+          <div className="px-4 py-2 border border-neutral-800 bg-neutral-950 text-neutral-400 font-mono text-[10px] uppercase tracking-widest flex items-center gap-3 w-fit">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>Node ID: ADRIAN-TECH-PE</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-mono">
+          {/* Box 1: PC Mainframe Specs */}
+          <div className="border border-neutral-900 bg-neutral-950/80 p-6 rounded-2xl relative group hover:border-purple-500/30 transition-all duration-300">
+            <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
+            <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
+            
+            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-neutral-900/60 font-sans">
+              <Activity className="text-purple-400" size={16} />
+              <h4 className="text-xs uppercase font-extrabold tracking-widest text-white">TECH WORKSTATION</h4>
+            </div>
+            
+            <div className="space-y-3.5 text-[10px]">
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">PROCESSOR:</span>
+                <span className="text-neutral-200 font-medium font-mono text-right truncate max-w-[170px]">AMD RYZEN 9 H-PERF</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">MEMORY CAPACITY:</span>
+                <span className="text-neutral-200 font-medium font-mono text-right">64GB DDR5 ECC WORKSTATION</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">HARD DISK:</span>
+                <span className="text-neutral-200 font-medium font-mono text-right">2TB NVME RAID-0 STRIPE</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">BACKUPS:</span>
+                <span className="text-emerald-400 font-medium font-mono text-right">DUAL CLOUD G-DRIVE MIRRORS</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Box 2: Diagnostic Deck Protocols */}
+          <div className="border border-neutral-900 bg-neutral-950/80 p-6 rounded-2xl relative group hover:border-purple-500/30 transition-all duration-300">
+            <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
+            <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
+
+            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-neutral-900/60 font-sans">
+              <Sparkles className="text-purple-400 animate-pulse" size={16} />
+              <h4 className="text-xs uppercase font-extrabold tracking-widest text-white">OPERATIONAL CHECKS</h4>
+            </div>
+
+            <div className="space-y-3.5 text-[10px]">
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">DIAGNOSTIC UTILS:</span>
+                <span className="text-emerald-400 font-medium font-mono text-right">100% DEPLOYED</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">UTILITIES CATEGORY:</span>
+                <span className="text-neutral-200 font-medium font-mono text-right">PE / TOOLKITS / DRIVERS</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">INTEGRITY LOCK:</span>
+                <span className="text-purple-400 font-medium font-mono text-right">ENCRYPTED SHADOW STATE</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">SYSTEM PARTITION:</span>
+                <span className="text-neutral-200 font-medium font-mono text-right">SECURE BOOTABLE PE HOST</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Box 3: PC Technician Active Loadout */}
+          <div className="border border-neutral-900 bg-neutral-950/80 p-6 rounded-2xl relative group hover:border-purple-500/30 transition-all duration-300 md:col-span-2 lg:col-span-1">
+            <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
+            <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
+
+            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-neutral-900/60 font-sans">
+              <FolderOpen className="text-purple-400" size={16} />
+              <h4 className="text-xs uppercase font-extrabold tracking-widest text-white">DATABASE LOADOUT</h4>
+            </div>
+
+            <div className="space-y-3.5 text-[10px]">
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">CUSTOM PROTOCOLS:</span>
+                <span className="text-purple-400 font-bold font-mono text-right">SYNCED ONLINE</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">TOTAL UTILITY SUITES:</span>
+                <span className="text-neutral-200 font-medium font-mono text-right">{STATIC_TOOLS.length} ESSENTIAL KITS</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">TOTAL PROJECTS LISTED:</span>
+                <span className="text-neutral-200 font-medium font-mono text-right">{STATIC_PROJECTS.length} DEVELOPMENT ENTRIES</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500 uppercase tracking-wider">SECURE SYNC:</span>
+                <span className="text-emerald-400 font-medium font-mono text-right">READY FOR DIRECT FLASH</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll action button to redirect upward, or go directly into archive panel */}
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl border border-purple-500/20 bg-purple-950/10 font-sans">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-300 text-center sm:text-left">
+            All technician files and curated tools are organized cleanly within the main database.
+          </p>
+          <button 
+            onClick={onEnter}
+            className="w-full sm:w-auto px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-mono text-[10px] uppercase font-bold tracking-widest shadow-lg active:scale-95 hover:brightness-110 transition-all cursor-pointer whitespace-nowrap"
+          >
+            Access Portal Now
+          </button>
+        </div>
+      </div>
+
+      {/* Bottom Info and Suggestions system activator */}
+      <motion.div 
+        initial={skip ? { opacity: 0.9 } : { opacity: 0 }}
+        animate={{ opacity: 0.9 }}
+        transition={skip ? { duration: 0 } : { delay: 4.5, duration: 2 }}
+        className="absolute bottom-8 left-8 md:bottom-12 md:left-12 z-20 flex items-center gap-3"
+      >
+        <button
+          onClick={() => {
+            setIsSuggestionModalOpen(true);
+          }}
+          className="flex items-center gap-2 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] border cursor-pointer select-none rounded-lg backdrop-blur-sm shadow-md bg-purple-950/20 border-purple-500/40 text-purple-400 hover:bg-purple-950/40 hover:border-purple-400"
+          id="suggestion-system-btn"
+        >
+          <Sparkles size={11} className="text-purple-400 animate-pulse" />
+          <span>Suggestions DB</span>
+        </button>
+      </motion.div>
+
+      {/* Bottom Right Info */}
       <motion.div 
         initial={skip ? { opacity: 0.4 } : { opacity: 0 }}
         animate={{ opacity: 0.4 }}
