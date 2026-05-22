@@ -4,6 +4,7 @@ import shadowLogoMain from '../assets/images/shadow_logo_main_1779199773763.png'
 
 interface LoadingScreenProps {
   onComplete: () => void;
+  isAudioAllowed: boolean;
 }
 
 const BOOT_MESSAGES = [
@@ -18,13 +19,18 @@ const BOOT_MESSAGES = [
   { threshold: 100, text: 'ACCESS GRANTED. DEPLOYING ARCHIVE...' }
 ];
 
-export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
+export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScreenProps) {
   const [progress, setProgress] = useState(0);
   const [activeMessage, setActiveMessage] = useState(BOOT_MESSAGES[0].text);
-  const [isMuted, setIsMuted] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const [isMuted, setIsMuted] = useState(!isAudioAllowed);
+  const [hasInteracted, setHasInteracted] = useState(isAudioAllowed);
 
   useEffect(() => {
+    if (!isAudioAllowed) {
+      setIsMuted(true);
+      return;
+    }
+
     // Automatically unmute/play the audio on any user gesture
     const enableAudio = () => {
       setIsMuted(false);
@@ -44,7 +50,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
       window.removeEventListener('keydown', enableAudio);
       window.removeEventListener('touchstart', enableAudio);
     };
-  }, []);
+  }, [isAudioAllowed]);
 
   const smokeParticles = useMemo(() => {
     return Array.from({ length: 14 }).map((_, i) => ({
@@ -102,8 +108,10 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
   return (
     <div 
       onClick={() => {
-        setIsMuted(false);
-        setHasInteracted(true);
+        if (isAudioAllowed) {
+          setIsMuted(false);
+          setHasInteracted(true);
+        }
       }}
       className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 select-none overflow-hidden font-mono text-white cursor-pointer"
     >
@@ -275,18 +283,22 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
           <div 
             className="w-full py-3 px-4 rounded-xl border bg-purple-950/10 border-purple-500/20 text-purple-400 hover:text-white shadow-[0_0_15px_rgba(168,85,247,0.08)] flex items-center justify-center gap-3 select-none relative overflow-hidden"
           >
-            <span className="flex items-end gap-[1.5px] h-3.5 mb-0.5">
-              <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0s' }} />
-              <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.2s', animationDuration: '0.4s' }} />
-              <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.1s', animationDuration: '0.5s' }} />
-              <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.3s', animationDuration: '0.3s' }} />
-            </span>
+            {isMuted ? (
+              <span className="text-[10px] h-3.5 flex items-center">🔇</span>
+            ) : (
+              <span className="flex items-end gap-[1.5px] h-3.5 mb-0.5">
+                <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0s' }} />
+                <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.2s', animationDuration: '0.4s' }} />
+                <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.1s', animationDuration: '0.5s' }} />
+                <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.3s', animationDuration: '0.3s' }} />
+              </span>
+            )}
             <span className="text-[9px] font-mono uppercase tracking-[0.2em] font-extrabold text-neutral-200">
-              🔊 SHADOW THEME: "HIGHEST" ACTIVE
+              {isMuted ? 'SHADOW THEME: MUTED' : '🔊 SHADOW THEME: "HIGHEST" ACTIVE'}
             </span>
           </div>
           <p className="text-[7px] text-purple-400 uppercase tracking-[0.3em] font-black animate-pulse">
-            EMINENCE OF SHADOW BROADCAST // ONLINE
+            {isMuted ? 'EMINENCE OF SHADOW BROADCAST // COFFEE BREAK' : 'EMINENCE OF SHADOW BROADCAST // ONLINE'}
           </p>
         </div>
 

@@ -1,7 +1,8 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send } from 'lucide-react';
+import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
+import shadowChibiAvatar from '../assets/images/shadow_chibi_avatar_1779438320279.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
 export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void }) {
@@ -99,6 +100,15 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
   const [newSuggestionText, setNewSuggestionText] = useState('');
   const [newSuggestionCategory, setNewSuggestionCategory] = useState('SYSTEM');
   const [newSuggestionStatus, setNewSuggestionStatus] = useState('NEW');
+
+  // Interactive Shadow Chibi Chat Room States
+  const [chatMessages, setChatMessages] = useState<Array<{ id: string; text: string; sender: 'user' | 'shadow'; time: string }>>([
+    { id: 'm1', text: "Welcome, Operative. I am Shadow, Leader of Shadow Garden.", sender: 'shadow', time: '11:59 PM' },
+    { id: 'm2', text: "The diagnostic modules are prepared. Ask me anything, or run validation protocols.", sender: 'shadow', time: '12:00 AM' }
+  ]);
+  const [currentChatInput, setCurrentChatInput] = useState('');
+  const [isShadowTyping, setIsShadowTyping] = useState(false);
+  const [activeWorkspaceSubTab, setActiveWorkspaceSubTab] = useState<'chat' | 'stats'>('chat');
 
   const handleAbortTransit = () => {
     // 1. Reset all form input states
@@ -1436,120 +1446,354 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
       {/* Section 1: Hero Entry Lounge (Takes min-h-screen) */}
       <div className="min-h-screen w-full relative z-10 flex flex-col justify-between">
         {/* Centered text container to constraint screen stretch */}
-        <div className="max-w-6xl mx-auto w-full px-8 md:px-12 pt-4 pb-20 md:pt-10 md:pb-24 flex-1 flex flex-col justify-between">
-          <div className="flex flex-col max-w-4xl mt-3 mb-auto sm:mt-6 sm:mb-auto md:mt-6 md:mb-auto">
-          <div>
-            <motion.h2 
-              initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: -100 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={skip ? { duration: 0 } : { 
-                type: "spring",
-                stiffness: 300,
-                damping: 12,
-                delay: 0.2
-              }}
-              className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.85] mb-4 text-white"
-            >
-              Shadow<br />
-              <span className="text-purple-500">Project.</span>
-            </motion.h2>
+        <div className="max-w-7xl xl:max-w-[1360px] mx-auto w-full px-6 md:px-12 pt-16 pb-20 md:pt-24 md:pb-24 flex-1 flex flex-col justify-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center w-full my-auto">
+            
+            {/* Left Column: Shadow Project Info */}
+            <div className="lg:col-span-7 flex flex-col text-left">
+              <motion.h2 
+                initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: -100 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={skip ? { duration: 0 } : { 
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 12,
+                  delay: 0.2
+                }}
+                className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.85] mb-4 text-white select-none"
+              >
+                Shadow<br />
+                <span className="text-purple-500">Project.</span>
+              </motion.h2>
 
-            <motion.div 
-              initial={skip ? { opacity: 1, x: 0 } : { opacity: 0, x: -100 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={skip ? { duration: 0 } : { 
-                duration: 0.8,
-                delay: 0.8,
-                ease: "easeOut"
-              }}
-              className="inline-block px-3 py-1 bg-neutral-900 border border-neutral-800 text-purple-400 font-mono text-[10px] uppercase tracking-[0.3em] mb-3 md:mb-4 font-bold"
-            >
-              By: Adrian Gabionza // V.1.0
-            </motion.div>
+              <motion.div 
+                initial={skip ? { opacity: 1, x: 0 } : { opacity: 0, x: -100 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={skip ? { duration: 0 } : { 
+                  duration: 0.8,
+                  delay: 0.8,
+                  ease: "easeOut"
+                }}
+                className="inline-block self-start px-3 py-1 bg-neutral-900 border border-neutral-800 text-purple-400 font-mono text-[10px] uppercase tracking-[0.3em] mb-3 md:mb-5 font-bold"
+              >
+                By: Adrian Gabionza // V.1.0
+              </motion.div>
 
-            <motion.div 
-              initial={skip ? "visible" : "hidden"}
-              animate="visible"
-              variants={{
-                visible: {
-                  transition: {
-                    staggerChildren: skip ? 0 : 0.04,
-                    delayChildren: skip ? 0 : 1.4
+              <motion.div 
+                initial={skip ? "visible" : "hidden"}
+                animate="visible"
+                variants={{
+                  visible: {
+                    transition: {
+                      staggerChildren: skip ? 0 : 0.04,
+                      delayChildren: skip ? 0 : 1.4
+                    }
                   }
-                }
-              }}
-              className="space-y-3 mb-4"
-            >
-              <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight text-purple-400 max-w-2xl leading-snug">
-                {"WE LURK IN THE SHADOWS TO SERVE THE LIGHT CONFIGURATIONS.".split(" ").map((word, i) => (
-                  <motion.span
-                    key={`header-${i}`}
-                    variants={{
-                      hidden: { opacity: 0, y: 5 },
-                      visible: { opacity: 1, y: 0 }
-                    }}
-                    transition={skip ? { duration: 0 } : undefined}
-                    className="inline-block mr-[0.3em]"
-                  >
-                    {word}
-                  </motion.span>
-                ))}
-              </h3>
-              <p className="text-base md:text-lg font-bold uppercase tracking-tight text-neutral-400 max-w-2xl leading-relaxed">
-                {"To survive in the tech world, one must operate from the shadows—lurking in the background while ensuring systems run at their absolute best. When a computer crashes or performance drops, the diagnostics are already in motion. The tools are ready. The technical toolkits are prepared to troubleshoot any issue.".split(" ").map((word, i) => (
-                  <motion.span
-                    key={`body-${i}`}
-                    variants={{
-                      hidden: { opacity: 0, y: 5 },
-                      visible: { opacity: 1, y: 0 }
-                    }}
-                    transition={skip ? { duration: 0 } : undefined}
-                    className="inline-block mr-[0.3em]"
-                  >
-                    {word}
-                  </motion.span>
-                ))}
-              </p>
-            </motion.div>
+                }}
+                className="space-y-4 mb-8"
+              >
+                <h3 className="text-[13px] sm:text-xl md:text-2xl font-black uppercase tracking-tight text-purple-400 max-w-2xl leading-snug">
+                  {"WE LURK IN THE SHADOWS TO SERVE THE LIGHT CONFIGURATIONS.".split(" ").map((word, i) => (
+                    <motion.span
+                      key={`header-${i}`}
+                      variants={{
+                        hidden: { opacity: 0, y: 5 },
+                        visible: { opacity: 1, y: 0 }
+                      }}
+                      transition={skip ? { duration: 0 } : undefined}
+                      className="inline-block mr-[0.3em]"
+                    >
+                      {word}
+                    </motion.span>
+                  ))}
+                </h3>
+                <p className="text-sm md:text-base font-bold uppercase tracking-tight text-neutral-400 max-w-2xl leading-relaxed">
+                  {"To survive in the tech world, one must operate from the shadows—lurking in the background while ensuring systems run at their absolute best. When a computer crashes or performance drops, diagnostics are already in motion. The tools are ready. The technical toolkits are prepared to troubleshoot any issue.".split(" ").map((word, i) => (
+                    <motion.span
+                      key={`body-${i}`}
+                      variants={{
+                        hidden: { opacity: 0, y: 5 },
+                        visible: { opacity: 1, y: 0 }
+                      }}
+                      transition={skip ? { duration: 0 } : undefined}
+                      className="inline-block mr-[0.3em]"
+                    >
+                      {word}
+                    </motion.span>
+                  ))}
+                </p>
+              </motion.div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-              <motion.button 
-                initial={skip ? { opacity: 1 } : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={skip ? { duration: 0 } : { 
-                  duration: 5.0, 
-                  ease: "easeInOut", 
-                  delay: 3.0 
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onEnter}
-                className="group flex items-center justify-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs hover:bg-neutral-200 transition-all duration-200 cursor-pointer"
-              >
-                Enter Archive
-                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500" />
-              </motion.button>
-              
-              <motion.button 
-                initial={skip ? { opacity: 1 } : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={skip ? { duration: 0 } : { 
-                  duration: 5.0, 
-                  ease: "easeInOut", 
-                  delay: 3.2 
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onShowShadowLore}
-                className="group flex items-center justify-center gap-4 px-8 py-3 bg-purple-950/40 border border-purple-500/40 text-purple-300 font-black uppercase tracking-widest text-xs hover:bg-purple-900/60 hover:border-purple-400 transition-all duration-200 shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer"
-              >
-                Know More About Shadow
-                <Sparkles size={16} className="text-purple-400 group-hover:rotate-12 transition-transform duration-300" />
-              </motion.button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <motion.button 
+                  initial={skip ? { opacity: 1 } : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={skip ? { duration: 0 } : { 
+                    duration: 5.0, 
+                    ease: "easeInOut", 
+                    delay: 3.0 
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onEnter}
+                  className="group flex items-center justify-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs hover:bg-neutral-200 transition-all duration-200 cursor-pointer"
+                >
+                  Enter Archive
+                  <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500" />
+                </motion.button>
+                
+                <motion.button 
+                  initial={skip ? { opacity: 1 } : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={skip ? { duration: 0 } : { 
+                    duration: 5.0, 
+                    ease: "easeInOut", 
+                    delay: 3.2 
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onShowShadowLore}
+                  className="group flex items-center justify-center gap-4 px-8 py-3 bg-purple-950/40 border border-purple-500/40 text-purple-300 font-black uppercase tracking-widest text-xs hover:bg-purple-900/60 hover:border-purple-400 transition-all duration-200 shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer"
+                >
+                  Know More About Shadow
+                  <Sparkles size={16} className="text-purple-400 group-hover:rotate-12 transition-transform duration-300" />
+                </motion.button>
+              </div>
             </div>
+
+            {/* Right Column: Chibi Shadow Interactive Chat Widget */}
+            <div className="lg:col-span-5 flex flex-col items-center lg:items-end justify-center w-full relative pt-12 lg:pt-0">
+              
+              <div className="relative w-full max-w-[312px]">
+                {/* Floating speech bubble */}
+                <div className="absolute top-[-8px] right-[-5px] z-30 pointer-events-none">
+                  <motion.div 
+                    animate={{ y: [0, -3, 0] }}
+                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                    className="bg-white border border-neutral-200 px-2 py-0.5 rounded-lg shadow-xl relative"
+                  >
+                    <span className="text-neutral-900 text-[6.5px] font-black tracking-widest font-mono block uppercase">
+                      {isShadowTyping ? 'THINKING...' : 'CHAT.'}
+                    </span>
+                    <div className="absolute bottom-[-3px] right-[14px] w-1.5 h-1.5 bg-white border-r border-b border-neutral-200 rotate-45" />
+                  </motion.div>
+                </div>
+
+                {/* Float-animated Chibi Avatar sitting partially overlapping the panel */}
+                <motion.div 
+                  animate={{ y: [0, -4, 0] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                  className="absolute top-[-34px] right-[-20px] w-14 h-14 z-20 pointer-events-none select-none filter drop-shadow-[0_6px_12px_rgba(147,51,234,0.3)]"
+                >
+                  <img 
+                    src={shadowChibiAvatar} 
+                    alt="Chibi Shadow" 
+                    className="w-full h-full object-contain rounded-full"
+                    referrerPolicy="no-referrer"
+                  />
+                </motion.div>
+
+                {/* Chat Panel matching the reference image structure */}
+                <div className="bg-[#0f0b21]/75 border border-purple-500/25 rounded-[1.2rem] shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(147,51,234,0.03)] backdrop-blur-xl relative flex overflow-hidden w-full h-[264px]">
+                
+                {/* Left vertical control tab bar rail */}
+                <div className="w-8 bg-black/40 border-r border-purple-500/10 flex flex-col items-center py-2.5 gap-2.5 shrink-0">
+                  <button 
+                    onClick={() => setActiveWorkspaceSubTab('chat')}
+                    className={`p-1 rounded-lg transition-all duration-300 cursor-pointer ${
+                      activeWorkspaceSubTab === 'chat' 
+                        ? 'bg-purple-900/50 border border-purple-500/30 text-purple-300 shadow-[0_0_8px_rgba(147,51,234,0.2)]' 
+                        : 'text-neutral-500 hover:text-neutral-300 border border-transparent'
+                    }`}
+                    title="Terminal Diagnostic Chat"
+                  >
+                    <Wrench size={10} />
+                  </button>
+                  <button 
+                    onClick={() => setActiveWorkspaceSubTab('stats')}
+                    className={`p-1 rounded-lg transition-all duration-300 cursor-pointer ${
+                      activeWorkspaceSubTab === 'stats' 
+                        ? 'bg-purple-900/50 border border-purple-500/30 text-purple-300 shadow-[0_0_8px_rgba(147,51,234,0.2)]'
+                        : 'text-neutral-500 hover:text-neutral-300 border border-transparent'
+                    }`}
+                    title="Realtime Activity Logs"
+                  >
+                    <Activity size={10} />
+                  </button>
+                </div>
+
+                {/* Right Main panel content area */}
+                <div className="flex-1 flex flex-col justify-between p-3 overflow-hidden">
+                  
+                  {activeWorkspaceSubTab === 'chat' ? (
+                    <>
+                      {/* Active Chat Section */}
+                      <div className="flex items-center gap-1.5 mb-2 px-1 shrink-0">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                        </span>
+                        <span className="text-[7px] font-mono text-purple-300/90 font-bold uppercase tracking-wider">
+                          STATUS: {isShadowTyping ? 'ENCRYPTING COMMS...' : 'I AM READY FOR CHAT.'}
+                        </span>
+                      </div>
+
+                      {/* Chat Messages Log view */}
+                      <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 mb-3 pr-1 text-left">
+                        {chatMessages.map((msg) => (
+                          <div 
+                            key={msg.id}
+                            className={`flex flex-col max-w-[85%] ${msg.sender === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}
+                          >
+                            <div className={`p-2.5 rounded-2xl text-[8.5px] leading-relaxed select-text ${
+                              msg.sender === 'user'
+                                ? 'bg-gradient-to-br from-purple-800/80 to-indigo-800/80 text-white rounded-tr-none border border-purple-500/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
+                                : 'bg-black/45 hover:bg-black/60 border border-purple-500/15 text-neutral-200 rounded-tl-none transition-colors'
+                            }`}>
+                              {msg.text}
+                            </div>
+                            <span className="text-[6px] text-neutral-600 font-mono mt-0.5 px-1 tracking-wider uppercase">
+                              {msg.sender === 'user' ? 'OPERATIVE' : 'SHADOW'} // {msg.time}
+                            </span>
+                          </div>
+                        ))}
+                        
+                        {isShadowTyping && (
+                          <div className="flex flex-col items-start max-w-[85%]">
+                            <div className="bg-black/30 border border-purple-500/10 p-2 py-1.5 rounded-2xl rounded-tl-none text-[7px] text-neutral-400 flex items-center gap-1">
+                              <span className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <span className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <span className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Chat Input form */}
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!currentChatInput.trim() || isShadowTyping) return;
+                          
+                          const userText = currentChatInput.trim();
+                          const userMsgId = `m-${Date.now()}`;
+                          const currentTimeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                          
+                          const updated = [...chatMessages, { id: userMsgId, text: userText, sender: 'user' as const, time: currentTimeStr }];
+                          setChatMessages(updated);
+                          setCurrentChatInput('');
+                          setIsShadowTyping(true);
+
+                          setTimeout(() => {
+                            setIsShadowTyping(false);
+                            const lower = userText.toLowerCase();
+                            let replyText = "";
+                            
+                            const options = [
+                              "To survive in the tech world, one must operate from the shadows—lurking in the background while ensuring systems run at their absolute best.",
+                              "I have executed a deep diagnostic system check. All standby servers and local files are completely optimal.",
+                              "Our connection link is fully encrypted. The Adrian Gabionza development portfolio workspace is protected.",
+                              "I... AM... ATOMIC! ...Keep that secret secured between us.",
+                              "Diagnostics completed successfully. System integrity is operating on zero-vulnerability standards."
+                            ];
+
+                            if (lower.includes('atomic')) {
+                              replyText = "I... AM... ATOMIC! ...Wait, keep that secret under shadows! The local nodes are fully armed for deployment.";
+                            } else if (lower.includes('suggest') || lower.includes('add') || lower.includes('optimize') || lower.includes('bug')) {
+                              const cleanTitle = userText.replace(/(suggest|add|optimize|bug|fix|issue)/gi, '').trim() || "Automated diagnostic task updater";
+                              const shortTitle = cleanTitle.substring(0, 45);
+                              
+                              const nsId = `s-${Date.now()}`;
+                              const ns = {
+                                id: nsId,
+                                text: `[Chat Entry]: ${shortTitle}`,
+                                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(),
+                                category: 'CHAT_LOG',
+                                status: 'NEW'
+                              };
+                              const nextSuggestions = [ns, ...suggestions];
+                              setSuggestions(nextSuggestions);
+                              localStorage.setItem('shadow_suggestions', JSON.stringify(nextSuggestions));
+                              
+                              replyText = `Understood. I have securely logged your recommendation as: "${shortTitle}" directly inside the local suggestions state list!`;
+                            } else if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
+                              replyText = "Greetings, agent. Adrian's security systems are online. Do we need to log a new optimization suggestion or analyze credentials?";
+                            } else if (lower.includes('who') || lower.includes('you')) {
+                              replyText = "I am Shadow. I operate silently in the background of this portfolio to serve peak performance.";
+                            } else {
+                              replyText = options[Math.floor(Math.random() * options.length)];
+                            }
+
+                            setChatMessages(prev => [...prev, {
+                              id: `shadow-${Date.now()}`,
+                              text: replyText,
+                              sender: 'shadow' as const,
+                              time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                            }]);
+                          }, 1000);
+                        }}
+                        className="relative flex items-center shrink-0"
+                      >
+                        <input
+                          type="text"
+                          value={currentChatInput}
+                          onChange={(e) => setCurrentChatInput(e.target.value)}
+                          placeholder="Type a message to Shadow Garden..."
+                          className="w-full text-left text-[8px] placeholder:text-neutral-500 text-neutral-100 bg-neutral-100/10 hover:bg-neutral-100/15 focus:bg-neutral-100/20 p-2.5 pr-11 rounded-full outline-none border border-purple-500/10 focus:border-purple-500/30 transition-all font-sans"
+                        />
+                        <button 
+                          type="submit"
+                          disabled={!currentChatInput.trim() || isShadowTyping}
+                          className="absolute right-1 p-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-full transition-all disabled:opacity-40 disabled:hover:bg-purple-600 cursor-pointer flex items-center justify-center shadow-lg"
+                        >
+                          <Send size={8} />
+                        </button>
+                      </form>
+                    </>
+                  ) : (
+                    <>
+                      {/* Active Activity Feed section */}
+                      <div className="flex items-center gap-1.5 mb-3 px-1 shrink-0">
+                        <Activity size={8} className="text-purple-400 animate-pulse" />
+                        <span className="text-[7.5px] font-mono text-purple-300 font-bold uppercase tracking-wider">
+                          UPLINK INTEGRITY DIAGNOSTICS: STANDBY
+                        </span>
+                      </div>
+                      
+                      {/* Interactive realtime metrics console list */}
+                      <div className="flex-1 rounded-2xl bg-black/40 border border-purple-500/10 p-3 space-y-2.5 text-left font-mono text-[7px] text-neutral-400 overflow-y-auto no-scrollbar">
+                        <div className="flex justify-between items-center border-b border-purple-500/10 pb-1.5">
+                          <span>SYNC MAIN PORT:</span>
+                          <span className="text-emerald-400 font-bold">PORT 3000 // ACTIVE</span>
+                        </div>
+                        <div className="flex justify-between items-center border-b border-purple-500/10 pb-1.5">
+                          <span>LOCAL RECS DB COUNT:</span>
+                          <span className="text-purple-400 font-bold">{suggestions.length} ITEMS DETECTED</span>
+                        </div>
+                        <div className="flex justify-between items-center border-b border-purple-500/10 pb-1.5">
+                          <span>LINKED STATE SECURE:</span>
+                          <span className="text-purple-400 font-mono">ENCRYPTED SHADOW CODES</span>
+                        </div>
+                        <div className="flex justify-between items-center border-b border-purple-500/10 pb-1.5">
+                          <span>COGNITIVE MODULES:</span>
+                          <span className="text-white">GEMINI PROV V1.0</span>
+                        </div>
+                        <div className="p-2 bg-purple-950/20 border border-purple-500/20 rounded-xl leading-relaxed text-purple-300 select-none text-[6.5px]">
+                          // RE-ENTRY SHADOW PROTOCOL IS SECURED. TO SUBMIT NEW RECOMMENDATIONS, USE THE LEFT CHAT TAB AND MENTION "SUGGEST" OR "BUG".
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                </div>
+              </div>
+
+              </div>
+
+            </div>
+
           </div>
         </div>
-      </div>
 
         {/* Scroll Indicator helper for Section 2 - Vertical and aligned to Left Hand Side */}
         <motion.div 
@@ -1580,7 +1824,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
             </div>
             
             <span 
-              className="hidden md:inline-block text-[11px] font-mono tracking-[0.15em] text-purple-400 font-extrabold uppercase select-none"
+              className="hidden md:inline-block text-[16.5px] font-mono tracking-[0.15em] text-purple-400 font-extrabold uppercase select-none"
               style={{ writingMode: 'vertical-rl', textOrientation: 'upright' }}
             >
               SCROLL DOWN

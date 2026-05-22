@@ -185,13 +185,13 @@ export default function AnimeView() {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="flex-1 p-6 md:p-8 flex flex-col justify-between max-w-6xl mx-auto w-full overflow-y-auto no-scrollbar"
+            className="flex-1 p-6 md:p-8 flex flex-col justify-between max-w-6xl mx-auto w-full overflow-hidden"
           >
             {/* Upper Section */}
-            <div>
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+            <div className="shrink-0 mb-6">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-mono tracking-[0.25em] text-purple-400 font-black uppercase mb-2">
+                  <p className="text-[10px] font-mono tracking-[0.25em] text-purple-400 font-black uppercase mb-1">
                     // SHADOW OBSIDIAN DECK ARCHIVE
                   </p>
                   <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-white">
@@ -209,7 +209,7 @@ export default function AnimeView() {
                     className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all ${
                       selectedSeason === 'ALL'
                         ? 'bg-purple-950 text-purple-400 border border-purple-500/20'
-                        : 'text-neutral-500 hover:text-neutral-305'
+                        : 'text-neutral-500 hover:text-neutral-300'
                     }`}
                   >
                     ALL SAGAS
@@ -219,7 +219,7 @@ export default function AnimeView() {
                     className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all ${
                       selectedSeason === 1
                         ? 'bg-purple-950 text-purple-400 border border-purple-500/20'
-                        : 'text-neutral-500 hover:text-neutral-305'
+                        : 'text-neutral-500 hover:text-neutral-300'
                     }`}
                   >
                     SEASON 01
@@ -229,15 +229,17 @@ export default function AnimeView() {
                     className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all ${
                       selectedSeason === 2
                         ? 'bg-purple-950 text-purple-400 border border-purple-500/20'
-                        : 'text-neutral-500 hover:text-neutral-305'
+                        : 'text-neutral-500 hover:text-neutral-300'
                     }`}
                   >
                     SEASON 02
                   </button>
                 </div>
               </div>
+            </div>
 
-              {/* Episodes Grid boxes */}
+            {/* Scrollable Episodes Grid Container */}
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredEpisodes.map((ep, idx) => (
                   <motion.div
@@ -299,7 +301,7 @@ export default function AnimeView() {
               </div>
             </div>
 
-            <div className="border-t border-neutral-900/60 pt-4 mt-8 flex justify-between text-[9px] font-mono uppercase tracking-[0.1em] text-neutral-500 shrink-0">
+            <div className="border-t border-neutral-900/60 pt-4 mt-4 flex justify-between text-[9px] font-mono uppercase tracking-[0.1em] text-neutral-500 shrink-0">
               <span>● MULTI-SECTOR SHADOW NETWORK</span>
               <span>EPISODE ENCRYPTOR v9.8.0</span>
             </div>

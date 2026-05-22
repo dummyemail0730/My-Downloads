@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft } from 'lucide-react';
+import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
 import AnimeView from './components/AnimeView';
@@ -180,6 +180,17 @@ const TABS = [
 ];
 
 export default function App() {
+  const [audioApproved, setAudioApproved] = useState<boolean | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [showOverrideInput, setShowOverrideInput] = useState(false);
+
+  // Clear any legacy authorized states or stored session marks
+  useEffect(() => {
+    localStorage.removeItem('shadow_sys_authorized');
+  }, []);
+
   const [appLoading, setAppLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('EXPERTISE');
   const [showArchive, setShowArchive] = useState(false);
@@ -260,8 +271,309 @@ export default function App() {
     }
   };
 
+  if (audioApproved === null) {
+    return (
+      <div className="min-h-screen w-full bg-black relative flex items-center justify-center p-4 font-sans select-none overflow-hidden text-zinc-100">
+        
+        {/* Full majestic background with high contrast and vivid details as requested */}
+        <div className="absolute inset-0 z-0 opacity-100 pointer-events-none">
+          <img 
+            src={shadowBg} 
+            alt="Shadow Master" 
+            className="w-full h-full object-cover scale-100 filter brightness-100 contrast-100"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+        
+        {/* Soft dark vignettes to keep UI highly readable but keep the background image highly intense */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/50 z-10" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.55)_100%)] z-10" />
+
+        <div className="w-full max-w-[580px] relative z-20">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
+            className="w-full bg-[#110c26]/90 border border-purple-500/25 rounded-[1.8rem] shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(147,51,234,0.12)] backdrop-blur-xl overflow-hidden p-6 md:p-10"
+          >
+            <div className="flex flex-col md:flex-row gap-6 items-start">
+              
+              {/* Left Column Shield & Audio speaker Icon */}
+              <div className="relative shrink-0 w-16 h-16 flex items-center justify-center mx-auto md:mx-0">
+                {/* Shield SVG with neon outer violet glow */}
+                <svg className="absolute inset-0 w-full h-full text-purple-500/80 filter drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3z" className="text-purple-600/30" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+                {/* Soundwaves icon */}
+                <svg className="w-7 h-7 text-purple-200 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                </svg>
+              </div>
+
+              {/* Right content text column */}
+              <div className="flex-1 text-center md:text-left space-y-4">
+                <h3 className="text-xl font-bold font-sans text-white tracking-wide">
+                  Care to listen to some music while you browse?
+                </h3>
+                
+                <p className="text-[12px] leading-relaxed text-slate-300 font-sans font-medium">
+                  The system detected interactive media feeds. This will play atmospheric theme music and background sounds to enhance your browsing experience.
+                </p>
+
+                <p className="text-[12px] leading-relaxed text-slate-300 font-sans font-medium">
+                  Do you authorize the browser to play operational tactical background music tracks?
+                </p>
+
+                {/* Bullets List of requested permissions */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[9.5px] font-bold text-slate-400 tracking-wider block uppercase font-mono">Permissions Requested:</span>
+                  <ul className="text-[11.5px] text-zinc-300 space-y-1 font-sans font-semibold pl-1">
+                    <li className="flex items-center gap-2.5 justify-center md:justify-start">
+                      <span className="w-1.5 h-1.5 bg-purple-500 rounded-full shadow-[0_0_6px_rgba(168,85,247,0.8)]" />
+                      <span>Audio Output (Speaker)</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Buttons Row aligned in bottom-right corner */}
+            <div className="flex justify-end gap-3 mt-8 border-t border-purple-950/40 pt-5">
+              <button
+                onClick={() => {
+                  setAudioApproved(false);
+                }}
+                className="px-6 py-2.5 bg-zinc-900/40 hover:bg-zinc-800/60 border border-neutral-800 text-neutral-300 font-sans text-xs font-semibold tracking-wider rounded-lg transition-all duration-200 hover:text-white cursor-pointer"
+              >
+                Deny
+              </button>
+              <button
+                onClick={() => {
+                  setAudioApproved(true);
+                  // Play standard silent trigger logic so browser registers the audio gesture
+                  try {
+                    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                    if (ctx.state === 'suspended') {
+                      ctx.resume();
+                    }
+                  } catch (e) {}
+                }}
+                className="px-8 py-2.5 bg-purple-700/90 hover:bg-purple-600 border border-purple-500/30 text-white font-sans text-xs font-bold tracking-wider rounded-lg shadow-[0_4px_15px_rgba(147,51,234,0.3)] hover:shadow-[0_4px_22px_rgba(147,51,234,0.45)] transition-all duration-200 active:scale-95 cursor-pointer"
+              >
+                Allow Audio
+              </button>
+            </div>
+
+          </motion.div>
+        </div>
+
+        {/* Small reset button in the corner identical to home screen style */}
+        <div className="absolute bottom-6 right-6">
+          <div className="w-8 h-8 rounded-full bg-neutral-950/60 border border-neutral-900 flex items-center justify-center opacity-40">
+            <RotateCcw size={11} className="text-neutral-500" />
+          </div>
+        </div>
+
+        {/* Top-right floating admin console layout as request */}
+        <div className="absolute top-6 right-6 opacity-40">
+          <div className="px-3 py-1.5 bg-neutral-950/60 border border-neutral-900 rounded text-[9px] font-mono flex items-center gap-1.5 tracking-wider uppercase">
+            <Lock size={9} />
+            <span>ADMIN CONSOLE</span>
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen w-full bg-black relative flex items-center justify-center p-4 font-mono select-none overflow-hidden text-white">
+        {/* Absolute ADMIN LOG IN Button at the bottom left corner as requested */}
+        <button
+          onClick={() => {
+            setAuthError('');
+            setShowOverrideInput(!showOverrideInput);
+          }}
+          className="absolute bottom-6 left-6 px-4 py-2.5 bg-neutral-900/30 hover:bg-[#1f1a40]/40 border border-neutral-800 hover:border-purple-500/40 text-neutral-400 hover:text-white rounded-xl font-mono text-[9px] uppercase font-bold tracking-[0.18em] flex items-center gap-2 transition-all duration-300 backdrop-blur-md shadow-lg cursor-pointer z-50 ml-4 mb-2"
+        >
+          <Lock size={11} className="text-purple-400" />
+          <span>ADMIN LOG IN</span>
+        </button>
+
+        {/* Immersive background matching the theme */}
+        <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
+          <img 
+            src={shadowBg} 
+            alt="Shadow Master" 
+            className="w-full h-full object-cover scale-102"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/85 to-black/75 z-10" />
+        
+        {/* Micro-grid overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(147,51,234,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(147,51,234,0.015)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none z-10" />
+
+        {/* Outer glowing ambient atmosphere */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-900/10 rounded-full blur-[140px] pointer-events-none z-10" />
+
+        <div className="w-full max-w-lg relative z-20 flex flex-col items-center">
+          <AnimatePresence mode="wait">
+            {!showOverrideInput ? (
+              <motion.div
+                key="maintenance-card"
+                initial={{ opacity: 0, scale: 0.96, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: -15 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="w-full bg-[#0f0b21]/80 border border-purple-500/25 rounded-[2.2rem] p-8 md:p-10 shadow-[0_0_60px_rgba(147,51,234,0.15)] backdrop-blur-xl relative overflow-hidden flex flex-col items-center justify-center text-center"
+              >
+                {/* Wrench Icon wrapped in a glowing violet Hexagon */}
+                <div className="relative w-24 h-24 flex items-center justify-center mb-6">
+                  <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-purple-500/35 fill-purple-950/20 filter drop-shadow-[0_0_12px_rgba(168,85,247,0.5)]">
+                    <polygon points="50,5 93,25 93,75 50,95 7,75 7,25" stroke="currentColor" strokeWidth="2.5" />
+                  </svg>
+                  <Wrench className="w-9 h-9 text-purple-300 relative z-10 animate-pulse" strokeWidth={1.5} />
+                </div>
+
+                {/* Display Title */}
+                <h2 className="text-xl md:text-2xl font-bold font-sans text-white tracking-wide mb-1 select-none">
+                  System Under Maintenance
+                </h2>
+
+                {/* Symmetrical divider with a center circle */}
+                <div className="flex items-center justify-center w-full gap-2 my-5 opacity-50">
+                  <div className="h-[1px] bg-gradient-to-r from-transparent via-purple-500/30 to-purple-500/30 flex-1" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500/60 shadow-[0_0_6px_rgba(168,85,247,0.8)]" />
+                  <div className="h-[1px] bg-gradient-to-l from-transparent via-purple-500/30 to-purple-500/30 flex-1" />
+                </div>
+
+                {/* Main description matching original typography */}
+                <p className="text-[12px] md:text-xs text-neutral-300 font-sans leading-relaxed text-center mb-8 font-medium">
+                  We are currently performing scheduled maintenance to improve your experience. <br className="hidden sm:inline" />Please check back later.
+                </p>
+
+                {/* OK Button with nice purple styling - clicking OK keep user on maintenance state */}
+                <button
+                  onClick={() => {
+                    // Do nothing or notify standby mode when admin console link is hidden
+                    setAuthError('');
+                  }}
+                  className="px-12 py-2.5 bg-purple-700/80 hover:bg-purple-600 border border-purple-500/30 hover:border-purple-400/55 text-white font-sans text-xs font-semibold tracking-wider rounded-xl transition-all duration-300 shadow-[0_4px_15px_rgba(147,51,234,0.2)] hover:shadow-[0_4px_22px_rgba(147,51,234,0.35)] active:scale-95 cursor-pointer"
+                >
+                  OK
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="access-card"
+                initial={{ opacity: 0, scale: 0.96, y: -15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 15 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="w-full bg-[#0f0b21]/80 border border-purple-500/30 rounded-[2.2rem] p-8 md:p-10 shadow-[0_0_60px_rgba(147,51,234,0.2)] backdrop-blur-xl relative overflow-hidden"
+              >
+                {/* Active Corner Brackets */}
+                <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-purple-500/40 rounded-tl-xl" />
+                <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-purple-500/40 rounded-tr-xl" />
+                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-purple-500/40 rounded-bl-xl" />
+                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-purple-500/40 rounded-br-xl" />
+
+                {/* Lock icon */}
+                <div className="flex justify-center mb-6">
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-purple-500/35 fill-purple-950/20 filter drop-shadow-[0_0_8px_rgba(168,85,247,0.4)]">
+                      <polygon points="50,5 93,25 93,75 50,95 7,75 7,25" stroke="currentColor" strokeWidth="2.5" />
+                    </svg>
+                    <Lock className="w-7 h-7 text-purple-300 relative z-10 animate-pulse" />
+                  </div>
+                </div>
+
+                <h2 className="text-sm md:text-base font-black text-center text-white tracking-[0.2em] font-mono mb-2 uppercase">
+                  DECRYPT HARDWARE LINK
+                </h2>
+
+                <p className="text-[10px] md:text-[11px] text-neutral-400 tracking-wide leading-relaxed text-center mb-6">
+                  Type in your secure verification passcode. If authentic, the root system loading screen will be initiated.
+                </p>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const entered = passcode.trim();
+                    if (entered === 'KGab0730') {
+                      setIsAuthorized(true);
+                      setAuthError('');
+                    } else {
+                      setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
+                      setPasscode('');
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-[8px] uppercase tracking-[0.25em] text-neutral-400 font-extrabold mb-2.5 text-center">
+                      ENTER ACCESS PASSCODE
+                    </label>
+                    <input 
+                      type="password"
+                      autoFocus
+                      placeholder="••••••••"
+                      value={passcode}
+                      onChange={(e) => {
+                        setPasscode(e.target.value);
+                        if (authError) setAuthError('');
+                      }}
+                      className="w-full text-center text-sm font-mono bg-black hover:bg-neutral-900/45 focus:bg-black border border-neutral-800 focus:border-purple-500/60 text-purple-400 p-3 rounded-xl outline-none transition-all placeholder:text-neutral-800 tracking-widest"
+                    />
+                  </div>
+
+                  {authError && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-[9px] text-red-400 text-center font-bold tracking-wider leading-relaxed px-2 py-1.5 bg-red-950/10 border border-red-900/30 rounded-lg font-mono"
+                    >
+                      {authError}
+                    </motion.p>
+                  )}
+
+                  <div className="pt-2 flex flex-col gap-2">
+                    <button
+                      type="submit"
+                      className="w-full py-3 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-98 text-white font-mono text-[10px] font-extrabold tracking-widest rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
+                    >
+                      <Unlock size={11} />
+                      <span>INITIALIZE TERMINAL</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOverrideInput(false);
+                        setAuthError('');
+                      }}
+                      className="w-full py-2 bg-transparent border border-neutral-900 hover:border-neutral-800 hover:bg-neutral-900/30 text-neutral-500 hover:text-neutral-300 font-mono text-[9px] uppercase font-bold tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <ChevronLeft size={10} />
+                      <span>BACK TO ALERT</span>
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    );
+  }
+
   if (appLoading) {
-    return <LoadingScreen onComplete={() => setAppLoading(false)} />;
+    return <LoadingScreen onComplete={() => setAppLoading(false)} isAudioAllowed={audioApproved === true} />;
   }
 
   if (showShadowLoreOnly) {
@@ -330,7 +642,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-bg-primary text-text-main overflow-y-auto no-scrollbar relative">
+    <div className="h-screen w-full flex flex-col bg-bg-primary text-text-main overflow-hidden relative">
         {/* Ambient Background Image */}
         <div className="absolute inset-0 z-0 opacity-[0.15] pointer-events-none">
           <img 
@@ -341,7 +653,7 @@ export default function App() {
           />
         </div>
         
-        <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar relative z-10">
+        <div className="flex-1 flex flex-col overflow-hidden relative z-10">
           {/* Header Section */}
           <header className="h-24 border-b border-neutral-900 flex items-center justify-between px-8 bg-neutral-950/95 backdrop-blur-md shrink-0 pointer-events-none sm:pointer-events-auto">
           <div className="flex items-center gap-4">
@@ -358,7 +670,7 @@ export default function App() {
         </header>
  
         {/* Main Content Layout */}
-        <div className="flex-1 flex overflow-y-auto no-scrollbar">
+        <div className="flex-1 flex overflow-hidden">
           {/* Sidebar / Navigation */}
           <Sidebar 
             activeTab={activeTab} 
@@ -370,7 +682,7 @@ export default function App() {
           />
  
           {/* Content Area */}
-          <main className="flex-1 flex flex-col bg-neutral-950 overflow-y-auto no-scrollbar">
+          <main className="flex-1 flex flex-col bg-neutral-950 overflow-hidden">
             <div className="p-4 md:p-6 border-b border-neutral-900 flex items-center justify-between bg-zinc-900/45 shrink-0">
               <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none text-white">
                 {activeTab.replace('_', ' ')}
