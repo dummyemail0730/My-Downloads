@@ -301,10 +301,7 @@ export default function AnimeView() {
               </div>
             </div>
 
-            <div className="border-t border-neutral-900/60 pt-4 mt-4 flex justify-between text-[9px] font-mono uppercase tracking-[0.1em] text-neutral-500 shrink-0">
-              <span>● MULTI-SECTOR SHADOW NETWORK</span>
-              <span>EPISODE ENCRYPTOR v9.8.0</span>
-            </div>
+
           </motion.div>
         ) : (
           <motion.div

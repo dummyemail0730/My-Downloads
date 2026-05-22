@@ -1,6 +1,6 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench } from 'lucide-react';
+import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_chibi_avatar_1779438320279.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
@@ -103,12 +103,161 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
 
   // Interactive Shadow Chibi Chat Room States
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; text: string; sender: 'user' | 'shadow'; time: string }>>([
-    { id: 'm1', text: "Welcome, Operative. I am Shadow, Leader of Shadow Garden.", sender: 'shadow', time: '11:59 PM' },
-    { id: 'm2', text: "The diagnostic modules are prepared. Ask me anything, or run validation protocols.", sender: 'shadow', time: '12:00 AM' }
+    { id: 'm1', text: "Oy kumusta tol! Ako nga pala si Shadow, yung assistant ni Adrian dito. Chill lang tayo.", sender: 'shadow', time: '11:59 PM' },
+    { id: 'm2', text: "Tanong ka lang kahit ano, pre. Pwede Tagalog, Taglish, o English, kahit ano trip mo mapag-usapan!", sender: 'shadow', time: '12:00 AM' }
   ]);
   const [currentChatInput, setCurrentChatInput] = useState('');
   const [isShadowTyping, setIsShadowTyping] = useState(false);
   const [activeWorkspaceSubTab, setActiveWorkspaceSubTab] = useState<'chat' | 'stats'>('chat');
+
+  // Shout Out Box States
+  const [shoutMessage, setShoutMessage] = useState('');
+  const [shoutName, setShoutName] = useState('');
+  const [shouts, setShouts] = useState<Array<{
+    id: string;
+    name: string;
+    message: string;
+    time: string;
+    timestamp: number;
+    avatar: string;
+    avatarBg: string;
+    likes: number;
+    likedByUser?: boolean;
+  }>>(() => {
+    const saved = localStorage.getItem('shadow_shout_outs_v3');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [
+      {
+        id: 's1',
+        name: 'Alpha [Seven Shadows]',
+        message: 'All core database nodes are completely secured under Shadow\'s direct command. No Cult of Diablos influence detected. 🔮🖤',
+        time: '2m ago',
+        timestamp: Date.now() - 2 * 60 * 1000,
+        avatar: '👑',
+        avatarBg: 'bg-purple-950/85 border border-purple-500/35 text-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.2)]',
+        likes: 12
+      },
+      {
+        id: 's2',
+        name: 'Beta [Seven Shadows]',
+        message: 'Completed volume 14 of the Shadow Chronicles! Lord Shadow\'s peerless brilliance must be recorded beautifully! 📖✨',
+        time: '5m ago',
+        timestamp: Date.now() - 5 * 60 * 1000,
+        avatar: '✍️',
+        avatarBg: 'bg-amber-950/85 border border-amber-500/35 text-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.2)]',
+        likes: 9
+      },
+      {
+        id: 's3',
+        name: 'Gamma [Seven Shadows]',
+        message: 'Mitsugoshi Company has secured additional golden reserves. The grand supply chain grows silently in the night. 💰🍷',
+        time: '12m ago',
+        timestamp: Date.now() - 12 * 60 * 1000,
+        avatar: '💸',
+        avatarBg: 'bg-pink-950/85 border border-pink-500/35 text-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.2)]',
+        likes: 8
+      },
+      {
+        id: 's4',
+        name: 'Delta [Seven Shadows]',
+        message: 'BUG HATING TIME! Delta crush all weak codes! SMASH SMASH! Master said I did a good job! 🐺⚔️',
+        time: '18m ago',
+        timestamp: Date.now() - 18 * 60 * 1000,
+        avatar: '🐺',
+        avatarBg: 'bg-emerald-950/85 border border-emerald-500/35 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)]',
+        likes: 15
+      },
+      {
+        id: 's5',
+        name: 'Epsilon [Seven Shadows]',
+        message: 'Calibrating our slime-suit compression and magic density to absolute precision. Peak operational performance! 🎻🎶',
+        time: '25m ago',
+        timestamp: Date.now() - 25 * 60 * 1000,
+        avatar: '🎹',
+        avatarBg: 'bg-orange-950/85 border border-orange-500/35 text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]',
+        likes: 7
+      }
+    ];
+  });
+
+  const handleLikeShout = (id: string) => {
+    const updated = shouts.map(s => {
+      if (s.id === id) {
+        const liked = !s.likedByUser;
+        return {
+          ...s,
+          likes: liked ? s.likes + 1 : s.likes - 1,
+          likedByUser: liked
+        };
+      }
+      return s;
+    });
+    setShouts(updated);
+    localStorage.setItem('shadow_shout_outs_v3', JSON.stringify(updated));
+  };
+
+  const handlePostShout = (e: FormEvent) => {
+    e.preventDefault();
+    if (!shoutMessage.trim()) return;
+
+    const avatars = ['🔮', '👑', '🗡️', '🎩', '🦅', '🐺', '📖', '💸', '🎻', '🖤', '🌌', '☠️', '🍷'];
+    const backgrounds = [
+      'bg-purple-950/80 border border-purple-500/20 text-purple-400',
+      'bg-blue-950/80 border border-blue-500/20 text-blue-400',
+      'bg-emerald-950/80 border border-emerald-500/20 text-emerald-400',
+      'bg-orange-950/80 border border-orange-500/20 text-orange-400',
+      'bg-pink-950/80 border border-pink-500/20 text-pink-400',
+      'bg-amber-950/80 border border-amber-500/20 text-amber-500',
+    ];
+
+    const randomIdx = Math.floor(Math.random() * avatars.length);
+    const randomBgIdx = Math.floor(Math.random() * backgrounds.length);
+
+    const nameToUse = shoutName.trim() || 'Anonymous Operative';
+    
+    const newShout = {
+      id: `shout-${Date.now()}`,
+      name: nameToUse,
+      message: shoutMessage.trim(),
+      time: 'now',
+      timestamp: Date.now(),
+      avatar: avatars[randomIdx],
+      avatarBg: backgrounds[randomBgIdx],
+      likes: 0,
+      likedByUser: false
+    };
+
+    const updated = [newShout, ...shouts];
+    setShouts(updated);
+    localStorage.setItem('shadow_shout_outs_v3', JSON.stringify(updated));
+    setShoutMessage('');
+    setShoutName('');
+  };
+
+  const getRelativeTime = (timestamp: number) => {
+    const diff = Date.now() - timestamp;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages, isShadowTyping, activeWorkspaceSubTab]);
 
   const handleAbortTransit = () => {
     // 1. Reset all form input states
@@ -597,6 +746,17 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
         transition={skip ? { duration: 0 } : { delay: 1.0, duration: 0.6, ease: "easeOut" }}
         className="absolute top-8 right-8 md:top-12 md:right-12 z-30 flex items-center gap-2"
       >
+        <button
+          onClick={() => {
+            setIsSuggestionModalOpen(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
+          id="suggestion-system-btn"
+        >
+          <Sparkles size={11} className="text-purple-450 animate-pulse" />
+          <span>Suggestions DB</span>
+        </button>
+
         <button 
           onClick={() => {
             if (isAuthenticated) {
@@ -682,7 +842,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
 
               {/* Password submission form */}
               <form 
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
                   
                   const isLocked = lockoutUntil !== null && Date.now() < lockoutUntil;
@@ -691,7 +851,26 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
                     return;
                   }
 
-                  if (passwordInput.trim().toLowerCase() === 'kgab0730') {
+                  const normalizedInput = passwordInput.trim().toLowerCase();
+                  let isMatch = false;
+
+                  try {
+                    const msgBuffer = new TextEncoder().encode(normalizedInput);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                    
+                    if (hashHex === '9811036de8c2a393d542fb081e5107ce7944d2ed3ba7a421812db1c65c7dcd8d') {
+                      isMatch = true;
+                    }
+                  } catch (err) {
+                    // Fallback verification using basic obscuration in case subtle crypto is unavailable
+                    if (btoa(normalizedInput) === 'a2dhYjA3MzA=') {
+                      isMatch = true;
+                    }
+                  }
+
+                  if (isMatch) {
                     setIsAuthenticated(true);
                     setShowPasswordModal(false);
                     setPasswordError('');
@@ -1426,17 +1605,10 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
               </div>
 
               {/* Footer cancel controls */}
-              <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-4 shrink-0">
-                <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500">
+              <div className="flex items-center justify-center pt-4 border-t border-neutral-900 mt-4 shrink-0">
+                <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500 text-center">
                   SHADOW SUGGESTIONS SYSTEM GATEWAY // PE PLATFORM
                 </span>
-                <button 
-                  type="button"
-                  onClick={() => setIsSuggestionModalOpen(false)}
-                  className="px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 hover:text-white rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] text-neutral-300 transition-all cursor-pointer text-center"
-                >
-                  Close Gateway
-                </button>
               </div>
             </motion.div>
           </div>
@@ -1555,8 +1727,8 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
                   onClick={onShowShadowLore}
                   className="group flex items-center justify-center gap-4 px-8 py-3 bg-purple-950/40 border border-purple-500/40 text-purple-300 font-black uppercase tracking-widest text-xs hover:bg-purple-900/60 hover:border-purple-400 transition-all duration-200 shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer"
                 >
-                  Know More About Shadow
-                  <Sparkles size={16} className="text-purple-400 group-hover:rotate-12 transition-transform duration-300" />
+                  Access Shadow Master Tutorials
+                  <Sparkles size={16} className="text-purple-400 group-hover:rotate-12 transition-transform duration-300 animate-pulse" />
                 </motion.button>
               </div>
             </div>
@@ -1564,15 +1736,15 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
             {/* Right Column: Chibi Shadow Interactive Chat Widget */}
             <div className="lg:col-span-5 flex flex-col items-center lg:items-end justify-center w-full relative pt-12 lg:pt-0">
               
-              <div className="relative w-full max-w-[312px]">
+              <div className="relative w-full max-w-[342px]">
                 {/* Floating speech bubble */}
-                <div className="absolute top-[-8px] right-[-5px] z-30 pointer-events-none">
+                <div className="absolute top-[-10px] right-[-5px] z-30 pointer-events-none">
                   <motion.div 
                     animate={{ y: [0, -3, 0] }}
                     transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                    className="bg-white border border-neutral-200 px-2 py-0.5 rounded-lg shadow-xl relative"
+                    className="bg-white border border-neutral-200 px-2.5 py-1 rounded-lg shadow-xl relative"
                   >
-                    <span className="text-neutral-900 text-[6.5px] font-black tracking-widest font-mono block uppercase">
+                    <span className="text-neutral-900 text-[7.5px] font-black tracking-widest font-mono block uppercase">
                       {isShadowTyping ? 'THINKING...' : 'CHAT.'}
                     </span>
                     <div className="absolute bottom-[-3px] right-[14px] w-1.5 h-1.5 bg-white border-r border-b border-neutral-200 rotate-45" />
@@ -1583,7 +1755,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
                 <motion.div 
                   animate={{ y: [0, -4, 0] }}
                   transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                  className="absolute top-[-34px] right-[-20px] w-14 h-14 z-20 pointer-events-none select-none filter drop-shadow-[0_6px_12px_rgba(147,51,234,0.3)]"
+                  className="absolute top-[-38px] right-[-15px] w-16 h-16 z-20 pointer-events-none select-none filter drop-shadow-[0_6px_12px_rgba(147,51,234,0.3)]"
                 >
                   <img 
                     src={shadowChibiAvatar} 
@@ -1594,73 +1766,73 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
                 </motion.div>
 
                 {/* Chat Panel matching the reference image structure */}
-                <div className="bg-[#0f0b21]/75 border border-purple-500/25 rounded-[1.2rem] shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(147,51,234,0.03)] backdrop-blur-xl relative flex overflow-hidden w-full h-[264px]">
+                <div className="bg-[#0f0b21]/75 border border-purple-500/25 rounded-[1.2rem] shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(147,51,234,0.03)] backdrop-blur-xl relative flex overflow-hidden w-full h-[415px]">
                 
                 {/* Left vertical control tab bar rail */}
-                <div className="w-8 bg-black/40 border-r border-purple-500/10 flex flex-col items-center py-2.5 gap-2.5 shrink-0">
+                <div className="w-9.5 bg-black/40 border-r border-purple-500/10 flex flex-col items-center py-3.5 gap-3 shrink-0">
                   <button 
                     onClick={() => setActiveWorkspaceSubTab('chat')}
-                    className={`p-1 rounded-lg transition-all duration-300 cursor-pointer ${
+                    className={`p-1.5 rounded-lg transition-all duration-300 cursor-pointer ${
                       activeWorkspaceSubTab === 'chat' 
                         ? 'bg-purple-900/50 border border-purple-500/30 text-purple-300 shadow-[0_0_8px_rgba(147,51,234,0.2)]' 
                         : 'text-neutral-500 hover:text-neutral-300 border border-transparent'
                     }`}
                     title="Terminal Diagnostic Chat"
                   >
-                    <Wrench size={10} />
+                    <Wrench size={12} />
                   </button>
                   <button 
                     onClick={() => setActiveWorkspaceSubTab('stats')}
-                    className={`p-1 rounded-lg transition-all duration-300 cursor-pointer ${
+                    className={`p-1.5 rounded-lg transition-all duration-300 cursor-pointer ${
                       activeWorkspaceSubTab === 'stats' 
                         ? 'bg-purple-900/50 border border-purple-500/30 text-purple-300 shadow-[0_0_8px_rgba(147,51,234,0.2)]'
                         : 'text-neutral-500 hover:text-neutral-300 border border-transparent'
                     }`}
                     title="Realtime Activity Logs"
                   >
-                    <Activity size={10} />
+                    <Activity size={12} />
                   </button>
                 </div>
 
                 {/* Right Main panel content area */}
-                <div className="flex-1 flex flex-col justify-between p-3 overflow-hidden">
+                <div className="flex-1 flex flex-col justify-between p-4 overflow-hidden">
                   
                   {activeWorkspaceSubTab === 'chat' ? (
                     <>
                       {/* Active Chat Section */}
-                      <div className="flex items-center gap-1.5 mb-2 px-1 shrink-0">
+                      <div className="flex items-center gap-1.5 mb-2.5 px-1 shrink-0">
                         <span className="relative flex h-1.5 w-1.5">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                         </span>
-                        <span className="text-[7px] font-mono text-purple-300/90 font-bold uppercase tracking-wider">
-                          STATUS: {isShadowTyping ? 'ENCRYPTING COMMS...' : 'I AM READY FOR CHAT.'}
+                        <span className="text-[8.5px] font-mono text-purple-300/90 font-bold uppercase tracking-wider">
+                          STATUS: {isShadowTyping ? 'NAGSULUSULAT NA...' : 'ONLINE AKO PRE.'}
                         </span>
                       </div>
 
                       {/* Chat Messages Log view */}
-                      <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 mb-3 pr-1 text-left">
+                      <div ref={chatContainerRef} className="flex-1 overflow-y-auto no-scrollbar space-y-3.5 mb-3.5 pr-1 text-left">
                         {chatMessages.map((msg) => (
                           <div 
                             key={msg.id}
                             className={`flex flex-col max-w-[85%] ${msg.sender === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}
                           >
-                            <div className={`p-2.5 rounded-2xl text-[8.5px] leading-relaxed select-text ${
+                            <div className={`p-3 rounded-2xl text-[10.5px] leading-relaxed select-text ${
                               msg.sender === 'user'
                                 ? 'bg-gradient-to-br from-purple-800/80 to-indigo-800/80 text-white rounded-tr-none border border-purple-500/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
                                 : 'bg-black/45 hover:bg-black/60 border border-purple-500/15 text-neutral-200 rounded-tl-none transition-colors'
                             }`}>
                               {msg.text}
                             </div>
-                            <span className="text-[6px] text-neutral-600 font-mono mt-0.5 px-1 tracking-wider uppercase">
-                              {msg.sender === 'user' ? 'OPERATIVE' : 'SHADOW'} // {msg.time}
+                            <span className="text-[7.5px] text-neutral-600 font-mono mt-1 px-1 tracking-wider uppercase">
+                              {msg.sender === 'user' ? 'YOU' : 'SHADOW'} // {msg.time}
                             </span>
                           </div>
                         ))}
                         
                         {isShadowTyping && (
                           <div className="flex flex-col items-start max-w-[85%]">
-                            <div className="bg-black/30 border border-purple-500/10 p-2 py-1.5 rounded-2xl rounded-tl-none text-[7px] text-neutral-400 flex items-center gap-1">
+                            <div className="bg-black/30 border border-purple-500/10 p-2.5 py-1.5 rounded-2xl rounded-tl-none text-[8px] text-neutral-400 flex items-center gap-1">
                               <span className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                               <span className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                               <span className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -1684,53 +1856,100 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
                           setCurrentChatInput('');
                           setIsShadowTyping(true);
 
-                          setTimeout(() => {
-                            setIsShadowTyping(false);
-                            const lower = userText.toLowerCase();
-                            let replyText = "";
-                            
-                            const options = [
-                              "To survive in the tech world, one must operate from the shadows—lurking in the background while ensuring systems run at their absolute best.",
-                              "I have executed a deep diagnostic system check. All standby servers and local files are completely optimal.",
-                              "Our connection link is fully encrypted. The Adrian Gabionza development portfolio workspace is protected.",
-                              "I... AM... ATOMIC! ...Keep that secret secured between us.",
-                              "Diagnostics completed successfully. System integrity is operating on zero-vulnerability standards."
-                            ];
+                          // Send request to real backend shadow-chat API with Gemini integration
+                          (async () => {
+                            try {
+                              const response = await fetch("/api/shadow-chat", {
+                                method: "POST",
+                                headers: {
+                                  "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({ message: userText }),
+                              });
+                              
+                              if (!response.ok) {
+                                throw new Error("Server responded with error status");
+                              }
+                              
+                              const data = await response.json();
+                              setIsShadowTyping(false);
+                              
+                              let replyText = data.text || "An encrypted transmission fragment was lost in the void... Ask again, Operative.";
+                              
+                              // Trigger automatic local suggestion addition if keyword is found
+                              const lower = userText.toLowerCase();
+                              if (lower.includes('suggest') || lower.includes('add') || lower.includes('optimize') || lower.includes('bug')) {
+                                const cleanTitle = userText.replace(/(suggest|add|optimize|bug|fix|issue)/gi, '').trim() || "Automated diagnostic task updater";
+                                const shortTitle = cleanTitle.substring(0, 45);
+                                
+                                const nsId = `s-${Date.now()}`;
+                                const ns = {
+                                  id: nsId,
+                                  text: `[Chat Entry]: ${shortTitle}`,
+                                  date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(),
+                                  category: 'CHAT_LOG',
+                                  status: 'NEW'
+                                };
+                                const nextSuggestions = [ns, ...suggestions];
+                                setSuggestions(nextSuggestions);
+                                localStorage.setItem('shadow_suggestions', JSON.stringify(nextSuggestions));
+                              }
+                              
+                              setChatMessages(prev => [...prev, {
+                                id: `shadow-${Date.now()}`,
+                                text: replyText,
+                                sender: 'shadow' as const,
+                                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                              }]);
+                            } catch (err) {
+                              console.warn("Unable to fetch backend Gemini API, using local fallback:", err);
+                              setIsShadowTyping(false);
+                              
+                              const lower = userText.toLowerCase();
+                              let replyText = "";
+                                       const options = [
+                                "Chill lang tayo rito pre. Solid naman 'tong project na to, maganda pagkakagawa.",
+                                "Aray ko lods, parang medyo mabagal net, pero goods pa rin!",
+                                "Shoutout sayo ka-tropa! Adrian is the best developer talaga.",
+                                "Walang issue rito, everything is working smoothly. Solid, diba?",
+                                "Gusto mo ba uminom ng kape tol? Chill muna tayo habang nagbabasa ng archive."
+                              ];
 
-                            if (lower.includes('atomic')) {
-                              replyText = "I... AM... ATOMIC! ...Wait, keep that secret under shadows! The local nodes are fully armed for deployment.";
-                            } else if (lower.includes('suggest') || lower.includes('add') || lower.includes('optimize') || lower.includes('bug')) {
-                              const cleanTitle = userText.replace(/(suggest|add|optimize|bug|fix|issue)/gi, '').trim() || "Automated diagnostic task updater";
-                              const shortTitle = cleanTitle.substring(0, 45);
-                              
-                              const nsId = `s-${Date.now()}`;
-                              const ns = {
-                                id: nsId,
-                                text: `[Chat Entry]: ${shortTitle}`,
-                                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(),
-                                category: 'CHAT_LOG',
-                                status: 'NEW'
-                              };
-                              const nextSuggestions = [ns, ...suggestions];
-                              setSuggestions(nextSuggestions);
-                              localStorage.setItem('shadow_suggestions', JSON.stringify(nextSuggestions));
-                              
-                              replyText = `Understood. I have securely logged your recommendation as: "${shortTitle}" directly inside the local suggestions state list!`;
-                            } else if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
-                              replyText = "Greetings, agent. Adrian's security systems are online. Do we need to log a new optimization suggestion or analyze credentials?";
-                            } else if (lower.includes('who') || lower.includes('you')) {
-                              replyText = "I am Shadow. I operate silently in the background of this portfolio to serve peak performance.";
-                            } else {
-                              replyText = options[Math.floor(Math.random() * options.length)];
+                              if (lower.includes('atomic')) {
+                                replyText = "Ano yun atomic? Nuclear reactor yarn? Haha, joke lang lods!";
+                              } else if (lower.includes('suggest') || lower.includes('add') || lower.includes('optimize') || lower.includes('bug')) {
+                                const cleanTitle = userText.replace(/(suggest|add|optimize|bug|fix|issue)/gi, '').trim() || "Automated diagnostic task updater";
+                                const shortTitle = cleanTitle.substring(0, 45);
+                                
+                                const nsId = `s-${Date.now()}`;
+                                const ns = {
+                                  id: nsId,
+                                  text: `[Chat Entry]: ${shortTitle}`,
+                                  date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(),
+                                  category: 'CHAT_LOG',
+                                  status: 'NEW'
+                                };
+                                const nextSuggestions = [ns, ...suggestions];
+                                setSuggestions(nextSuggestions);
+                                localStorage.setItem('shadow_suggestions', JSON.stringify(nextSuggestions));
+                                
+                                replyText = `Sige pre, nilagay ko na sa suggestions box natin: "${shortTitle}"! Solid ah.`;
+                              } else if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
+                                replyText = "Kumusta ka, ka-tropa! Ano g nating usapan ngayon? G!";
+                              } else if (lower.includes('who') || lower.includes('you')) {
+                                replyText = "Ako si Shadow, tol! Ako yung digital helper ni Adrian dito. Chill na Pinoy assistant mo pre!";
+                              } else {
+                                replyText = options[Math.floor(Math.random() * options.length)];
+                              }
+
+                              setChatMessages(prev => [...prev, {
+                                id: `shadow-${Date.now()}`,
+                                text: replyText,
+                                sender: 'shadow' as const,
+                                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                              }]);
                             }
-
-                            setChatMessages(prev => [...prev, {
-                              id: `shadow-${Date.now()}`,
-                              text: replyText,
-                              sender: 'shadow' as const,
-                              time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-                            }]);
-                          }, 1000);
+                          })();
                         }}
                         className="relative flex items-center shrink-0"
                       >
@@ -1738,15 +1957,15 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
                           type="text"
                           value={currentChatInput}
                           onChange={(e) => setCurrentChatInput(e.target.value)}
-                          placeholder="Type a message to Shadow Garden..."
-                          className="w-full text-left text-[8px] placeholder:text-neutral-500 text-neutral-100 bg-neutral-100/10 hover:bg-neutral-100/15 focus:bg-neutral-100/20 p-2.5 pr-11 rounded-full outline-none border border-purple-500/10 focus:border-purple-500/30 transition-all font-sans"
+                          placeholder="Magsulat dito, tol..."
+                          className="w-full text-left text-[10.5px] placeholder:text-neutral-500 text-neutral-100 bg-neutral-100/10 hover:bg-neutral-100/15 focus:bg-neutral-100/20 p-3 pr-11 rounded-full outline-none border border-purple-500/10 focus:border-purple-500/30 transition-all font-sans"
                         />
                         <button 
                           type="submit"
                           disabled={!currentChatInput.trim() || isShadowTyping}
-                          className="absolute right-1 p-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-full transition-all disabled:opacity-40 disabled:hover:bg-purple-600 cursor-pointer flex items-center justify-center shadow-lg"
+                          className="absolute right-1 p-2 bg-purple-600 hover:bg-purple-500 text-white rounded-full transition-all disabled:opacity-40 disabled:hover:bg-purple-600 cursor-pointer flex items-center justify-center shadow-lg"
                         >
-                          <Send size={8} />
+                          <Send size={10} />
                         </button>
                       </form>
                     </>
@@ -1754,14 +1973,14 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
                     <>
                       {/* Active Activity Feed section */}
                       <div className="flex items-center gap-1.5 mb-3 px-1 shrink-0">
-                        <Activity size={8} className="text-purple-400 animate-pulse" />
-                        <span className="text-[7.5px] font-mono text-purple-300 font-bold uppercase tracking-wider">
+                        <Activity size={10} className="text-purple-400 animate-pulse" />
+                        <span className="text-[9px] font-mono text-purple-300 font-bold uppercase tracking-wider">
                           UPLINK INTEGRITY DIAGNOSTICS: STANDBY
                         </span>
                       </div>
                       
                       {/* Interactive realtime metrics console list */}
-                      <div className="flex-1 rounded-2xl bg-black/40 border border-purple-500/10 p-3 space-y-2.5 text-left font-mono text-[7px] text-neutral-400 overflow-y-auto no-scrollbar">
+                      <div className="flex-1 rounded-2xl bg-black/40 border border-purple-500/10 p-3 space-y-2.5 text-left font-mono text-[8.5px] text-neutral-400 overflow-y-auto no-scrollbar">
                         <div className="flex justify-between items-center border-b border-purple-500/10 pb-1.5">
                           <span>SYNC MAIN PORT:</span>
                           <span className="text-emerald-400 font-bold">PORT 3000 // ACTIVE</span>
@@ -1778,7 +1997,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
                           <span>COGNITIVE MODULES:</span>
                           <span className="text-white">GEMINI PROV V1.0</span>
                         </div>
-                        <div className="p-2 bg-purple-950/20 border border-purple-500/20 rounded-xl leading-relaxed text-purple-300 select-none text-[6.5px]">
+                        <div className="p-2 bg-purple-950/20 border border-purple-500/20 rounded-xl leading-relaxed text-purple-300 select-none text-[8px]">
                           // RE-ENTRY SHADOW PROTOCOL IS SECURED. TO SUBMIT NEW RECOMMENDATIONS, USE THE LEFT CHAT TAB AND MENTION "SUGGEST" OR "BUG".
                         </div>
                       </div>
@@ -1833,148 +2052,237 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
         </motion.div>
       </div>
 
-      {/* Section 2: Operational Specifications & Diagnostics Desk */}
-      <div id="operational-specs" className="min-h-screen w-full flex flex-col justify-center py-16 md:py-24 border-t border-neutral-900 bg-neutral-950/70 backdrop-blur-sm relative z-10 px-8 md:px-12 max-w-6xl mx-auto">
-        <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping" />
-              <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-purple-400 font-bold">// INTEGRITY MONITOR</span>
+      {/* Section 2: Shout Out Box - Shadow Garden Coded Network */}
+      <div id="operational-specs" className="w-full flex flex-col justify-center py-4.5 md:py-6 border-t border-neutral-900 bg-neutral-950/70 backdrop-blur-sm relative z-10 pl-2 pr-4 md:pl-3 max-w-[602px] mr-auto">
+        <div className="border border-purple-500/25 rounded-none p-3 md:p-3.5 bg-neutral-950/90 shadow-[0_0_30px_rgba(168,85,247,0.06)] relative overflow-hidden">
+          
+          {/* Neon background glows */}
+          <div className="absolute top-0 right-0 w-60 h-60 bg-purple-500/5 rounded-full blur-[80px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-60 h-60 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
+ 
+          {/* Header */}
+          <div className="text-center mb-3 relative z-10">
+            <div className="flex items-center justify-center gap-1.2 mb-0.5 flex-wrap">
+              <span className="text-sm filter drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]">🔮</span>
+              <span className="text-[10px] text-amber-500 filter drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]">⭐</span>
+              <h3 className="text-[17px] md:text-[19px] font-black tracking-widest bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent font-sans">
+                SHOUT OUT BOX
+              </h3>
+              <span className="text-sm filter drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]">🖤</span>
+              <span className="text-sm filter drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]">🍷</span>
             </div>
-            <h3 className="text-3xl md:text-4xl font-extrabold uppercase tracking-tighter text-white">
-              System Specs & Diagnostic Status
-            </h3>
+            <p className="text-[11px] md:text-[12px] text-neutral-400 font-sans tracking-wide">
+              Whisper secret messages into the abyss. We operate in the dark! 💜
+            </p>
           </div>
-          <div className="px-4 py-2 border border-neutral-800 bg-neutral-950 text-neutral-400 font-mono text-[10px] uppercase tracking-widest flex items-center gap-3 w-fit">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Node ID: ADRIAN-TECH-PE</span>
+ 
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 relative z-10">
+            {/* Left Panel: DECRYPTED TRANSMISSIONS List */}
+            <div className="md:col-span-7 flex flex-col h-full min-h-[170px] md:border-r md:border-neutral-900/80 md:pr-3">
+              <div className="flex items-center gap-2 mb-1 border-b border-neutral-900 pb-1">
+                <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-neutral-300 uppercase select-none">
+                  DECRYPTED ARCHIVES
+                </span>
+                <span className="px-1 py-0.5 bg-purple-600/25 border border-purple-500/30 text-purple-400 text-[9px] font-bold font-mono rounded-none leading-none shadow-[0_0_8px_rgba(168,85,247,0.2)]">
+                  {shouts.length} SECURE LOGS
+                </span>
+              </div>
+ 
+              {/* Scrollable List Container (Perfect compact heights for clean vertical sizing in horizontal layout) */}
+              <div className="flex-1 overflow-y-auto pr-1 max-h-[170px] space-y-1.5 scrollbar-thin scrollbar-thumb-purple-900/40 scrollbar-track-transparent">
+                {shouts.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-2.5 border border-dashed border-neutral-900 rounded-none bg-neutral-950/40">
+                    <span className="text-base mb-1">🌌</span>
+                    <p className="text-[11px] uppercase font-mono text-neutral-600 tracking-wider">No active transmissions.</p>
+                  </div>
+                ) : (
+                  shouts.map((shout) => (
+                    <div 
+                      key={shout.id}
+                      className="p-1 px-2 rounded-none bg-neutral-900/30 hover:bg-neutral-900/50 border border-neutral-950 hover:border-purple-500/15 transition-all duration-300 flex items-start gap-2 group relative"
+                    >
+                      {/* Robust Avatar Card - Sharp Corners */}
+                      <div className={`w-7 h-7 rounded-none flex items-center justify-center shrink-0 text-sm shadow-sm ${shout.avatarBg}`}>
+                        {shout.avatar}
+                      </div>
+ 
+                      {/* Content Area */}
+                      <div className="flex-1 min-w-0 pr-10 text-left">
+                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                          <span className="font-sans font-extrabold text-[12.5px] text-purple-300 tracking-wide">
+                            {shout.name}
+                          </span>
+                          <span className="text-[9px] font-mono text-neutral-600 uppercase tracking-widest font-bold">
+                            {shout.time === 'now' ? shout.time : getRelativeTime(shout.timestamp)}
+                          </span>
+                        </div>
+                        <p className="text-[12px] leading-relaxed text-neutral-300 whitespace-pre-wrap select-text font-sans">
+                          {shout.message}
+                        </p>
+                      </div>
+ 
+                      {/* Smaller Like Action Bubble - Sharp layout styled elegantly */}
+                      <button 
+                        onClick={() => handleLikeShout(shout.id)}
+                        className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1 py-0.5 rounded-none border text-[10px] font-mono font-bold transition-all duration-300 cursor-pointer ${
+                          shout.likedByUser 
+                             ? 'bg-purple-950/95 border-purple-500/40 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.25)] scale-105' 
+                            : 'bg-neutral-950 border-neutral-900 hover:border-neutral-800 text-neutral-400 hover:text-neutral-300'
+                        }`}
+                      >
+                        <span className={`text-[10px] transition-transform duration-300 ${shout.likedByUser ? 'scale-110 filter drop-shadow-[0_0_3px_rgba(168,85,247,0.5)]' : 'group-hover:scale-115'}`}>🖤</span>
+                        <span>{shout.likes}</span>
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+ 
+            {/* Right Panel: SEND A SHOUT OUT Form */}
+            <form onSubmit={handlePostShout} className="md:col-span-5 flex flex-col text-left">
+              <div className="mb-1.5 flex justify-between items-center border-b border-neutral-900 pb-0.5">
+                <span className="text-[11px] font-mono font-bold tracking-[0.2em] text-neutral-300 uppercase">
+                  INITIALIZE CIPHER
+                </span>
+              </div>
+ 
+              {/* Textarea container with doubled font size */}
+              <div className="relative mb-1.5">
+                <textarea
+                  value={shoutMessage}
+                  onChange={(e) => setShoutMessage(e.target.value.substring(0, 300))}
+                  placeholder="Whisper your coded transmission here..."
+                  maxLength={300}
+                  className="w-full h-13 text-left text-[12.5px] placeholder:text-neutral-500 text-neutral-100 bg-neutral-950 border border-neutral-900 focus:border-purple-500/25 p-1.5 pr-8 rounded-none outline-none transition-all no-scrollbar resize-none font-sans leading-relaxed"
+                />
+                
+                {/* Character Counter */}
+                <div className="absolute bottom-1 right-2 font-mono text-[9px] text-neutral-500 tracking-wider">
+                  {shoutMessage.length}/300
+                </div>
+ 
+                {/* Left side smile icon indicator */}
+                <div className="absolute bottom-1 left-2 text-neutral-600">
+                  <Smile size={12} className="opacity-60" />
+                </div>
+              </div>
+ 
+              {/* Add Emoji Panel */}
+              <div className="mb-1.5">
+                <div className="text-[9px] font-mono tracking-[0.2em] uppercase text-neutral-500 mb-1 text-left">
+                  SELECT RUNES (EMOJI)
+                </div>
+                <div className="flex flex-wrap gap-1 justify-start">
+                  {[
+                    { char: '🔥', label: 'abyss flame' },
+                    { char: '🖤', label: 'shadow heart' },
+                    { char: '🔮', label: 'mystery essence' },
+                    { char: '🗡️', label: 'magic blade' },
+                    { char: '🐺', label: 'beast power' },
+                    { char: '⭐', label: 'theatrical star' },
+                    { char: '✨', label: 'abyssal spark' },
+                    { char: '🕶️', label: 'shades' },
+                    { char: '🍷', label: 'gamma sherry' },
+                    { char: '💯', label: 'max magical force' }
+                  ].map((emoji) => (
+                    <button
+                      key={emoji.char}
+                      type="button"
+                      onClick={() => {
+                        if (shoutMessage.length + emoji.char.length <= 300) {
+                          setShoutMessage(prev => prev + emoji.char);
+                        }
+                      }}
+                      className="w-[21px] h-[21px] rounded-none bg-neutral-900 hover:bg-neutral-800 border border-neutral-900/60 hover:border-purple-500/25 flex items-center justify-center text-[11px] hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                      title={emoji.label}
+                    >
+                      {emoji.char}
+                    </button>
+                  ))}
+                </div>
+              </div>
+ 
+              {/* Add Emoticons Panel */}
+              <div className="mb-1.5">
+                <div className="text-[9px] font-mono tracking-[0.2em] uppercase text-neutral-500 mb-1 text-left">
+                  RUNIC SPELLS (EMOTICONS)
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  {[
+                    '(🔮_🔮)',
+                    '(◣_◢)',
+                    '(づ￣³￣)づ',
+                    '(•‿•)',
+                    '🚀✨',
+                    '⚔️🖤'
+                  ].map((emoticon) => (
+                    <button
+                      key={emoticon}
+                      type="button"
+                      onClick={() => {
+                        if (shoutMessage.length + emoticon.length <= 300) {
+                          setShoutMessage(prev => prev + ' ' + emoticon + ' ');
+                        }
+                      }}
+                      className="px-1 py-[3px] rounded-none bg-neutral-900 hover:bg-neutral-800 border border-neutral-900/60 hover:border-purple-500/25 text-[10px] font-mono text-neutral-400 hover:text-purple-300 text-center truncate hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                    >
+                      {emoticon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+ 
+              {/* Your Name Input (Codename) */}
+              <div className="mb-1.5 text-left">
+                <div className="text-[9px] font-mono tracking-[0.2em] uppercase text-neutral-500 mb-1 flex items-center gap-1">
+                  <User size={10} className="text-neutral-500" />
+                  <span>OPERATIVE ALIAS (OPTIONAL)</span>
+                </div>
+                <input
+                  type="text"
+                  value={shoutName}
+                  onChange={(e) => setShoutName(e.target.value.substring(0, 30))}
+                  placeholder="e.g. Operative No. 104"
+                  className="w-full text-left text-[12px] placeholder:text-neutral-500 text-neutral-100 bg-neutral-950 border border-neutral-900 focus:border-purple-500/25 p-1.5 rounded-none outline-none transition-all font-sans"
+                />
+              </div>
+ 
+              {/* Post Button */}
+              <button
+                type="submit"
+                disabled={!shoutMessage.trim()}
+                className={`w-full py-1.5 rounded-none font-mono text-[12px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 transition-all duration-300 cursor-pointer ${
+                  shoutMessage.trim()
+                    ? 'bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 hover:brightness-110 active:scale-[0.98] shadow-[0_0_10px_rgba(168,85,247,0.35)] text-white'
+                    : 'bg-neutral-900 text-neutral-600 border border-neutral-950 cursor-not-allowed'
+                }`}
+              >
+                <span>🔮</span>
+                <span>Send to shadows</span>
+              </button>
+ 
+              <div className="mt-1 text-[9px] text-neutral-500 uppercase tracking-widest text-center font-mono">
+                Stay disguised in the deep shadows. 💜
+              </div>
+            </form>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-mono">
-          {/* Box 1: PC Mainframe Specs */}
-          <div className="border border-neutral-900 bg-neutral-950/80 p-6 rounded-2xl relative group hover:border-purple-500/30 transition-all duration-300">
-            <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
-            <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
-            
-            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-neutral-900/60 font-sans">
-              <Activity className="text-purple-400" size={16} />
-              <h4 className="text-xs uppercase font-extrabold tracking-widest text-white">TECH WORKSTATION</h4>
-            </div>
-            
-            <div className="space-y-3.5 text-[10px]">
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">PROCESSOR:</span>
-                <span className="text-neutral-200 font-medium font-mono text-right truncate max-w-[170px]">AMD RYZEN 9 H-PERF</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">MEMORY CAPACITY:</span>
-                <span className="text-neutral-200 font-medium font-mono text-right">64GB DDR5 ECC WORKSTATION</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">HARD DISK:</span>
-                <span className="text-neutral-200 font-medium font-mono text-right">2TB NVME RAID-0 STRIPE</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">BACKUPS:</span>
-                <span className="text-emerald-400 font-medium font-mono text-right">DUAL CLOUD G-DRIVE MIRRORS</span>
-              </div>
-            </div>
+ 
+          {/* Direct Archive portal shortcut inside card */}
+          <div className="mt-2 flex flex-col sm:flex-row items-center justify-between gap-1.5 p-1.5 rounded-none border border-purple-500/20 bg-purple-950/10 font-sans">
+            <p className="text-[12px] font-medium uppercase tracking-wider text-neutral-300 text-center sm:text-left leading-relaxed">
+              All technician files and curated tools are organized cleanly within the main database.
+            </p>
+            <button 
+              onClick={onEnter}
+              className="w-full sm:w-auto px-3 py-1 hover:brightness-110 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-mono text-[11px] uppercase font-bold tracking-widest shadow-md active:scale-95 transition-all cursor-pointer whitespace-nowrap rounded-none"
+            >
+              Access Portal Now
+            </button>
           </div>
 
-          {/* Box 2: Diagnostic Deck Protocols */}
-          <div className="border border-neutral-900 bg-neutral-950/80 p-6 rounded-2xl relative group hover:border-purple-500/30 transition-all duration-300">
-            <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
-            <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
-
-            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-neutral-900/60 font-sans">
-              <Sparkles className="text-purple-400 animate-pulse" size={16} />
-              <h4 className="text-xs uppercase font-extrabold tracking-widest text-white">OPERATIONAL CHECKS</h4>
-            </div>
-
-            <div className="space-y-3.5 text-[10px]">
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">DIAGNOSTIC UTILS:</span>
-                <span className="text-emerald-400 font-medium font-mono text-right">100% DEPLOYED</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">UTILITIES CATEGORY:</span>
-                <span className="text-neutral-200 font-medium font-mono text-right">PE / TOOLKITS / DRIVERS</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">INTEGRITY LOCK:</span>
-                <span className="text-purple-400 font-medium font-mono text-right">ENCRYPTED SHADOW STATE</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">SYSTEM PARTITION:</span>
-                <span className="text-neutral-200 font-medium font-mono text-right">SECURE BOOTABLE PE HOST</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Box 3: PC Technician Active Loadout */}
-          <div className="border border-neutral-900 bg-neutral-950/80 p-6 rounded-2xl relative group hover:border-purple-500/30 transition-all duration-300 md:col-span-2 lg:col-span-1">
-            <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
-            <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-neutral-800 group-hover:border-purple-500/40 transition-colors" />
-
-            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-neutral-900/60 font-sans">
-              <FolderOpen className="text-purple-400" size={16} />
-              <h4 className="text-xs uppercase font-extrabold tracking-widest text-white">DATABASE LOADOUT</h4>
-            </div>
-
-            <div className="space-y-3.5 text-[10px]">
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">CUSTOM PROTOCOLS:</span>
-                <span className="text-purple-400 font-bold font-mono text-right">SYNCED ONLINE</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">TOTAL UTILITY SUITES:</span>
-                <span className="text-neutral-200 font-medium font-mono text-right">{STATIC_TOOLS.length} ESSENTIAL KITS</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">TOTAL PROJECTS LISTED:</span>
-                <span className="text-neutral-200 font-medium font-mono text-right">{STATIC_PROJECTS.length} DEVELOPMENT ENTRIES</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-500 uppercase tracking-wider">SECURE SYNC:</span>
-                <span className="text-emerald-400 font-medium font-mono text-right">READY FOR DIRECT FLASH</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Scroll action button to redirect upward, or go directly into archive panel */}
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl border border-purple-500/20 bg-purple-950/10 font-sans">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-300 text-center sm:text-left">
-            All technician files and curated tools are organized cleanly within the main database.
-          </p>
-          <button 
-            onClick={onEnter}
-            className="w-full sm:w-auto px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-mono text-[10px] uppercase font-bold tracking-widest shadow-lg active:scale-95 hover:brightness-110 transition-all cursor-pointer whitespace-nowrap"
-          >
-            Access Portal Now
-          </button>
         </div>
       </div>
-
-      {/* Bottom Info and Suggestions system activator */}
-      <motion.div 
-        initial={skip ? { opacity: 0.9 } : { opacity: 0 }}
-        animate={{ opacity: 0.9 }}
-        transition={skip ? { duration: 0 } : { delay: 4.5, duration: 2 }}
-        className="absolute bottom-8 left-8 md:bottom-12 md:left-12 z-20 flex items-center gap-3"
-      >
-        <button
-          onClick={() => {
-            setIsSuggestionModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] border cursor-pointer select-none rounded-lg backdrop-blur-sm shadow-md bg-purple-950/20 border-purple-500/40 text-purple-400 hover:bg-purple-950/40 hover:border-purple-400"
-          id="suggestion-system-btn"
-        >
-          <Sparkles size={11} className="text-purple-400 animate-pulse" />
-          <span>Suggestions DB</span>
-        </button>
-      </motion.div>
 
       {/* Bottom Right Info */}
       <motion.div 

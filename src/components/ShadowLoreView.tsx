@@ -1,63 +1,113 @@
 import { motion } from 'motion/react';
-import { Target, Shield, Zap, Theater, Flame, Globe, Sparkles, BookOpen } from 'lucide-react';
+import { Play, ExternalLink, Wrench, Terminal, Cpu, Database, Network, ShieldCheck } from 'lucide-react';
+
+interface TutorialVideo {
+  index: string;
+  title: string;
+  category: string;
+  description: string;
+  duration: string;
+  difficulty: "EASY" | "MEDIUM" | "HARD" | "EXPERT";
+  difficultyColor: string;
+  youtubeUrl: string;
+  glow: string;
+  borderColor: string;
+  thumbnailBg: string;
+  thumbnailIcon: any;
+  iconColor: string;
+}
 
 export default function ShadowLoreView() {
-  const loreCards = [
+  const tutorials: TutorialVideo[] = [
     {
-      title: "Alter Ego",
-      highlight: "Cid Kagenou",
-      description: "Cid Kagenou plays the role of a mob character while secretly operating as the powerful leader, Shadow.",
-      icon: Theater,
-      color: "from-purple-500 to-indigo-500",
-      glow: "rgba(168,85,247,0.15)"
+      index: "01",
+      category: "BEGINNER",
+      title: "INTRO TO SHADOW ARTS",
+      description: "Learn the fundamentals of shadow manipulation—rebuilding system bootloaders (BCD), legacy boot records (MBR), and master UEFI partition configurations under the hood.",
+      duration: "12:47",
+      difficulty: "EASY",
+      difficultyColor: "text-purple-400",
+      youtubeUrl: "https://www.youtube.com/results?search_query=rebuild+bcd+uefi+bootloader+windows",
+      glow: "rgba(168,85,247,0.15)",
+      borderColor: "border-purple-500/20 hover:border-purple-500/50",
+      thumbnailBg: "bg-gradient-to-br from-neutral-900 to-purple-950/70",
+      thumbnailIcon: Terminal,
+      iconColor: "text-purple-400"
     },
     {
-      title: "Shadow Garden",
-      highlight: "Founder of Secret Org",
-      description: "Founder of a secret organization dedicated to fighting the Cult of Diablos, often recruiting members without their full knowledge of his \"creative\" deceptions.",
-      icon: Shield,
-      color: "from-purple-600 to-violet-600",
-      glow: "rgba(124,58,237,0.15)"
+      index: "02",
+      category: "FUNDAMENTALS",
+      title: "SHADOW WALKING",
+      description: "Master the art of moving unseen across OS structures—loading corrupted offline Registry hives via WinPE rescue nodes to bypass critical Windows startup failure loops.",
+      duration: "18:32",
+      difficulty: "EASY",
+      difficultyColor: "text-purple-400",
+      youtubeUrl: "https://www.youtube.com/results?search_query=load+registry+hive+winpe+offline",
+      glow: "rgba(99,102,241,0.15)",
+      borderColor: "border-indigo-500/20 hover:border-indigo-500/50",
+      thumbnailBg: "bg-gradient-to-br from-neutral-900 to-indigo-950/70",
+      thumbnailIcon: Wrench,
+      iconColor: "text-indigo-400"
     },
     {
-      title: "\"I am Atomic\"",
-      highlight: "Ultimate Technique",
-      description: "The signature, devastating magical nuke technique used to eliminate enemies with zero trace.",
-      icon: Zap,
-      color: "from-red-500 via-purple-600 to-indigo-600",
-      glow: "rgba(239,68,68,0.2)"
+      index: "03",
+      category: "INTERMEDIATE",
+      title: "SHADOW MOLDING",
+      description: "Shape heat dynamics to your will—interpreting critical sensor outputs, logs, and voltage margins to troubleshoot PC thermal throttle gates and cooling failures.",
+      duration: "24:15",
+      difficulty: "MEDIUM",
+      difficultyColor: "text-amber-500",
+      youtubeUrl: "https://www.youtube.com/results?search_query=test+and+diagnose+pc+thermal+throttling",
+      glow: "rgba(245,158,11,0.15)",
+      borderColor: "border-amber-500/20 hover:border-amber-500/50",
+      thumbnailBg: "bg-gradient-to-br from-neutral-900 to-amber-950/70",
+      thumbnailIcon: Cpu,
+      iconColor: "text-amber-400"
     },
     {
-      title: "Master Actor",
-      highlight: "Scenario Improv",
-      description: "Highly skilled at improvising elaborate scenarios to maintain the \"Eminence in Shadow\" persona.",
-      icon: Sparkles,
-      color: "from-indigo-500 to-purple-500",
-      glow: "rgba(99,102,241,0.15)"
+      index: "04",
+      category: "INTERMEDIATE",
+      title: "FEAR INDUCTION",
+      description: "Salvage raw and corrupted storage sectors—deploying partition command utilities, GPT record rebuilding, and custom file system recovery to rescue lost document vaults.",
+      duration: "21:03",
+      difficulty: "MEDIUM",
+      difficultyColor: "text-amber-500",
+      youtubeUrl: "https://www.youtube.com/results?search_query=recover+raw+hard+drive+partition+cmd",
+      glow: "rgba(236,72,153,0.15)",
+      borderColor: "border-pink-500/20 hover:border-pink-500/50",
+      thumbnailBg: "bg-gradient-to-br from-neutral-900 to-pink-950/70",
+      thumbnailIcon: Database,
+      iconColor: "text-pink-400"
     },
     {
-      title: "Hidden Strength",
-      highlight: "Near-Limitless Power",
-      description: "While masquerading as a background character, possesses near-limitless magical power and combat prowess.",
-      icon: Flame,
-      color: "from-purple-500 to-pink-500",
-      glow: "rgba(217,70,239,0.15)"
+      index: "05",
+      category: "ADVANCED",
+      title: "SHADOW POSSESSION",
+      description: "Assume total network telemetry control—debugging subnet delays, capturing packet logs via Wireshark, and mapping custom firewalls to defend against hidden port requests.",
+      duration: "27:40",
+      difficulty: "HARD",
+      difficultyColor: "text-red-500",
+      youtubeUrl: "https://www.youtube.com/results?search_query=wireshark+network+packet+loss+troubleshooting",
+      glow: "rgba(16,185,129,0.15)",
+      borderColor: "border-emerald-500/20 hover:border-emerald-500/50",
+      thumbnailBg: "bg-gradient-to-br from-neutral-900 to-emerald-950/70",
+      thumbnailIcon: Network,
+      iconColor: "text-emerald-400"
     },
     {
-      title: "World Building",
-      highlight: "Prophetic Truths",
-      description: "Often spins fabricated tales about an ancient cult that unknowingly turn out to be true.",
-      icon: Globe,
-      color: "from-blue-500 to-purple-500",
-      glow: "rgba(59,130,246,0.15)"
-    },
-    {
-      title: "Style",
-      highlight: "Iconic Mastermind",
-      description: "Known for iconic, dark, and elegant attire that emphasizes the \"cool\" aesthetic of a hidden mastermind.",
-      icon: Target,
-      color: "from-purple-700 to-neutral-900",
-      glow: "rgba(168,85,247,0.2)"
+      index: "06",
+      category: "MASTER LEVEL",
+      title: "DOMAIN OF DARKNESS",
+      description: "Purge stealthy persistent security threats—isolating sophisticated rootkits, rogue thread schedulers, and tracking fileless backdoor script parameters with precision tooling.",
+      duration: "32:18",
+      difficulty: "EXPERT",
+      difficultyColor: "text-red-500",
+      youtubeUrl: "https://www.youtube.com/results?search_query=advanced+malware+removal+autoruns+process+explorer",
+      glow: "rgba(239,68,68,0.2)",
+      borderColor: "border-red-500/20 hover:border-red-500/50",
+      thumbnailBg: "bg-gradient-to-br from-neutral-900 to-red-950/70",
+      thumbnailIcon: ShieldCheck,
+      iconColor: "text-red-400"
     }
   ];
 
@@ -72,152 +122,133 @@ export default function ShadowLoreView() {
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 120, damping: 18 } }
   };
 
   return (
     <div className="flex-1 p-6 md:p-8 flex flex-col justify-start max-w-6xl mx-auto w-full font-mono text-neutral-300">
       
-      {/* Banner Intro Section */}
+      {/* Banner Intro Section - Matches layout of Image 1 exactly */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="mb-10 p-6 md:p-8 rounded-3xl border border-purple-500/20 bg-neutral-950/75 backdrop-blur-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6"
+        className="mb-8 p-6 md:p-8 rounded-3xl border border-purple-500/25 bg-neutral-950/80 backdrop-blur-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6"
       >
-        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(168,85,247,0.03)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(168,85,247,0.02)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none" />
         
-        <div className="space-y-2 relative z-10">
+        <div className="space-y-2 relative z-10 text-left">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-ping" />
-            <p className="text-[10px] text-purple-400 font-extrabold tracking-[0.3em] uppercase">// CODENAME: SHADOW // GENESIS FILING</p>
+            <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping" />
+            <p className="text-[9px] text-purple-400 font-extrabold tracking-[0.3em] uppercase">// SHADOW ARTS ACADEMY // TUTORIAL LIBRARY</p>
           </div>
-          <h3 className="text-3xl md:text-4xl font-black tracking-tighter text-white uppercase font-sans">
-            THE SHADOW MASTER LORE
+          <h3 className="text-2xl md:text-4.5xl font-black tracking-tighter text-white uppercase font-sans">
+            THE SHADOW MASTER TUTORIALS
           </h3>
-          <p className="text-xs text-neutral-400 max-w-xl font-sans">
-            Transcribed profiles detailing the legendary capabilities of <span className="text-purple-400 font-bold">Cid Kagenou</span>, the founder of Shadow Garden, retrieved and logged directly from the digital core interface.
+          <p className="text-xs text-neutral-400 max-w-xl font-sans leading-relaxed">
+            Step-by-step video guides to master the ancient arts of shadow manipulation, stealth, and control. Learn the secrets of deep system configurations, OS recovery, and diagnostic wisdom. Become the shadow.
           </p>
         </div>
 
-        <div className="flex flex-col items-start md:items-end justify-center shrink-0 border-l md:border-l-0 md:border-r border-neutral-800 pl-4 md:pl-0 md:pr-6">
-          <p className="text-[9px] text-neutral-500 uppercase tracking-widest">TRANSMISSION RATIO</p>
-          <p className="text-xl font-bold font-mono tracking-widest text-purple-400">100% SECURE</p>
-          <p className="text-[9px] text-neutral-500 uppercase tracking-widest mt-1">EMINENCE CLASS LEVEL 4</p>
+        <div className="flex flex-col items-start md:items-end justify-center shrink-0 border-l md:border-l-0 md:border-r border-neutral-800 pl-4 md:pl-0 md:pr-6 text-left md:text-right">
+          <p className="text-[8px] text-neutral-500 uppercase tracking-widest font-black">VIDEO LIBRARY</p>
+          <p className="text-xl font-black font-sans tracking-wide text-purple-400 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-400">100% ACCESS</p>
+          <p className="text-[8px] text-neutral-500 uppercase tracking-widest mt-0.5 font-bold">UNLOCK YOUR POTENTIAL</p>
         </div>
       </motion.div>
 
-      {/* Grid of Transcribed Specs */}
+      {/* Grid of Video Tutorials */}
       <motion.div 
         variants={containerVariants}
         initial="hidden"
         animate="show"
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"
       >
-        {loreCards.map((lore, index) => {
-          const Icon = lore.icon;
-          const isAtomic = lore.title === "\"I am Atomic\"";
+        {tutorials.map((video, index) => {
+          const Icon = video.thumbnailIcon;
 
           return (
-            <motion.div
+            <motion.a
               key={index}
+              href={video.youtubeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               variants={itemVariants}
               whileHover={{ 
                 y: -6, 
-                borderColor: isAtomic ? "rgba(239,68,68,0.5)" : "rgba(168,85,247,0.5)",
-                boxShadow: `0 10px 30px ${lore.glow}`
+                boxShadow: `0 12px 30px ${video.glow}`
               }}
-              className={`border rounded-2xl p-6 bg-neutral-950/80 backdrop-blur-sm transition-all duration-300 relative overflow-hidden flex flex-col justify-between group h-64
-                ${isAtomic ? 'border-red-500/20' : 'border-neutral-900/90'}
-              `}
+              className={`group border ${video.borderColor} rounded-2xl p-4 bg-neutral-950/80 backdrop-blur-sm transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[190px] cursor-pointer`}
             >
-              {/* Target bracket styling */}
-              <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-neutral-900 group-hover:border-purple-500/40 transition-colors" />
-              <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-neutral-900 group-hover:border-purple-500/40 transition-colors" />
+              {/* Top Bracket Decoration */}
+              <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-neutral-900 group-hover:border-purple-500/30 transition-colors" />
+              <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-neutral-900 group-hover:border-purple-500/30 transition-colors" />
 
-              {/* Glowing accent circle */}
-              <div 
-                className="absolute -top-12 -right-12 w-24 h-24 rounded-full opacity-10 group-hover:opacity-20 blur-xl transition-opacity pointer-events-none"
-                style={{ backgroundColor: isAtomic ? '#ef4444' : '#a855f7' }}
-              />
-
-              <div>
-                {/* Card Icon & Header */}
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-neutral-950">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center border border-neutral-800 bg-neutral-900 text-purple-400 group-hover:text-white transition-colors duration-300
-                      ${isAtomic ? 'group-hover:border-red-500/40 text-red-400' : ''}
-                    `}>
-                      <Icon size={16} className={isAtomic ? "animate-pulse" : ""} />
-                    </div>
-                    <div>
-                      <span className="text-[9px] text-neutral-500 uppercase tracking-widest font-sans font-bold">PROFILE METRIC</span>
-                      <h4 className={`text-sm font-extrabold uppercase tracking-tight font-sans text-white`}>
-                        {lore.title}
-                      </h4>
-                    </div>
+              <div className="flex gap-4 items-start pb-3 border-b border-neutral-900/40">
+                {/* Square Thumbnail - Matches first image with duration and play button overlay */}
+                <div className={`w-28 h-28 ${video.thumbnailBg} rounded-xl border border-neutral-900/85 shrink-0 relative flex flex-col items-center justify-center overflow-hidden group-hover:brightness-110 transition-all`}>
+                  {/* Subtle code text grid background inside thumbnail */}
+                  <div className="absolute inset-0 opacity-[0.06] flex flex-wrap content-start p-1 pointer-events-none select-none text-[5px] font-mono leading-none tracking-widest text-purple-400">
+                    {Array.from({ length: 15 }).map((_, i) => (
+                      <span key={i} className="mb-0.5">X048_DNC_BOOT_{i} </span>
+                    ))}
                   </div>
-                  <span className="text-[10px] text-neutral-600 font-extrabold">0{index + 1}</span>
+
+                  {/* Thumbnail Central Icon */}
+                  <div className={`w-10 h-10 rounded-full bg-neutral-950/90 border border-neutral-800/80 flex items-center justify-center ${video.iconColor} group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon size={18} />
+                  </div>
+
+                  {/* Duration Overlay absolute bottom-right of thumbnail */}
+                  <div className="absolute bottom-1 bg-black/85 border border-neutral-800/60 text-neutral-400 font-mono font-bold text-[8px] tracking-wider px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+                    {video.duration}
+                  </div>
                 </div>
 
-                {/* Subheading Highlight */}
-                <span className={`inline-block text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider mb-3 bg-neutral-900 text-purple-400 border border-neutral-800
-                  ${isAtomic ? 'text-red-400 border-red-950/40 bg-red-950/10' : ''}
-                `}>
-                  {lore.highlight}
+                {/* Right text panel */}
+                <div className="flex-1 min-w-0 flex flex-col text-left">
+                  {/* Category & Index code */}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[8px] text-purple-400 group-hover:text-purple-300 font-black tracking-widest uppercase truncate max-w-[120px]">
+                      {video.category}
+                    </span>
+                    <span className="text-[10px] text-neutral-600 font-extrabold pr-0.5">0{video.index}</span>
+                  </div>
+
+                  {/* Action Title */}
+                  <h4 className="text-[11.5px] font-black tracking-tight text-white mb-1 leading-snug group-hover:text-purple-300 transition-colors uppercase font-sans flex items-center gap-1 shrink-0">
+                    <span className="truncate">{video.title}</span>
+                    <ExternalLink size={10} className="text-neutral-500 group-hover:text-purple-400 shrink-0 transition-colors" />
+                  </h4>
+
+                  {/* Operational Description */}
+                  <p className="text-[9.5px] leading-relaxed text-neutral-400 group-hover:text-neutral-300 transition-colors duration-300 font-sans font-medium line-clamp-3">
+                    {video.description}
+                  </p>
+                </div>
+              </div>
+
+              {/* Bottom footer specifications tag */}
+              <div className="pt-2 flex justify-between items-center text-[8px] text-neutral-600 tracking-wider font-bold">
+                <span className="font-mono flex items-center gap-1.5">
+                  <Play size={10} className="text-purple-500/80 animate-pulse fill-purple-500/10" />
+                  <span className="font-mono text-neutral-500 uppercase">DIFFICULTY:</span> 
+                  <span className={`${video.difficultyColor} font-black`}>{video.difficulty}</span>
                 </span>
-
-                {/* Main Body Text */}
-                <p className="text-[11px] leading-relaxed text-neutral-400 group-hover:text-neutral-200 transition-colors duration-300 font-sans font-medium">
-                  {lore.description}
-                </p>
+                <span className="font-mono font-bold select-none text-neutral-600">{video.duration}</span>
               </div>
-
-              {/* Bottom tag decoration */}
-              <div className="mt-4 pt-3 border-t border-neutral-900 flex justify-between items-center text-[7.5px] text-neutral-600 tracking-widest font-bold">
-                <span>SYSTEM://ACTIVE_SECURE_NODE</span>
-                <span>STATE_CHECK: OK</span>
-              </div>
-            </motion.div>
+            </motion.a>
           );
         })}
-
-        {/* Dynamic Interactive Card */}
-        <motion.div
-          variants={itemVariants}
-          className="border border-purple-500/10 rounded-2xl p-6 bg-gradient-to-b from-purple-950/10 to-neutral-950/80 backdrop-blur-sm relative overflow-hidden flex flex-col justify-between group h-64 hover:border-purple-500/30"
-        >
-          <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-purple-500/10 group-hover:border-purple-500/40" />
-          <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-purple-500/10 group-hover:border-purple-500/40" />
-
-          <div>
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-neutral-950">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center border border-purple-950/50 bg-purple-950/20 text-purple-400">
-                  <BookOpen size={16} />
-                </div>
-                <div>
-                  <span className="text-[9px] text-purple-400 font-extrabold tracking-widest font-sans">// SHADOW DECREE</span>
-                  <h4 className="text-sm font-extrabold uppercase tracking-tight font-sans text-white">
-                    Lore Integrity
-                  </h4>
-                </div>
-              </div>
-              <span className="text-[10px] text-neutral-600 font-extrabold">08</span>
-            </div>
-
-            <p className="text-[11px] leading-relaxed text-neutral-400 font-sans font-medium mb-2">
-              "We lurk in the shadows to serve the light configurations." Operating behind the scenes ensures total system stability both in real life and in technical systems.
-            </p>
-          </div>
-
-          <div className="text-[8px] font-bold text-purple-500 uppercase tracking-[0.2em] animate-pulse">
-            // SHADOW_GARDEN_CORE_LOADED //
-          </div>
-        </motion.div>
       </motion.div>
+
+      {/* Retro bottom archive portal cue button */}
+      <div className="text-[8px] font-bold text-neutral-500 text-center tracking-[0.3em] uppercase select-none p-4 border border-dashed border-neutral-900/60 rounded-xl bg-neutral-950/20">
+        // CLICK TO INITIATE COGNITIVE LINK ON YOUTUBE // SYSTEM OK
+      </div>
     </div>
   );
 }

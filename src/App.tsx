@@ -206,52 +206,12 @@ export default function App() {
     }
   }, [showArchive]);
 
+  // System Time Updater
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString());
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
-
-  // Professional-grade Security Layer: disable context menu & dev tools shortcuts
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 1. Prevent F12
-      if (e.key === 'F12') {
-        e.preventDefault();
-        return false;
-      }
-      
-      // 2. Prevent Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+Shift+K (Windows/Linux)
-      if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'K'].includes(e.key.toUpperCase())) {
-        e.preventDefault();
-        return false;
-      }
-
-      // 3. Prevent Cmd+Option+I, Cmd+Option+J, Cmd+Option+C, Cmd+Option+K (Mac) / altKey + metaKey
-      if (e.metaKey && e.altKey && ['I', 'J', 'C', 'K'].includes(e.key.toUpperCase())) {
-        e.preventDefault();
-        return false;
-      }
-
-      // 4. Prevent Ctrl+U / Cmd+U (View Source Code)
-      if ((e.ctrlKey || e.metaKey) && e.key.toUpperCase() === 'U') {
-        e.preventDefault();
-        return false;
-      }
-    };
-
-    document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
   }, []);
 
   const renderContent = () => {
@@ -502,15 +462,31 @@ export default function App() {
                 </p>
 
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
                     const entered = passcode.trim();
-                    if (entered === 'KGab0730') {
-                      setIsAuthorized(true);
-                      setAuthError('');
-                    } else {
-                      setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
-                      setPasscode('');
+                    try {
+                      const msgBuffer = new TextEncoder().encode(entered);
+                      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                      const hashArray = Array.from(new Uint8Array(hashBuffer));
+                      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                      
+                      if (hashHex === 'cf7a14191ac01a39913eadfae86c9e032ec7bd69fe01d452113f54ea6eef68ef') {
+                        setIsAuthorized(true);
+                        setAuthError('');
+                      } else {
+                        setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
+                        setPasscode('');
+                      }
+                    } catch (err) {
+                      // Fallback verification using basic obscuration in case subtle crypto is unavailable
+                      if (btoa(entered) === 'S0dhYjA3MzA=') {
+                        setIsAuthorized(true);
+                        setAuthError('');
+                      } else {
+                        setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
+                        setPasscode('');
+                      }
                     }
                   }}
                   className="space-y-4"
@@ -591,7 +567,7 @@ export default function App() {
           
           <div className="flex items-center gap-1.5 font-mono text-[10px] text-purple-400 font-bold uppercase">
             <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" />
-            SHADOW_GARDEN_SECURE_LORE
+            SHADOW_TUTORIAL_LIBRARY
           </div>
         </div>
 
@@ -613,29 +589,6 @@ export default function App() {
               setShowShadowLoreOnly(true);
             }}
           />
-        </div>
-
-        {/* Floating System Reset Loading Button */}
-        <div className="fixed bottom-6 right-6 md:right-8 z-50 group flex items-center gap-2">
-          {/* Tooltip */}
-          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-neutral-950/90 text-white border border-purple-500/30 px-2.5 py-1 text-[9px] font-mono tracking-widest uppercase rounded shadow-lg pointer-events-none whitespace-nowrap">
-            RE-INITIATE LOADING
-          </span>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setAppLoading(true)}
-            className="w-10 h-10 rounded-full bg-neutral-950 border border-neutral-800 text-white flex items-center justify-center relative cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.8)] focus:outline-none"
-            title="Re-initiate loading"
-          >
-            {/* Glowing ring */}
-            <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 opacity-0 group-hover:opacity-75 blur-[2px] transition-all duration-500" />
-            
-            {/* Inner fill to cover ring */}
-            <div className="absolute inset-[1px] rounded-full bg-neutral-950 group-hover:bg-neutral-900 transition-colors duration-300 z-10" />
-            
-            <RotateCcw size={14} className="relative z-20 group-hover:rotate-180 transition-transform duration-700 ease-out text-neutral-400 group-hover:text-purple-400" />
-          </motion.button>
         </div>
       </div>
     );
@@ -717,29 +670,6 @@ export default function App() {
             <a href="#" className="hidden sm:inline hover:text-white transition-colors">MAIL://HELO@ARCHIVE</a>
           </div>
         </footer>
-      </div>
-
-      {/* Floating System Reset Loading Button */}
-      <div className="fixed bottom-14 right-6 md:right-8 z-50 group flex items-center gap-2">
-        {/* Tooltip */}
-        <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-neutral-950/90 text-white border border-purple-500/30 px-2.5 py-1 text-[9px] font-mono tracking-widest uppercase rounded shadow-lg pointer-events-none whitespace-nowrap">
-          RE-INITIATE LOADING
-        </span>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setAppLoading(true)}
-          className="w-10 h-10 rounded-full bg-neutral-950 border border-neutral-800 text-white flex items-center justify-center relative cursor-pointer shadow-[0_4px_20px_rgba(0,0,0,0.8)] focus:outline-none"
-          title="Re-initiate loading"
-        >
-          {/* Glowing ring */}
-          <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 opacity-0 group-hover:opacity-75 blur-[2px] transition-all duration-500" />
-          
-          {/* Inner fill to cover ring */}
-          <div className="absolute inset-[1px] rounded-full bg-neutral-950 group-hover:bg-neutral-900 transition-colors duration-300 z-10" />
-          
-          <RotateCcw size={14} className="relative z-20 group-hover:rotate-180 transition-transform duration-700 ease-out text-neutral-400 group-hover:text-purple-400" />
-        </motion.button>
       </div>
 
       {/* Immersive Owner Account Modal */}
