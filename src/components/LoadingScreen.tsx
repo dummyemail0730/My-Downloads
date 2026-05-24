@@ -167,7 +167,7 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
       <div className="w-full max-w-md flex flex-col items-center justify-center relative z-10">
         
         {/* Mysterious Ambient Ring behind Logo */}
-        <div className="relative mb-8 w-72 h-72 md:w-96 md:h-96 bg-black rounded-full shadow-[0_0_60px_rgba(0,0,0,1)]">
+        <div className="relative mb-6 w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 bg-black rounded-full shadow-[0_0_50px_rgba(0,0,0,1)]">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
@@ -190,7 +190,7 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
             <img 
               src={shadowLogoMain} 
               alt="Shadow Project Logo"
-              className="w-full h-full object-contain bg-black rounded-full overflow-hidden drop-shadow-[0_0_35px_rgba(168,85,247,0.55)] relative z-10 animate-pulse"
+              className="w-full h-full object-cover rounded-full drop-shadow-[0_0_35px_rgba(168,85,247,0.55)] relative z-10 animate-pulse"
               referrerPolicy="no-referrer"
             />
           </motion.div>
