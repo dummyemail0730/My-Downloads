@@ -245,7 +245,7 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
         {!isMuted && (
           <iframe
             key={hasInteracted ? 'interacted' : 'initial'}
-            src="https://www.youtube.com/embed/ATHTNyLK2TM?autoplay=1&mute=0&playlist=ATHTNyLK2TM&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1"
+            src="https://www.youtube.com/embed/T9MLjIsfUOU?autoplay=1&mute=0&playlist=T9MLjIsfUOU&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1"
             allow="autoplay; encrypted-media"
             title="Shadow Theme OST"
             style={{

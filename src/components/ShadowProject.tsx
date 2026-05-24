@@ -5,7 +5,7 @@ import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
-export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void }) {
+export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, isAudioAllowed = false }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void; isAudioAllowed?: boolean }) {
   const skip = hasPlayed;
   
   // Custom Google Drive / File link state
@@ -735,6 +735,23 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
 
   return (
     <div className="min-h-[200vh] w-full flex flex-col bg-black text-white relative overflow-y-auto no-scrollbar scroll-smooth">
+      {/* Hidden YouTube Theme Audio Stream */}
+      {isAudioAllowed && (
+        <iframe
+          src="https://www.youtube.com/embed/ATHTNyLK2TM?autoplay=1&mute=0&playlist=ATHTNyLK2TM&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1"
+          allow="autoplay; encrypted-media"
+          title="Landing Page Shadow Theme OST"
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            opacity: 0,
+            pointerEvents: 'none',
+          }}
+          referrerPolicy="no-referrer"
+        />
+      )}
+
       {/* Background Image */}
       <div className="fixed inset-0 z-0 opacity-15 pointer-events-none">
         <img 

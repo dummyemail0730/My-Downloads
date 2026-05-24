@@ -588,6 +588,7 @@ export default function App() {
             onShowShadowLore={() => {
               setShowShadowLoreOnly(true);
             }}
+            isAudioAllowed={audioApproved === true}
           />
         </div>
       </div>
