@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
-import shadowChibiAvatar from '../assets/images/shadow_chibi_avatar_1779438320279.png';
+import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
 export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void }) {
@@ -100,6 +100,12 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
   const [newSuggestionText, setNewSuggestionText] = useState('');
   const [newSuggestionCategory, setNewSuggestionCategory] = useState('SYSTEM');
   const [newSuggestionStatus, setNewSuggestionStatus] = useState('NEW');
+
+  // Suggestion deletion security authentication
+  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+  const [showDeletePasswordModal, setShowDeletePasswordModal] = useState(false);
+  const [deletePasswordInput, setDeletePasswordInput] = useState('');
+  const [deletePasswordError, setDeletePasswordError] = useState('');
 
   // Interactive Shadow Chibi Chat Room States
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; text: string; sender: 'user' | 'shadow'; time: string }>>([
@@ -949,6 +955,144 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
         )}
       </AnimatePresence>
 
+      {/* Secure Delete Authentication Modal */}
+      <AnimatePresence>
+        {showDeletePasswordModal && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-neutral-950 border-2 border-red-500/20 w-full max-w-sm rounded-[1.8rem] shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
+            >
+              {/* Grid overlay decoration */}
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-35" />
+              <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-red-500/30 rounded-tl-lg pointer-events-none" />
+              <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-red-500/30 rounded-tr-lg pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-red-500/30 rounded-bl-lg pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-red-500/30 rounded-br-lg pointer-events-none" />
+
+              {/* Close Button UI */}
+              <div className="flex justify-between items-center mb-6 pb-3 border-b border-neutral-900 relative z-10">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="text-red-500 w-4 h-4 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-500">Purge Authorization</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeletePasswordModal(false);
+                    setDeletePasswordError('');
+                    setDeletePasswordInput('');
+                    setDeleteItemId(null);
+                  }}
+                  className="p-1 hover:bg-neutral-900 text-neutral-400 hover:text-white rounded-md transition-colors cursor-pointer"
+                  title="Close purge prompt"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Icon & Message */}
+              <div className="text-center mb-6 relative z-10">
+                <div className="w-12 h-12 rounded-full bg-red-950/20 border border-red-900/40 flex items-center justify-center mx-auto mb-3">
+                  <Lock className="text-red-500 w-5 h-5" />
+                </div>
+                <h4 className="text-[11px] uppercase tracking-[0.22em] font-black text-white mb-1.5">Authorization Key Required</h4>
+                <p className="text-[9px] uppercase tracking-wider text-neutral-400 leading-relaxed">
+                  Deleting suggestions from persistent store requires verification. Enter admin password below.
+                </p>
+              </div>
+
+              {/* Password submission form */}
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const normalizedInput = deletePasswordInput.trim().toLowerCase();
+                  let isMatch = false;
+
+                  try {
+                    const msgBuffer = new TextEncoder().encode(normalizedInput);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                    
+                    if (hashHex === '9811036de8c2a393d542fb081e5107ce7944d2ed3ba7a421812db1c65c7dcd8d') {
+                      isMatch = true;
+                    }
+                  } catch (err) {
+                    if (btoa(normalizedInput) === 'a2dhYjA3MzA=') {
+                      isMatch = true;
+                    }
+                  }
+
+                  if (isMatch) {
+                    const updated = suggestions.filter(s => s.id !== deleteItemId);
+                    setSuggestions(updated);
+                    localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+                    
+                    setShowDeletePasswordModal(false);
+                    setDeletePasswordError('');
+                    setDeletePasswordInput('');
+                    setDeleteItemId(null);
+                  } else {
+                    setDeletePasswordInput('');
+                    setDeletePasswordError('INVALID PASSWORD. ACCESS TO DELETION TERMINATED.');
+                  }
+                }}
+                className="space-y-4 relative z-10"
+              >
+                <div>
+                  <input 
+                    type="password"
+                    value={deletePasswordInput}
+                    onChange={(e) => {
+                      setDeletePasswordInput(e.target.value);
+                      if (deletePasswordError) setDeletePasswordError('');
+                    }}
+                    placeholder="ENTER PASSWORD"
+                    className="w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em]"
+                    autoFocus
+                    required
+                  />
+                  {deletePasswordError && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-[8.5px] text-red-500 font-bold uppercase tracking-widest text-center mt-2.5 leading-relaxed px-1"
+                    >
+                      ☠ {deletePasswordError} ☠
+                    </motion.p>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setShowDeletePasswordModal(false);
+                      setDeletePasswordError('');
+                      setDeletePasswordInput('');
+                      setDeleteItemId(null);
+                    }}
+                    className="flex-1 py-2.5 bg-neutral-900/40 hover:bg-neutral-900/70 border border-neutral-800 text-neutral-400 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer select-none active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 py-2.5 bg-red-950/40 hover:bg-red-900/50 border border-red-900/40 text-red-400 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer select-none active:scale-95"
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* High-Fidelity Tactical Uplink Console (Original, cybernetic double-column editor) */}
       <AnimatePresence>
         {isModalOpen && (
@@ -1586,9 +1730,10 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
                             <div className="flex items-center gap-1 shrink-0">
                               <button
                                 onClick={() => {
-                                  const updated = suggestions.filter(s => s.id !== item.id);
-                                  setSuggestions(updated);
-                                  localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+                                  setDeleteItemId(item.id);
+                                  setDeletePasswordInput('');
+                                  setDeletePasswordError('');
+                                  setShowDeletePasswordModal(true);
                                 }}
                                 className="p-1.5 hover:bg-red-955/40 hover:text-red-400 text-neutral-500 border border-transparent hover:border-red-900/30 rounded-lg transition-all cursor-pointer ml-1 animate-none flex items-center justify-center"
                                 title="Purge suggestion item"
@@ -1621,8 +1766,8 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
         <div className="max-w-7xl xl:max-w-[1360px] mx-auto w-full px-6 md:px-12 pt-16 pb-20 md:pt-24 md:pb-24 flex-1 flex flex-col justify-center">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center w-full my-auto">
             
-            {/* Left Column: Shadow Project Info */}
-            <div className="lg:col-span-7 flex flex-col text-left">
+            {/* Main Column: Shadow Project Info */}
+            <div className="lg:col-span-12 lg:max-w-4xl flex flex-col text-left">
               <motion.h2 
                 initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: -100 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1733,283 +1878,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
               </div>
             </div>
 
-            {/* Right Column: Chibi Shadow Interactive Chat Widget */}
-            <div className="lg:col-span-5 flex flex-col items-center lg:items-end justify-center w-full relative pt-12 lg:pt-0">
-              
-              <div className="relative w-full max-w-[342px]">
-                {/* Floating speech bubble */}
-                <div className="absolute top-[-10px] right-[-5px] z-30 pointer-events-none">
-                  <motion.div 
-                    animate={{ y: [0, -3, 0] }}
-                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                    className="bg-white border border-neutral-200 px-2.5 py-1 rounded-lg shadow-xl relative"
-                  >
-                    <span className="text-neutral-900 text-[7.5px] font-black tracking-widest font-mono block uppercase">
-                      {isShadowTyping ? 'THINKING...' : 'CHAT.'}
-                    </span>
-                    <div className="absolute bottom-[-3px] right-[14px] w-1.5 h-1.5 bg-white border-r border-b border-neutral-200 rotate-45" />
-                  </motion.div>
-                </div>
 
-                {/* Float-animated Chibi Avatar sitting partially overlapping the panel */}
-                <motion.div 
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                  className="absolute top-[-38px] right-[-15px] w-16 h-16 z-20 pointer-events-none select-none filter drop-shadow-[0_6px_12px_rgba(147,51,234,0.3)]"
-                >
-                  <img 
-                    src={shadowChibiAvatar} 
-                    alt="Chibi Shadow" 
-                    className="w-full h-full object-contain rounded-full"
-                    referrerPolicy="no-referrer"
-                  />
-                </motion.div>
-
-                {/* Chat Panel matching the reference image structure */}
-                <div className="bg-[#0f0b21]/75 border border-purple-500/25 rounded-[1.2rem] shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(147,51,234,0.03)] backdrop-blur-xl relative flex overflow-hidden w-full h-[415px]">
-                
-                {/* Left vertical control tab bar rail */}
-                <div className="w-9.5 bg-black/40 border-r border-purple-500/10 flex flex-col items-center py-3.5 gap-3 shrink-0">
-                  <button 
-                    onClick={() => setActiveWorkspaceSubTab('chat')}
-                    className={`p-1.5 rounded-lg transition-all duration-300 cursor-pointer ${
-                      activeWorkspaceSubTab === 'chat' 
-                        ? 'bg-purple-900/50 border border-purple-500/30 text-purple-300 shadow-[0_0_8px_rgba(147,51,234,0.2)]' 
-                        : 'text-neutral-500 hover:text-neutral-300 border border-transparent'
-                    }`}
-                    title="Terminal Diagnostic Chat"
-                  >
-                    <Wrench size={12} />
-                  </button>
-                  <button 
-                    onClick={() => setActiveWorkspaceSubTab('stats')}
-                    className={`p-1.5 rounded-lg transition-all duration-300 cursor-pointer ${
-                      activeWorkspaceSubTab === 'stats' 
-                        ? 'bg-purple-900/50 border border-purple-500/30 text-purple-300 shadow-[0_0_8px_rgba(147,51,234,0.2)]'
-                        : 'text-neutral-500 hover:text-neutral-300 border border-transparent'
-                    }`}
-                    title="Realtime Activity Logs"
-                  >
-                    <Activity size={12} />
-                  </button>
-                </div>
-
-                {/* Right Main panel content area */}
-                <div className="flex-1 flex flex-col justify-between p-4 overflow-hidden">
-                  
-                  {activeWorkspaceSubTab === 'chat' ? (
-                    <>
-                      {/* Active Chat Section */}
-                      <div className="flex items-center gap-1.5 mb-2.5 px-1 shrink-0">
-                        <span className="relative flex h-1.5 w-1.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                        </span>
-                        <span className="text-[8.5px] font-mono text-purple-300/90 font-bold uppercase tracking-wider">
-                          STATUS: {isShadowTyping ? 'NAGSULUSULAT NA...' : 'ONLINE AKO PRE.'}
-                        </span>
-                      </div>
-
-                      {/* Chat Messages Log view */}
-                      <div ref={chatContainerRef} className="flex-1 overflow-y-auto no-scrollbar space-y-3.5 mb-3.5 pr-1 text-left">
-                        {chatMessages.map((msg) => (
-                          <div 
-                            key={msg.id}
-                            className={`flex flex-col max-w-[85%] ${msg.sender === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}
-                          >
-                            <div className={`p-3 rounded-2xl text-[10.5px] leading-relaxed select-text ${
-                              msg.sender === 'user'
-                                ? 'bg-gradient-to-br from-purple-800/80 to-indigo-800/80 text-white rounded-tr-none border border-purple-500/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
-                                : 'bg-black/45 hover:bg-black/60 border border-purple-500/15 text-neutral-200 rounded-tl-none transition-colors'
-                            }`}>
-                              {msg.text}
-                            </div>
-                            <span className="text-[7.5px] text-neutral-600 font-mono mt-1 px-1 tracking-wider uppercase">
-                              {msg.sender === 'user' ? 'YOU' : 'SHADOW'} // {msg.time}
-                            </span>
-                          </div>
-                        ))}
-                        
-                        {isShadowTyping && (
-                          <div className="flex flex-col items-start max-w-[85%]">
-                            <div className="bg-black/30 border border-purple-500/10 p-2.5 py-1.5 rounded-2xl rounded-tl-none text-[8px] text-neutral-400 flex items-center gap-1">
-                              <span className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                              <span className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                              <span className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Chat Input form */}
-                      <form 
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          if (!currentChatInput.trim() || isShadowTyping) return;
-                          
-                          const userText = currentChatInput.trim();
-                          const userMsgId = `m-${Date.now()}`;
-                          const currentTimeStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                          
-                          const updated = [...chatMessages, { id: userMsgId, text: userText, sender: 'user' as const, time: currentTimeStr }];
-                          setChatMessages(updated);
-                          setCurrentChatInput('');
-                          setIsShadowTyping(true);
-
-                          // Send request to real backend shadow-chat API with Gemini integration
-                          (async () => {
-                            try {
-                              const response = await fetch("/api/shadow-chat", {
-                                method: "POST",
-                                headers: {
-                                  "Content-Type": "application/json",
-                                },
-                                body: JSON.stringify({ message: userText }),
-                              });
-                              
-                              if (!response.ok) {
-                                throw new Error("Server responded with error status");
-                              }
-                              
-                              const data = await response.json();
-                              setIsShadowTyping(false);
-                              
-                              let replyText = data.text || "An encrypted transmission fragment was lost in the void... Ask again, Operative.";
-                              
-                              // Trigger automatic local suggestion addition if keyword is found
-                              const lower = userText.toLowerCase();
-                              if (lower.includes('suggest') || lower.includes('add') || lower.includes('optimize') || lower.includes('bug')) {
-                                const cleanTitle = userText.replace(/(suggest|add|optimize|bug|fix|issue)/gi, '').trim() || "Automated diagnostic task updater";
-                                const shortTitle = cleanTitle.substring(0, 45);
-                                
-                                const nsId = `s-${Date.now()}`;
-                                const ns = {
-                                  id: nsId,
-                                  text: `[Chat Entry]: ${shortTitle}`,
-                                  date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(),
-                                  category: 'CHAT_LOG',
-                                  status: 'NEW'
-                                };
-                                const nextSuggestions = [ns, ...suggestions];
-                                setSuggestions(nextSuggestions);
-                                localStorage.setItem('shadow_suggestions', JSON.stringify(nextSuggestions));
-                              }
-                              
-                              setChatMessages(prev => [...prev, {
-                                id: `shadow-${Date.now()}`,
-                                text: replyText,
-                                sender: 'shadow' as const,
-                                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-                              }]);
-                            } catch (err) {
-                              console.warn("Unable to fetch backend Gemini API, using local fallback:", err);
-                              setIsShadowTyping(false);
-                              
-                              const lower = userText.toLowerCase();
-                              let replyText = "";
-                                       const options = [
-                                "Chill lang tayo rito pre. Solid naman 'tong project na to, maganda pagkakagawa.",
-                                "Aray ko lods, parang medyo mabagal net, pero goods pa rin!",
-                                "Shoutout sayo ka-tropa! Adrian is the best developer talaga.",
-                                "Walang issue rito, everything is working smoothly. Solid, diba?",
-                                "Gusto mo ba uminom ng kape tol? Chill muna tayo habang nagbabasa ng archive."
-                              ];
-
-                              if (lower.includes('atomic')) {
-                                replyText = "Ano yun atomic? Nuclear reactor yarn? Haha, joke lang lods!";
-                              } else if (lower.includes('suggest') || lower.includes('add') || lower.includes('optimize') || lower.includes('bug')) {
-                                const cleanTitle = userText.replace(/(suggest|add|optimize|bug|fix|issue)/gi, '').trim() || "Automated diagnostic task updater";
-                                const shortTitle = cleanTitle.substring(0, 45);
-                                
-                                const nsId = `s-${Date.now()}`;
-                                const ns = {
-                                  id: nsId,
-                                  text: `[Chat Entry]: ${shortTitle}`,
-                                  date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(),
-                                  category: 'CHAT_LOG',
-                                  status: 'NEW'
-                                };
-                                const nextSuggestions = [ns, ...suggestions];
-                                setSuggestions(nextSuggestions);
-                                localStorage.setItem('shadow_suggestions', JSON.stringify(nextSuggestions));
-                                
-                                replyText = `Sige pre, nilagay ko na sa suggestions box natin: "${shortTitle}"! Solid ah.`;
-                              } else if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
-                                replyText = "Kumusta ka, ka-tropa! Ano g nating usapan ngayon? G!";
-                              } else if (lower.includes('who') || lower.includes('you')) {
-                                replyText = "Ako si Shadow, tol! Ako yung digital helper ni Adrian dito. Chill na Pinoy assistant mo pre!";
-                              } else {
-                                replyText = options[Math.floor(Math.random() * options.length)];
-                              }
-
-                              setChatMessages(prev => [...prev, {
-                                id: `shadow-${Date.now()}`,
-                                text: replyText,
-                                sender: 'shadow' as const,
-                                time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-                              }]);
-                            }
-                          })();
-                        }}
-                        className="relative flex items-center shrink-0"
-                      >
-                        <input
-                          type="text"
-                          value={currentChatInput}
-                          onChange={(e) => setCurrentChatInput(e.target.value)}
-                          placeholder="Magsulat dito, tol..."
-                          className="w-full text-left text-[10.5px] placeholder:text-neutral-500 text-neutral-100 bg-neutral-100/10 hover:bg-neutral-100/15 focus:bg-neutral-100/20 p-3 pr-11 rounded-full outline-none border border-purple-500/10 focus:border-purple-500/30 transition-all font-sans"
-                        />
-                        <button 
-                          type="submit"
-                          disabled={!currentChatInput.trim() || isShadowTyping}
-                          className="absolute right-1 p-2 bg-purple-600 hover:bg-purple-500 text-white rounded-full transition-all disabled:opacity-40 disabled:hover:bg-purple-600 cursor-pointer flex items-center justify-center shadow-lg"
-                        >
-                          <Send size={10} />
-                        </button>
-                      </form>
-                    </>
-                  ) : (
-                    <>
-                      {/* Active Activity Feed section */}
-                      <div className="flex items-center gap-1.5 mb-3 px-1 shrink-0">
-                        <Activity size={10} className="text-purple-400 animate-pulse" />
-                        <span className="text-[9px] font-mono text-purple-300 font-bold uppercase tracking-wider">
-                          UPLINK INTEGRITY DIAGNOSTICS: STANDBY
-                        </span>
-                      </div>
-                      
-                      {/* Interactive realtime metrics console list */}
-                      <div className="flex-1 rounded-2xl bg-black/40 border border-purple-500/10 p-3 space-y-2.5 text-left font-mono text-[8.5px] text-neutral-400 overflow-y-auto no-scrollbar">
-                        <div className="flex justify-between items-center border-b border-purple-500/10 pb-1.5">
-                          <span>SYNC MAIN PORT:</span>
-                          <span className="text-emerald-400 font-bold">PORT 3000 // ACTIVE</span>
-                        </div>
-                        <div className="flex justify-between items-center border-b border-purple-500/10 pb-1.5">
-                          <span>LOCAL RECS DB COUNT:</span>
-                          <span className="text-purple-400 font-bold">{suggestions.length} ITEMS DETECTED</span>
-                        </div>
-                        <div className="flex justify-between items-center border-b border-purple-500/10 pb-1.5">
-                          <span>LINKED STATE SECURE:</span>
-                          <span className="text-purple-400 font-mono">ENCRYPTED SHADOW CODES</span>
-                        </div>
-                        <div className="flex justify-between items-center border-b border-purple-500/10 pb-1.5">
-                          <span>COGNITIVE MODULES:</span>
-                          <span className="text-white">GEMINI PROV V1.0</span>
-                        </div>
-                        <div className="p-2 bg-purple-950/20 border border-purple-500/20 rounded-xl leading-relaxed text-purple-300 select-none text-[8px]">
-                          // RE-ENTRY SHADOW PROTOCOL IS SECURED. TO SUBMIT NEW RECOMMENDATIONS, USE THE LEFT CHAT TAB AND MENTION "SUGGEST" OR "BUG".
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                </div>
-              </div>
-
-              </div>
-
-            </div>
 
           </div>
         </div>
@@ -2283,16 +2152,6 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore }: 
 
         </div>
       </div>
-
-      {/* Bottom Right Info */}
-      <motion.div 
-        initial={skip ? { opacity: 0.4 } : { opacity: 0 }}
-        animate={{ opacity: 0.4 }}
-        transition={skip ? { duration: 0 } : { delay: 4.5, duration: 2 }}
-        className="absolute bottom-8 right-8 md:bottom-12 md:right-12 z-20"
-      >
-        <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Last Modified: MAY 2026</span>
-      </motion.div>
     </div>
   );
 }

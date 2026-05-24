@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
-import shadowLogoMain from '../assets/images/shadow_logo_main_1779199773763.png';
+import shadowLogoMain from '../assets/images/shadow_computer_services_logo_1779535416403.png';
 
 interface LoadingScreenProps {
   onComplete: () => void;
@@ -63,10 +63,10 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
       duration: Math.random() * 12 + 18, // 18s to 30s
       delay: Math.random() * -25, // pre-warmed so there's smoke already visible
       color: i % 3 === 0 
-        ? 'rgba(220, 220, 220, 0.07)' // Light grey smoke
+        ? 'rgba(88, 28, 135, 0.03)' // Deep purple smoke
         : i % 3 === 1
-        ? 'rgba(150, 150, 150, 0.05)' // Darker grey smoke
-        : 'rgba(255, 255, 255, 0.08)' // White smoke
+        ? 'rgba(2, 6, 23, 0.05)'   // Deep slate smoke
+        : 'rgba(0, 0, 0, 0.2)'      // Black smoke to absorb light
     }));
   }, []);
 
@@ -115,8 +115,8 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
       }}
       className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 select-none overflow-hidden font-mono text-white cursor-pointer"
     >
-      {/* Dynamic Animated Smoke Layer */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-80" style={{ filter: 'url(#shadow-smoke-filter)' }}>
+      {/* Dynamic Animated Smoke Layer (completely disabled for super black background) */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-0" style={{ filter: 'url(#shadow-smoke-filter)' }}>
         {smokeParticles.map((p) => (
           <motion.div
             key={p.id}
@@ -159,45 +159,38 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
       </svg>
 
       {/* Background Radial Shadows and Grid Overlay */}
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,rgba(40,40,40,0.1)_0%,rgba(0,0,0,0.95)_80%)] pointer-events-none" />
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.003)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.003)_1px,transparent_1px)] bg-[size:30px_30px] opacity-40 pointer-events-none" />
+      <div className="absolute inset-0 z-0 bg-black pointer-events-none" />
       
       {/* Laser light scan effect sweeping across background */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-20">
-        <motion.div 
-          animate={{ y: ['-100%', '200%'] }}
-          transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
-          className="w-full h-2 bg-gradient-to-r from-transparent via-neutral-500/30 to-transparent blur-sm"
-        />
-      </div>
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-0" />
 
       <div className="w-full max-w-md flex flex-col items-center justify-center relative z-10">
         
         {/* Mysterious Ambient Ring behind Logo */}
-        <div className="relative mb-8 w-48 h-48 md:w-56 md:h-56">
+        <div className="relative mb-8 w-72 h-72 md:w-96 md:h-96 bg-black rounded-full shadow-[0_0_60px_rgba(0,0,0,1)]">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 rounded-full border border-neutral-800 border-t-neutral-400 border-b-neutral-500 blur-[1px]"
+            className="absolute inset-0 rounded-full border border-neutral-900 border-t-neutral-700 border-b-neutral-800 blur-[1px]"
           />
           <motion.div
             animate={{ rotate: -360 }}
             transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute -inset-3 rounded-full border border-neutral-800/50 border-r-neutral-700/40 border-l-neutral-700/40 opacity-50 blur-[2px]"
+            className="absolute -inset-3 rounded-full border border-neutral-950/20 border-r-neutral-900/10 border-l-neutral-900/10 opacity-30 blur-[2px]"
           />
-          <div className="absolute inset-2 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_70%)] blur-2xl rounded-full" />
+          <div className="absolute inset-2 bg-black rounded-full" />
           
           {/* Main Logo Container */}
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className="w-full h-full relative rounded-full overflow-hidden flex items-center justify-center"
+            className="w-full h-full relative flex items-center justify-center overflow-visible"
           >
             <img 
               src={shadowLogoMain} 
               alt="Shadow Project Logo"
-              className="w-full h-full object-cover filter grayscale drop-shadow-[0_0_25px_rgba(255,255,255,0.4)] relative z-10 animate-pulse"
+              className="w-full h-full object-contain bg-black rounded-full overflow-hidden drop-shadow-[0_0_35px_rgba(168,85,247,0.55)] relative z-10 animate-pulse"
               referrerPolicy="no-referrer"
             />
           </motion.div>
