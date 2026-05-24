@@ -27,14 +27,12 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
   const playlist = [...STATIC_PLAYLIST, ...customTracks];
 
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(() => {
-    const saved = localStorage.getItem('shadow_soundtrack_active_index');
-    if (saved) {
-      const idx = parseInt(saved, 10);
-      if (idx >= 0 && idx < playlist.length) return idx;
-    }
-    return 0;
-  });
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+
+  // Reset active soundtrack to "School Life" (index 0) on load/reload
+  useEffect(() => {
+    localStorage.setItem('shadow_soundtrack_active_index', '0');
+  }, []);
 
   // Play state. If audio initially allowed, auto-play. Otherwise wait for user interaction or trigger on play click.
   const [isPlaying, setIsPlaying] = useState(isAudioAllowed);
