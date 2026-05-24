@@ -29,9 +29,12 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 
-  // Reset active soundtrack to "School Life" (index 0) on load/reload
+  // Reset active soundtrack to "School Life" (index 0) on load/reload and play instantly
   useEffect(() => {
     localStorage.setItem('shadow_soundtrack_active_index', '0');
+    setCurrentTrackIndex(0);
+    setLocalAudioActive(true);
+    setIsPlaying(true);
   }, []);
 
   // Play state. If audio initially allowed, auto-play. Otherwise wait for user interaction or trigger on play click.
