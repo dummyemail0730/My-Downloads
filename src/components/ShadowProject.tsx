@@ -2519,7 +2519,16 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
         {/* Floating Capsule trigger button */}
         <motion.button
-          onClick={() => setIsSounddeckExpanded(!isSounddeckExpanded)}
+          onClick={() => {
+            setIsSounddeckExpanded(!isSounddeckExpanded);
+            // Ensure soundtrack plays in response to clicking the trigger button
+            if (!isPlaying || !localAudioActive) {
+              setLocalAudioActive(true);
+              setIsPlaying(true);
+              setCurrentTrackIndex(0);
+              localStorage.setItem('shadow_soundtrack_active_index', '0');
+            }
+          }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className={`flex items-center gap-2.5 px-4 py-2.5 border-2 shadow-2xl transition-all select-none rounded-full cursor-pointer font-bold uppercase tracking-[0.15em] text-[10px] relative overflow-hidden ${
