@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, FormEvent } from 'react';
+import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User } from 'lucide-react';
+import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
@@ -12,6 +12,142 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   const [consoleLink, setConsoleLink] = useState(() => {
     return localStorage.getItem('admin_console_link') || 'https://drive.google.com';
   });
+
+  // Soundtrack Control states
+  const STATIC_PLAYLIST = [
+    { id: 'ATHTNyLK2TM', name: 'School Life', desc: 'Main soundtrack of this page' },
+    { id: 'T9MLjIsfUOU', name: 'Eminence Theme Orchestral', desc: 'Pre-load soundtrack frequency' },
+    { id: '9iQVgj4z-I4', name: 'Shadow Garden Lofi Chill', desc: 'Background ambiance of the shadows' }
+  ];
+
+  const [customTracks, setCustomTracks] = useState<Array<{ id: string; name: string; desc: string }>>(() => {
+    const saved = localStorage.getItem('shadow_custom_tracks_data');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const playlist = [...STATIC_PLAYLIST, ...customTracks];
+
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(() => {
+    const saved = localStorage.getItem('shadow_soundtrack_active_index');
+    if (saved) {
+      const idx = parseInt(saved, 10);
+      if (idx >= 0 && idx < playlist.length) return idx;
+    }
+    return 0;
+  });
+
+  // Play state. If audio initially allowed, auto-play. Otherwise wait for user interaction or trigger on play click.
+  const [isPlaying, setIsPlaying] = useState(isAudioAllowed);
+  const [isSounddeckExpanded, setIsSounddeckExpanded] = useState(false);
+  const [soundtrackInput, setSoundtrackInput] = useState('');
+  const [localAudioActive, setLocalAudioActive] = useState(isAudioAllowed);
+
+  // Sync state if parent allows audio later
+  useEffect(() => {
+    if (isAudioAllowed) {
+      setLocalAudioActive(true);
+      setIsPlaying(true);
+    }
+  }, [isAudioAllowed]);
+
+  const activeTrack = playlist[currentTrackIndex] || playlist[0] || STATIC_PLAYLIST[0];
+
+  const handleNextTrack = () => {
+    const nextIdx = (currentTrackIndex + 1) % playlist.length;
+    setCurrentTrackIndex(nextIdx);
+    localStorage.setItem('shadow_soundtrack_active_index', String(nextIdx));
+    setLocalAudioActive(true);
+    setIsPlaying(true);
+  };
+
+  const handlePrevTrack = () => {
+    const prevIdx = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+    setCurrentTrackIndex(prevIdx);
+    localStorage.setItem('shadow_soundtrack_active_index', String(prevIdx));
+    setLocalAudioActive(true);
+    setIsPlaying(true);
+  };
+
+  const handleSelectTrack = (idx: number) => {
+    setCurrentTrackIndex(idx);
+    localStorage.setItem('shadow_soundtrack_active_index', String(idx));
+    setLocalAudioActive(true);
+    setIsPlaying(true);
+  };
+
+  const parseYoutubeId = (urlOrId: string) => {
+    const trimmed = urlOrId.trim();
+    if (!trimmed) return null;
+    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+      return trimmed;
+    }
+    try {
+      const match = trimmed.match(/(?:v=|embed\/|youtu\.be\/|\/v\/|y\/|watch\?v=)([a-zA-Z0-9_-]{11})/);
+      if (match && match[1]) {
+        return match[1];
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
+  };
+
+  const handleInjectTrack = (e: FormEvent) => {
+    e.preventDefault();
+    const id = parseYoutubeId(soundtrackInput);
+    if (!id) {
+      alert("UNABLE TO RESOLVE COG-LINK URL // Re-evaluate YouTube details.");
+      return;
+    }
+
+    const allCurrent = [...STATIC_PLAYLIST, ...customTracks];
+    const matchIdx = allCurrent.findIndex(t => t.id === id);
+    if (matchIdx !== -1) {
+      handleSelectTrack(matchIdx);
+      setSoundtrackInput('');
+      return;
+    }
+
+    const newTrack = {
+      id,
+      name: `User Frequency Audio [${id.substring(0, 4)}]`,
+      desc: `Injected frequencies: ${id}`
+    };
+    const updated = [newTrack, ...customTracks];
+    setCustomTracks(updated);
+    localStorage.setItem('shadow_custom_tracks_data', JSON.stringify(updated));
+    setSoundtrackInput('');
+    
+    // Select the newly added track
+    const newIdx = STATIC_PLAYLIST.length;
+    setCurrentTrackIndex(newIdx);
+    localStorage.setItem('shadow_soundtrack_active_index', String(newIdx));
+    setLocalAudioActive(true);
+    setIsPlaying(true);
+  };
+
+  const handlePurgeTrack = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = customTracks.filter(t => t.id !== id);
+    setCustomTracks(updated);
+    localStorage.setItem('shadow_custom_tracks_data', JSON.stringify(updated));
+    
+    // Calculate new index
+    if (activeTrack.id === id) {
+      setCurrentTrackIndex(0);
+      localStorage.setItem('shadow_soundtrack_active_index', '0');
+    } else {
+      const remainingTracks = [...STATIC_PLAYLIST, ...updated];
+      const newIdx = remainingTracks.findIndex(t => t.id === activeTrack.id);
+      if (newIdx !== -1) {
+        setCurrentTrackIndex(newIdx);
+        localStorage.setItem('shadow_soundtrack_active_index', String(newIdx));
+      } else {
+        setCurrentTrackIndex(0);
+        localStorage.setItem('shadow_soundtrack_active_index', '0');
+      }
+    }
+  };
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItemId, setEditingItemId] = useState<{ id: string; type: string } | null>(null);
   const [editLinkValue, setEditLinkValue] = useState('');
@@ -736,9 +872,10 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   return (
     <div className="min-h-[200vh] w-full flex flex-col bg-black text-white relative overflow-y-auto no-scrollbar scroll-smooth">
       {/* Hidden YouTube Theme Audio Stream */}
-      {isAudioAllowed && (
+      {isPlaying && localAudioActive && (
         <iframe
-          src="https://www.youtube.com/embed/ATHTNyLK2TM?autoplay=1&mute=0&playlist=ATHTNyLK2TM&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1"
+          key={activeTrack.id}
+          src={`https://www.youtube.com/embed/${activeTrack.id}?autoplay=1&mute=0&playlist=${activeTrack.id}&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1`}
           allow="autoplay; encrypted-media"
           title="Landing Page Shadow Theme OST"
           style={{
@@ -2169,6 +2306,249 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
         </div>
       </div>
+
+      {/* Floating Tactical Soundtrack & Equalizer Module */}
+      <div className="fixed bottom-8 right-8 z-40 font-mono text-[10px] select-none flex flex-col items-end gap-3 pointer-events-auto">
+        <AnimatePresence>
+          {isSounddeckExpanded && (
+            <motion.div
+              initial={{ opacity: 0, y: 15, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.95 }}
+              className="bg-neutral-950/95 backdrop-blur-md border-2 border-purple-500/30 rounded-2xl p-4 w-[310px] shadow-[0_0_25px_rgba(168,85,247,0.2)] text-white relative flex flex-col gap-3.5 overflow-hidden"
+            >
+              {/* Grid backdrop and corners */}
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:16px_16px] opacity-25 pointer-events-none" />
+              <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-purple-500/40 pointer-events-none rounded-tl-lg" />
+              <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-purple-500/40 pointer-events-none rounded-tr-lg" />
+              <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-purple-500/40 pointer-events-none rounded-bl-lg" />
+              <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-purple-500/40 pointer-events-none rounded-br-lg" />
+
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-neutral-900 pb-2 relative z-10 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <span className={`w-1.5 h-1.5 bg-purple-500 rounded-full block ${isPlaying ? 'animate-ping' : ''}`} />
+                    <span className="absolute -inset-0.5 bg-purple-500/30 rounded-full blur-[2px]" />
+                  </div>
+                  <span className="font-extrabold uppercase tracking-[0.2em] text-purple-400">SPECTRUM SOUNDDECK</span>
+                </div>
+                <button
+                  onClick={() => setIsSounddeckExpanded(false)}
+                  className="p-1 hover:bg-neutral-900 text-neutral-500 hover:text-white transition-all rounded cursor-pointer"
+                  title="Minimize player"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+
+              {/* Status & Sim tracking lines */}
+              <div className="bg-neutral-950 border border-neutral-900 p-2.5 rounded-lg flex flex-col gap-1.5 relative z-10">
+                <div className="flex justify-between items-center text-[8px] text-neutral-500 tracking-wider text-left">
+                  <span>SIGNAL CODE: SHADOW</span>
+                  <span className="text-purple-500 font-bold">{isPlaying ? 'TRANSMITTING' : 'MUTED'}</span>
+                </div>
+                <div className="truncate text-[10px] font-black tracking-widest text-neutral-100 uppercase animate-pulse text-left">
+                  ⚔ {activeTrack.name}
+                </div>
+                <div className="text-[8px] text-neutral-400 font-sans uppercase break-all font-medium leading-normal text-left">
+                  {activeTrack.desc}
+                </div>
+
+                {/* Simulated tracking line */}
+                <div className="h-1 bg-neutral-900 overflow-hidden relative rounded-full mt-1.5 w-full">
+                  <motion.div
+                    animate={isPlaying ? { x: ["-100%", "100%"] } : { x: "0%" }}
+                    transition={isPlaying ? { repeat: Infinity, duration: 3, ease: "linear" } : {}}
+                    className="absolute inset-y-0 w-2/5 bg-gradient-to-r from-transparent via-purple-500 to-transparent shadow-[0_0_8px_rgba(168,85,247,0.5)]"
+                  />
+                </div>
+              </div>
+
+              {/* Equalizer animation & Controls row */}
+              <div className="flex items-center justify-between px-1 relative z-10 shrink-0">
+                {/* Embedded style tag for equalizers */}
+                <style dangerouslySetInnerHTML={{__html: `
+                  @keyframes eq-bar-pulse {
+                    0%, 100% { height: 15%; }
+                    50% { height: 75%; }
+                  }
+                `}} />
+                
+                {/* Visualizer bars */}
+                <div className="flex items-end gap-1 h-5 overflow-hidden w-12 select-none">
+                  {[0.7, 0.4, 0.9, 0.5, 0.8].map((speed, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        animation: isPlaying ? `eq-bar-pulse ${speed}s ease-in-out infinite` : 'none',
+                        height: isPlaying ? '15%' : '20%',
+                      }}
+                      className="w-[3px] bg-purple-500/80 rounded-full transition-all duration-300"
+                    />
+                  ))}
+                </div>
+
+                {/* Main Playback controller row */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handlePrevTrack}
+                    className="p-1.5 rounded-lg border border-neutral-900 hover:border-purple-500/20 bg-neutral-950 text-neutral-400 hover:text-white active:scale-95 transition-all cursor-pointer"
+                    title="Previous track"
+                  >
+                    <SkipBack size={12} />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!localAudioActive) {
+                        setLocalAudioActive(true);
+                      }
+                      setIsPlaying(!isPlaying);
+                    }}
+                    className={`p-2.5 rounded-full border shadow-md active:scale-95 transition-all duration-300 cursor-pointer ${
+                      isPlaying
+                        ? 'bg-purple-650 hover:bg-purple-500 border-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]'
+                        : 'bg-neutral-900 hover:bg-neutral-850 border-neutral-800 text-purple-400'
+                    }`}
+                    title={isPlaying ? 'Mute' : 'Play'}
+                  >
+                    {isPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} className="ml-0.5" />}
+                  </button>
+
+                  <button
+                    onClick={handleNextTrack}
+                    className="p-1.5 rounded-lg border border-neutral-900 hover:border-purple-500/20 bg-neutral-950 text-neutral-400 hover:text-white active:scale-95 transition-all cursor-pointer"
+                    title="Next track"
+                  >
+                    <SkipForward size={12} />
+                  </button>
+                </div>
+
+                {/* Audio Mode indicator */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!localAudioActive) setLocalAudioActive(true);
+                    setIsPlaying(!isPlaying);
+                  }}
+                  className="p-1 bg-neutral-950 hover:bg-neutral-900 border border-neutral-900 text-neutral-400 hover:text-white transition-all rounded flex items-center gap-1 cursor-pointer"
+                >
+                  {isPlaying ? (
+                    <>
+                      <Volume2 size={11} className="text-purple-400 animate-pulse" />
+                      <span className="text-[7.5px] font-black text-purple-400 uppercase">ON</span>
+                    </>
+                  ) : (
+                    <>
+                      <VolumeX size={11} className="text-neutral-500" />
+                      <span className="text-[7.5px] font-bold text-neutral-500 uppercase">MUTED</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Playlist Select list */}
+              <div className="border-t border-neutral-900/60 pt-2 flex flex-col gap-1 z-10 max-h-[110px] overflow-y-auto pr-1 no-scrollbar text-left font-mono">
+                <span className="text-[7.5px] uppercase tracking-[0.15em] text-neutral-500 pt-0.5 pb-1 block font-bold">FREQUENCY LIST ({playlist.length} FEEDS)</span>
+                {playlist.map((item, idx) => (
+                  <button
+                    key={`${item.id}-${idx}`}
+                    onClick={() => handleSelectTrack(idx)}
+                    className={`w-full p-2 text-left rounded-lg border text-[9px] flex items-center justify-between gap-2 cursor-pointer transition-all duration-200 group relative ${
+                      idx === currentTrackIndex
+                        ? 'bg-purple-950/20 border-purple-500/35 text-purple-300 font-extrabold shadow-[inset_0_0_8px_rgba(168,85,247,0.1)]'
+                        : 'bg-neutral-950 border-neutral-900 text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200 hover:border-neutral-800'
+                    }`}
+                  >
+                    <div className="truncate flex-1">
+                      <div className="truncate uppercase font-bold text-[9px]">
+                        {idx === currentTrackIndex ? '🔮 ' : ''}{item.name}
+                      </div>
+                      <div className="truncate text-[7.5px] text-neutral-500 font-sans">
+                        {item.desc}
+                      </div>
+                    </div>
+                    
+                    {/* Trash button for custom playlist entries */}
+                    {idx >= STATIC_PLAYLIST.length && (
+                      <button
+                        onClick={(e) => handlePurgeTrack(item.id, e)}
+                        className="p-1 hover:bg-red-955/40 text-neutral-600 hover:text-red-400 rounded-md transition-all self-center opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer border border-transparent hover:border-red-900/20"
+                        title="Purge custom signal"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom stream controller */}
+              <form onSubmit={handleInjectTrack} className="border-t border-neutral-900/60 pt-2.5 flex flex-col gap-1.5 z-10 shrink-0 text-left">
+                <span className="text-[7.5px] uppercase tracking-[0.15em] text-neutral-500 font-bold">INJECT CUSTOM SOUNDTRACK VIA YT LINK</span>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={soundtrackInput}
+                    onChange={(e) => setSoundtrackInput(e.target.value)}
+                    placeholder="Paste YT Link or Video ID"
+                    className="flex-1 bg-neutral-950 text-[9px] font-sans text-neutral-100 placeholder:text-neutral-600 outline-none border border-neutral-900 focus:border-purple-500/30 px-2 py-1.5 transition-all text-left uppercase"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!soundtrackInput.trim()}
+                    className={`px-3 flex items-center gap-1 border font-bold uppercase tracking-wider text-[8px] transition-all cursor-pointer ${
+                      soundtrackInput.trim()
+                        ? 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-500/40 text-purple-300'
+                        : 'bg-neutral-900/20 border-neutral-950 text-neutral-600 cursor-not-allowed'
+                    }`}
+                  >
+                    <Plus size={10} />
+                    <span>INJECT</span>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Floating Capsule trigger button */}
+        <motion.button
+          onClick={() => setIsSounddeckExpanded(!isSounddeckExpanded)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`flex items-center gap-2.5 px-4 py-2.5 border-2 shadow-2xl transition-all select-none rounded-full cursor-pointer font-bold uppercase tracking-[0.15em] text-[10px] relative overflow-hidden ${
+            isSounddeckExpanded 
+              ? 'bg-purple-950/90 text-purple-400 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.3)]' 
+              : 'bg-neutral-950 text-neutral-300 hover:text-white border-neutral-800 hover:border-purple-500/30 shadow-[0_0_15px_rgba(0,0,0,0.6)]'
+          }`}
+        >
+          {/* Pulsing indicator light */}
+          {!isSounddeckExpanded && isPlaying && (
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500" />
+            </span>
+          )}
+
+          {/* Equalizer or Static Music note */}
+          {isPlaying ? (
+            <div className="flex items-end gap-[2px] h-3 overflow-hidden select-none w-3">
+              <div className="w-[1.5px] bg-purple-400 rounded-full animate-[eq-bar-pulse_0.8s_ease-in-out_infinite]" />
+              <div className="w-[1.5px] bg-purple-400 rounded-full animate-[eq-bar-pulse_0.5s_ease-in-out_infinite]" style={{ animationDelay: '0.2s' }} />
+              <div className="w-[1.5px] bg-purple-400 rounded-full animate-[eq-bar-pulse_0.7s_ease-in-out_infinite]" style={{ animationDelay: '0.4s' }} />
+            </div>
+          ) : (
+            <Music size={12} className={isSounddeckExpanded ? "text-purple-400" : "text-neutral-500"} />
+          )}
+
+          <div className="flex items-center gap-1.5 font-semibold text-[9.5px]">
+            <span>{isSounddeckExpanded ? 'SOUND CONSOLE ENABLED' : (isPlaying ? `OST: ${activeTrack.name.substring(0, 11)}..` : 'SOUND DECK OFF')}</span>
+          </div>
+        </motion.button>
+      </div>
+
     </div>
   );
 }
