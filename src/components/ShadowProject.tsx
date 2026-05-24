@@ -880,11 +880,14 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
           allow="autoplay; encrypted-media"
           title="Landing Page Shadow Theme OST"
           style={{
-            position: 'absolute',
-            width: '1px',
-            height: '1px',
-            opacity: 0,
+            position: 'fixed',
+            width: '320px',
+            height: '240px',
+            top: '-2000px',
+            left: '-2000px',
             pointerEvents: 'none',
+            opacity: 0.001,
+            zIndex: -9999
           }}
           referrerPolicy="no-referrer"
         />
