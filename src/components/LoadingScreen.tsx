@@ -71,9 +71,9 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
   }, []);
 
   useEffect(() => {
-    // Increment progress to 100% over precisely 10 seconds (10000 ms)
-    // 100 increments -> 100ms interval for smooth progression
-    const intervalTime = 100;
+    // Increment progress to 100% over precisely 15 seconds (15000 ms)
+    // 100 increments -> 150ms interval for smooth progression
+    const intervalTime = 150;
     const increment = 1;
 
     const timer = setInterval(() => {
@@ -245,7 +245,7 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
         {!isMuted && (
           <iframe
             key={hasInteracted ? 'interacted' : 'initial'}
-            src="https://www.youtube.com/embed/9iQVgj4z-I4?autoplay=1&mute=0&playlist=9iQVgj4z-I4&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1"
+            src="https://www.youtube.com/embed/ATHTNyLK2TM?autoplay=1&mute=0&playlist=ATHTNyLK2TM&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1"
             allow="autoplay; encrypted-media"
             title="Shadow Theme OST"
             style={{
@@ -299,7 +299,7 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
         <div className="mt-6 text-[9px] text-neutral-500 uppercase tracking-widest font-semibold flex items-center gap-2 bg-neutral-950 border border-neutral-900 px-3 py-1.5 rounded-full">
           <span>TIME REMAINING:</span>
           <span className="font-bold text-neutral-300 font-mono">
-            {Math.max(0, Math.ceil((100 - progress) / 10))}s
+            {Math.max(0, Math.ceil(((100 - progress) * 15) / 100))}s
           </span>
         </div>
       </div>
