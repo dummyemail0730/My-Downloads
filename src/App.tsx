@@ -589,6 +589,7 @@ export default function App() {
               setShowShadowLoreOnly(true);
             }}
             isAudioAllowed={audioApproved === true}
+            onLogout={() => setIsAuthorized(false)}
           />
         </div>
       </div>
@@ -667,7 +668,7 @@ export default function App() {
             <span>STATUS: READY_FOR_HIRE</span>
           </div>
           <div className="flex gap-4 md:gap-8">
-            <a href="#" className="hover:text-white transition-colors">GITHUB://ADRIAN</a>
+            <a href="#" className="hover:text-white transition-colors">GITHUB://CID</a>
             <a href="#" className="hidden sm:inline hover:text-white transition-colors">MAIL://HELO@ARCHIVE</a>
           </div>
         </footer>
@@ -738,7 +739,7 @@ export default function App() {
                     <div className="w-full h-full rounded-lg overflow-hidden border border-neutral-800 bg-neutral-900 pr-px">
                       <img 
                         src={ownerIdPhoto} 
-                        alt="Adrian Gabionza Portrait ID" 
+                        alt="Cid Kagenou Portrait ID" 
                         className="w-full h-full object-cover filter brightness-[1.1] contrast-[1.05]"
                         referrerPolicy="no-referrer"
                       />
@@ -755,14 +756,14 @@ export default function App() {
                     <div>
                       <span className="text-[7px] text-neutral-500 font-bold block mb-px">UPLINK_IDENTITY_REG</span>
                       <h4 className="text-white text-base font-black tracking-tight uppercase">
-                        Adrian Gabionza
+                        Cid Kagenou
                       </h4>
                     </div>
                     <div>
                       <span className="text-[7px] text-neutral-500 font-bold block mb-px">AFFILIATION</span>
                       <p className="text-[10px] text-purple-400 font-bold uppercase tracking-wide flex items-center justify-center sm:justify-start gap-1">
                         <Shield size={10} className="inline" />
-                        Shadow Project Commander
+                        Shadow Tech Commander
                       </p>
                     </div>
                   </div>
@@ -809,12 +810,12 @@ export default function App() {
                     <div>
                       <span className="text-[7px] text-neutral-500 font-bold block uppercase mb-1">EMAIL TRANSMITTER</span>
                       <span className="text-zinc-300 font-bold font-mono">
-                        adriangabionza1990@gmail.com
+                        cidkagenou@gmail.com
                       </span>
                     </div>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText('adriangabionza1990@gmail.com');
+                        navigator.clipboard.writeText('cidkagenou@gmail.com');
                         setCopiedText('EMAIL');
                         setTimeout(() => setCopiedText(null), 2000);
                       }}
@@ -831,7 +832,7 @@ export default function App() {
 
                 {/* Holographic Footer */}
                 <div className="mt-6 pt-4 border-t border-neutral-900 flex items-center justify-between text-[8px] text-neutral-500">
-                  <span>DEPLOYED VIA SHADOW PROJECT COMMAND</span>
+                  <span>DEPLOYED VIA SHADOW TECH COMMAND</span>
                   <span className="text-emerald-500 font-bold animate-pulse">● UPLINK ACTIVE</span>
                 </div>
               </div>

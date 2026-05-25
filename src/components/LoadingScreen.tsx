@@ -189,7 +189,7 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
           >
             <img 
               src={shadowLogoMain} 
-              alt="Shadow Project Logo"
+              alt="Shadow Tech."
               className="w-full h-full object-cover rounded-full drop-shadow-[0_0_35px_rgba(168,85,247,0.55)] relative z-10 animate-pulse"
               referrerPolicy="no-referrer"
             />
@@ -295,13 +295,7 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
           </p>
         </div>
 
-        {/* Aesthetic Counter Down Remaining Time */}
-        <div className="mt-6 text-[9px] text-neutral-500 uppercase tracking-widest font-semibold flex items-center gap-2 bg-neutral-950 border border-neutral-900 px-3 py-1.5 rounded-full">
-          <span>TIME REMAINING:</span>
-          <span className="font-bold text-neutral-300 font-mono">
-            {Math.max(0, Math.ceil(((100 - progress) * 15) / 100))}s
-          </span>
-        </div>
+
       </div>
     </div>
   );

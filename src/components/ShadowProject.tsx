@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack } from 'lucide-react';
+import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
-export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, isAudioAllowed = false }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void; isAudioAllowed?: boolean }) {
+export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, isAudioAllowed = false, onLogout }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void; isAudioAllowed?: boolean; onLogout?: () => void }) {
   const skip = hasPlayed;
   
   // Custom Google Drive / File link state
@@ -215,6 +215,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
   // --- SUGGESTIONS STATE ---
   const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
+  const [isShoutBoxOpen, setIsShoutBoxOpen] = useState(false);
 
   const [suggestions, setSuggestions] = useState<Array<{ id: string; text: string; date: string; category: string; status: string }>>(() => {
     const saved = localStorage.getItem('shadow_suggestions');
@@ -246,7 +247,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
   // Interactive Shadow Chibi Chat Room States
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; text: string; sender: 'user' | 'shadow'; time: string }>>([
-    { id: 'm1', text: "Oy kumusta tol! Ako nga pala si Shadow, yung assistant ni Adrian dito. Chill lang tayo.", sender: 'shadow', time: '11:59 PM' },
+    { id: 'm1', text: "Oy kumusta tol! Ako nga pala si Shadow, yung assistant ni Cid dito. Chill lang tayo.", sender: 'shadow', time: '11:59 PM' },
     { id: 'm2', text: "Tanong ka lang kahit ano, pre. Pwede Tagalog, Taglish, o English, kahit ano trip mo mapag-usapan!", sender: 'shadow', time: '12:00 AM' }
   ]);
   const [currentChatInput, setCurrentChatInput] = useState('');
@@ -256,6 +257,77 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   // Shout Out Box States
   const [shoutMessage, setShoutMessage] = useState('');
   const [shoutName, setShoutName] = useState('');
+  const [isNamePromptOpen, setIsNamePromptOpen] = useState(false);
+  const [tempName, setTempName] = useState('');
+
+  const [offenseCount, setOffenseCount] = useState<number>(() => {
+    const saved = localStorage.getItem('shout_offense_count');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  const [banUntil, setBanUntil] = useState<number | null>(() => {
+    const saved = localStorage.getItem('shout_ban_until');
+    return saved ? parseInt(saved, 10) : null;
+  });
+
+  const [isCommentingBanned, setIsCommentingBanned] = useState<boolean>(() => {
+    const savedBanUntil = localStorage.getItem('shout_ban_until');
+    if (savedBanUntil) {
+      const until = parseInt(savedBanUntil, 10);
+      if (Date.now() < until) {
+        return true;
+      } else {
+        localStorage.removeItem('shout_ban_until');
+        localStorage.removeItem('shout_commenting_banned');
+        localStorage.setItem('shout_offense_count', '0');
+        return false;
+      }
+    }
+    return localStorage.getItem('shout_commenting_banned') === 'true';
+  });
+
+  const [banTimeRemaining, setBanTimeRemaining] = useState<string>('');
+  const [shoutValidationError, setShoutValidationError] = useState<string | null>(null);
+  const [nameValidationError, setNameValidationError] = useState<string | null>(null);
+  const [warningPopup, setWarningPopup] = useState<{ title: string; message: string; violationNumber: number } | null>(null);
+  const [banPasscodeInput, setBanPasscodeInput] = useState<string>('');
+  const [banPasscodeError, setBanPasscodeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isCommentingBanned) return;
+
+    let savedBanUntil = localStorage.getItem('shout_ban_until');
+    if (!savedBanUntil) {
+      const future = Date.now() + 24 * 60 * 60 * 1000;
+      localStorage.setItem('shout_ban_until', future.toString());
+      setBanUntil(future);
+      savedBanUntil = future.toString();
+    }
+
+    const updateCountdown = () => {
+      const until = parseInt(localStorage.getItem('shout_ban_until') || '0', 10);
+      const remainingMs = until - Date.now();
+      if (remainingMs <= 0) {
+        setIsCommentingBanned(false);
+        setBanUntil(null);
+        setOffenseCount(0);
+        localStorage.setItem('shout_offense_count', '0');
+        localStorage.removeItem('shout_ban_until');
+        localStorage.removeItem('shout_commenting_banned');
+      } else {
+        const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+        const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
+        setBanTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
+  }, [isCommentingBanned]);
+
   const [shouts, setShouts] = useState<Array<{
     id: string;
     name: string;
@@ -325,6 +397,26 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
         avatar: '🎹',
         avatarBg: 'bg-orange-950/85 border border-orange-500/35 text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]',
         likes: 7
+      },
+      {
+        id: 's6',
+        name: 'Zeta [Seven Shadows]',
+        message: 'Exploring the outer wild borders. No cult traces found in the east, only quiet ruins waiting for Master\'s word. 🐱✨',
+        time: '35m ago',
+        timestamp: Date.now() - 35 * 60 * 1000,
+        avatar: '🐱',
+        avatarBg: 'bg-teal-950/85 border border-teal-500/35 text-teal-400 shadow-[0_0_8px_rgba(20,184,166,0.2)]',
+        likes: 5
+      },
+      {
+        id: 's7',
+        name: 'Eta [Seven Shadows]',
+        message: 'Master\'s ancient formulas are decrypted. The research lab completed the new cyber defense protocol. 🧪🧠',
+        time: '50m ago',
+        timestamp: Date.now() - 50 * 60 * 1000,
+        avatar: '🧪',
+        avatarBg: 'bg-indigo-950/85 border border-indigo-500/35 text-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.2)]',
+        likes: 11
       }
     ];
   });
@@ -345,9 +437,131 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
     localStorage.setItem('shadow_shout_outs_v3', JSON.stringify(updated));
   };
 
+  const checkRestrictionsText = (text: string): boolean => {
+    const textLower = text.toLowerCase();
+    
+    // Convert leetspeak/evasion representations to standard chars
+    let normalized = textLower
+      .replace(/0/g, 'o')
+      .replace(/1/g, 'i')
+      .replace(/3/g, 'e')
+      .replace(/4/g, 'a')
+      .replace(/5/g, 's')
+      .replace(/\$/g, 's')
+      .replace(/@/g, 'a');
+
+    // Remove any special characters/punctuation/spaces for strict substring checks
+    const stripped = normalized.replace(/[^a-z]/g, '');
+
+    const badWords = [
+      'fuck', 'shit', 'bitch', 'asshole', 'crap', 'dick', 'pussy', 'bastard', 'puta',
+      'gago', 'gaga', 'tarantado', 'ulol', 'ulul', 'pakshet', 'pakyu', 'tangina', 'putangina',
+      'fucker', 'bullshit', 'shet', 'kingina', 'kupal', 'damuho', 'lolo mo', 'pwet', 'puke', 'titi',
+      'kantot', 'suck', 'cum', 'whore', 'slut', 'tang ina', 'putang ina', 'king ina', 'hayop',
+      'tanginanyo', 'tangina nyo', 'tang ina nyo'
+    ];
+    
+    const sexualWords = [
+      'sex', 'orgasm', 'porn', 'naked', 'vulgar', 'nude', 'erotic', 'lust', 'penis', 'vagina',
+      'sexx', 'hentai', 'milf', 'lewd', 'kantot', 'blowjob', 'clit', 'horny'
+    ];
+    
+    const negativeWords = [
+      'hate', 'sucks', 'terrible', 'worst', 'ugly', 'fail', 'stupid', 'trash',
+      'garbage', 'useless', 'boring', 'horrible', 'disgusting', 'weak', 'panget', 'pangit',
+      'bobo', 'tanga', 'walang kwenta', 'basura', 'corny', 'bulok'
+    ];
+
+    // Helper: returns true if any phrase matches
+    const containsMatches = (list: string[]): boolean => {
+      return list.some(word => {
+        const wordLower = word.toLowerCase();
+        // 1. Literal word boundary check on the original text
+        const regex = new RegExp(`\\b${wordLower.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+        if (regex.test(textLower)) return true;
+
+        // 2. Direct substring check on the original text
+        if (textLower.includes(wordLower)) return true;
+
+        // 3. Direct substring check on the leetspeak normalized text (e.g., if "f*ck" gets checked or "f_u_c_k")
+        if (normalized.includes(wordLower)) return true;
+
+        // 4. Substring check after stripping all non-alphabetic chars
+        const wordStripped = wordLower.replace(/[^a-z]/g, '');
+        if (wordStripped && stripped.includes(wordStripped)) return true;
+
+        return false;
+      });
+    };
+
+    return containsMatches(badWords) || containsMatches(sexualWords) || containsMatches(negativeWords);
+  };
+
   const handlePostShout = (e: FormEvent) => {
     e.preventDefault();
     if (!shoutMessage.trim()) return;
+
+    // Reset error
+    setShoutValidationError(null);
+
+    // If banned, prevent posting completely
+    if (isCommentingBanned) {
+      setShoutValidationError('TRANSMISSION BLOCKED: YOUR POSTING PRIVILEGES HAVE BEEN REVOKED.');
+      return;
+    }
+
+    const text = shoutMessage.trim();
+    const nameToUse = shoutName.trim() || 'Anonymous Operative';
+
+    // 1. Sentence limit check: maximum 3 sentences
+    const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+    if (sentences.length > 3) {
+      setShoutValidationError('TRANSMISSION BLOCKED: MESSAGE LIMIT EXCEEDED. MAXIMUM OF 3 SENTENCES ALLOWED.');
+      return;
+    }
+
+    // 2. Validate both comment and name for profanity, negative words, and sexual words
+    if (checkRestrictionsText(text) || checkRestrictionsText(nameToUse)) {
+      const nextOffense = offenseCount + 1;
+      setOffenseCount(nextOffense);
+      localStorage.setItem('shout_offense_count', nextOffense.toString());
+
+      if (nextOffense === 1) {
+        setWarningPopup({
+          title: "Comment not posted.",
+          message: "Your message includes language that violates our community guidelines. Please ensure your future comments are respectful and free of profanity. This is your first warning; please note that we track repeated violations.",
+          violationNumber: 1
+        });
+        setShoutValidationError(
+          `Comment not posted.\n\nYour message includes language that violates our community guidelines. Please ensure your future comments are respectful and free of profanity. This is your first warning; please note that we track repeated violations.`
+        );
+      } else if (nextOffense === 2) {
+        setWarningPopup({
+          title: "Action Required:",
+          message: "Final Warning.\nYour recent comment was flagged for inappropriate language. This is your second violation. Please be advised that one more instance of profanity or disparaging remarks will result in the immediate suspension of your commenting privileges.",
+          violationNumber: 2
+        });
+        setShoutValidationError(
+          `Action Required:\n\nFinal Warning.\nYour recent comment was flagged for inappropriate language. This is your second violation. Please be advised that one more instance of profanity or disparaging remarks will result in the immediate suspension of your commenting privileges.`
+        );
+      } else {
+        const banPeriod = 24 * 60 * 60 * 1000; // 24 hours
+        const activeBanUntil = Date.now() + banPeriod;
+        setBanUntil(activeBanUntil);
+        localStorage.setItem('shout_ban_until', activeBanUntil.toString());
+        setIsCommentingBanned(true);
+        localStorage.setItem('shout_commenting_banned', 'true');
+        setWarningPopup({
+          title: "Commenting privileges suspended.",
+          message: "Due to repeated violations of our community guidelines regarding profanity and harassment, your ability to post comments has been removed. If you believe this is an error, please contact support.",
+          violationNumber: 3
+        });
+        setShoutValidationError(
+          `Commenting privileges suspended.\n\nDue to repeated violations of our community guidelines regarding profanity and harassment, your ability to post comments has been removed. If you believe this is an error, please contact support.`
+        );
+      }
+      return;
+    }
 
     const avatars = ['🔮', '👑', '🗡️', '🎩', '🦅', '🐺', '📖', '💸', '🎻', '🖤', '🌌', '☠️', '🍷'];
     const backgrounds = [
@@ -361,13 +575,11 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
     const randomIdx = Math.floor(Math.random() * avatars.length);
     const randomBgIdx = Math.floor(Math.random() * backgrounds.length);
-
-    const nameToUse = shoutName.trim() || 'Anonymous Operative';
     
     const newShout = {
       id: `shout-${Date.now()}`,
       name: nameToUse,
-      message: shoutMessage.trim(),
+      message: text,
       time: 'now',
       timestamp: Date.now(),
       avatar: avatars[randomIdx],
@@ -380,7 +592,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
     setShouts(updated);
     localStorage.setItem('shadow_shout_outs_v3', JSON.stringify(updated));
     setShoutMessage('');
-    setShoutName('');
+    setShoutValidationError(null);
   };
 
   const getRelativeTime = (timestamp: number) => {
@@ -912,6 +1124,19 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
       >
         <button
           onClick={() => {
+            setTempName(shoutName || '');
+            setNameValidationError(null);
+            setIsNamePromptOpen(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
+          id="shout-box-toggle-btn"
+        >
+          <MessageSquare size={11} className="text-purple-450 animate-pulse" />
+          <span>Shout Out Box</span>
+        </button>
+
+        <button
+          onClick={() => {
             setIsSuggestionModalOpen(true);
           }}
           className="flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
@@ -929,14 +1154,18 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               setShowPasswordModal(true);
             }
           }}
-          className={`flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none ${
+          className={`flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none ${
             isAuthenticated 
               ? 'bg-neutral-900 border-emerald-500/50 text-emerald-400 hover:bg-neutral-850 hover:border-emerald-400' 
-              : 'bg-neutral-900 text-white hover:bg-neutral-850 border-neutral-800'
+              : 'bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400'
           }`}
           id="google-drive-link-btn"
         >
-          {isAuthenticated ? <Unlock size={12} className="text-emerald-400 animate-pulse" /> : <Lock size={12} className="text-neutral-450" />}
+          {isAuthenticated ? (
+            <Unlock size={11} className="text-emerald-400 animate-pulse" />
+          ) : (
+            <Lock size={11} className="text-purple-450 animate-pulse" />
+          )}
           <span>Admin Console</span>
           <ExternalLink size={10} className="opacity-60" />
         </button>
@@ -958,26 +1187,26 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
       {/* Secure Passcode Decryption Modal */}
       <AnimatePresence>
         {showPasswordModal && (
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-sm rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
+              className="bg-[#0b061a] border-2 border-purple-500/30 w-full max-w-sm rounded-3xl shadow-[0_0_40px_rgba(168,85,247,0.25)] relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
             >
               {/* Grid overlay decoration */}
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-30" />
-              <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-red-500/20 rounded-tl-lg pointer-events-none" />
-              <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-red-500/20 rounded-tr-lg pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-red-500/20 rounded-bl-lg pointer-events-none" />
-              <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-red-500/20 rounded-br-lg pointer-events-none" />
+              <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-purple-500/40 rounded-tl-lg pointer-events-none" />
+              <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-purple-500/40 rounded-tr-lg pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-purple-500/40 rounded-bl-lg pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-purple-500/40 rounded-br-lg pointer-events-none" />
 
               {/* Close Button UI */}
               <div className="flex justify-between items-center mb-6 pb-3 border-b border-neutral-900 relative z-10">
                 <div className="flex items-center gap-2">
-                  <Lock className="text-red-500 w-3.5 h-3.5 animate-pulse" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-500">Access Restricted</span>
+                  <Lock className="text-purple-400 w-3.5 h-3.5 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-400">Access Restricted</span>
                 </div>
                 <button
                   type="button"
@@ -995,8 +1224,8 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
               {/* Icon & Message */}
               <div className="text-center mb-6 relative z-10">
-                <div className="w-12 h-12 rounded-full bg-red-950/20 border border-red-900/40 flex items-center justify-center mx-auto mb-3">
-                  <ShieldAlert className="text-red-500 w-6 h-6" />
+                <div className="w-12 h-12 rounded-full bg-purple-950/20 border border-purple-900/40 flex items-center justify-center mx-auto mb-3">
+                  <ShieldAlert className="text-purple-400 w-6 h-6" />
                 </div>
                 <h4 className="text-xs uppercase tracking-[0.2em] font-black text-white mb-1">Decryption Key Required</h4>
                 <p className="text-[9px] uppercase tracking-wider text-neutral-400 leading-relaxed">
@@ -1075,7 +1304,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       if (passwordError) setPasswordError('');
                     }}
                     placeholder={lockoutUntil !== null && Date.now() < lockoutUntil ? "LOCKED OUT" : "ENTER PASSCODE"}
-                    className={`w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em] ${lockoutUntil !== null && Date.now() < lockoutUntil ? 'opacity-45 cursor-not-allowed border-red-950 text-neutral-600' : ''}`}
+                    className={`w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em] ${lockoutUntil !== null && Date.now() < lockoutUntil ? 'opacity-45 cursor-not-allowed border-purple-950 text-neutral-600' : ''}`}
                     autoFocus
                     required={!(lockoutUntil !== null && Date.now() < lockoutUntil)}
                   />
@@ -1088,9 +1317,9 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       <motion.p 
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-[9px] text-red-500 font-bold uppercase tracking-widest text-center mt-2.5 leading-relaxed px-1"
+                        className="text-[9px] text-purple-400 font-bold uppercase tracking-widest text-center mt-2.5 leading-relaxed px-1"
                       >
-                        ☠ {errorMsg} ☠
+                        🔮 {errorMsg} 🔮
                       </motion.p>
                     );
                   })()}
@@ -1102,7 +1331,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   className={`w-full py-2.5 border font-black uppercase tracking-[0.2em] text-[9px] rounded-xl transition-all cursor-pointer select-none active:scale-95 ${
                     lockoutUntil !== null && Date.now() < lockoutUntil
                       ? 'bg-neutral-900/40 border-neutral-850 text-neutral-600 cursor-not-allowed'
-                      : 'bg-red-950/40 hover:bg-red-900/50 border-red-900/40 text-red-400'
+                      : 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-900/40 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]'
                   }`}
                 >
                   {lockoutUntil !== null && Date.now() < lockoutUntil ? 'TACTICAL UPLINK BLOCKED' : 'DECRYPT & AUTHENTICATE'}
@@ -1122,20 +1351,20 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-neutral-950 border-2 border-red-500/20 w-full max-w-sm rounded-[1.8rem] shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
+              className="bg-[#0b061a] border-2 border-purple-500/30 w-full max-w-sm rounded-[1.8rem] shadow-[0_0_40px_rgba(168,85,247,0.25)] relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
             >
               {/* Grid overlay decoration */}
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-35" />
-              <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-red-500/30 rounded-tl-lg pointer-events-none" />
-              <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-red-500/30 rounded-tr-lg pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-red-500/30 rounded-bl-lg pointer-events-none" />
-              <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-red-500/30 rounded-br-lg pointer-events-none" />
+              <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-purple-500/40 rounded-tl-lg pointer-events-none" />
+              <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-purple-500/40 rounded-tr-lg pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-purple-500/40 rounded-bl-lg pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-purple-500/40 rounded-br-lg pointer-events-none" />
 
               {/* Close Button UI */}
               <div className="flex justify-between items-center mb-6 pb-3 border-b border-neutral-900 relative z-10">
                 <div className="flex items-center gap-2">
-                  <ShieldAlert className="text-red-500 w-4 h-4 animate-pulse" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-500">Purge Authorization</span>
+                  <ShieldAlert className="text-purple-400 w-4 h-4 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-400">Purge Authorization</span>
                 </div>
                 <button
                   type="button"
@@ -1154,8 +1383,8 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
               {/* Icon & Message */}
               <div className="text-center mb-6 relative z-10">
-                <div className="w-12 h-12 rounded-full bg-red-950/20 border border-red-900/40 flex items-center justify-center mx-auto mb-3">
-                  <Lock className="text-red-500 w-5 h-5" />
+                <div className="w-12 h-12 rounded-full bg-purple-950/20 border border-purple-900/40 flex items-center justify-center mx-auto mb-3">
+                  <Lock className="text-purple-400 w-5 h-5" />
                 </div>
                 <h4 className="text-[11px] uppercase tracking-[0.22em] font-black text-white mb-1.5">Authorization Key Required</h4>
                 <p className="text-[9px] uppercase tracking-wider text-neutral-400 leading-relaxed">
@@ -1210,7 +1439,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       if (deletePasswordError) setDeletePasswordError('');
                     }}
                     placeholder="ENTER PASSWORD"
-                    className="w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em]"
+                    className="w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em]"
                     autoFocus
                     required
                   />
@@ -1218,9 +1447,9 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                     <motion.p 
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-[8.5px] text-red-500 font-bold uppercase tracking-widest text-center mt-2.5 leading-relaxed px-1"
+                      className="text-[8.5px] text-purple-400 font-bold uppercase tracking-widest text-center mt-2.5 leading-relaxed px-1"
                     >
-                      ☠ {deletePasswordError} ☠
+                      🔮 {deletePasswordError} 🔮
                     </motion.p>
                   )}
                 </div>
@@ -1240,7 +1469,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   </button>
                   <button 
                     type="submit"
-                    className="flex-1 py-2.5 bg-red-950/40 hover:bg-red-900/50 border border-red-900/40 text-red-400 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer select-none active:scale-95"
+                    className="flex-1 py-2.5 bg-purple-950/40 hover:bg-purple-900/50 border border-purple-900/40 text-purple-400 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer select-none active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
                   >
                     Confirm
                   </button>
@@ -1918,6 +2147,463 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
         )}
       </AnimatePresence>
 
+      {/* Operative Name Prompt Modal */}
+      <AnimatePresence>
+        {isNamePromptOpen && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4 w-full" id="shout-box-name-prompt-modal">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-[#0b061a] border-2 border-purple-500/30 rounded-2xl p-6 w-full max-w-md shadow-[0_0_40px_rgba(168,85,247,0.25)] text-white relative flex flex-col gap-4 overflow-hidden"
+            >
+              {/* Corner tech accents */}
+              <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-purple-500/55 pointer-events-none rounded-tl" />
+              <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-purple-500/55 pointer-events-none rounded-tr" />
+              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-purple-500/55 pointer-events-none rounded-bl" />
+              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-purple-500/55 pointer-events-none rounded-br" />
+              
+              {/* Background scanlines grid */}
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none opacity-20" />
+
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-neutral-900 pb-3 relative z-10">
+                <div className="flex items-center gap-2">
+                  <User size={16} className="text-purple-400 animate-pulse" />
+                  <span className="font-extrabold font-mono text-sm tracking-[0.2em] uppercase text-purple-400">IDENTIFICATION REQUIRED</span>
+                </div>
+                <button
+                  onClick={() => setIsNamePromptOpen(false)}
+                  className="p-1 hover:bg-neutral-900 text-neutral-500 hover:text-white transition-all rounded cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Body message */}
+              <div className="text-left relative z-10 flex flex-col gap-2">
+                <p className="text-xs text-neutral-400 leading-relaxed font-sans">
+                  Please designate an active name or custom code name. This tag will serve as your ID within our encrypted peer shoutbox block.
+                </p>
+
+                {/* Input block */}
+                <div className="mt-2 text-left">
+                  <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-neutral-500 block mb-1">
+                    OPERATIVE ALIAS / ID TAG
+                  </span>
+                  <input
+                    type="text"
+                    value={tempName}
+                    onChange={(e) => {
+                      setTempName(e.target.value.substring(0, 30));
+                      if (nameValidationError) setNameValidationError(null);
+                    }}
+                    placeholder="e.g. Operative No. 104"
+                    className="w-full text-left text-[13px] placeholder:text-neutral-700 text-neutral-100 bg-neutral-950 border border-neutral-900 focus:border-purple-500/40 p-3 rounded-none outline-none transition-all font-sans leading-relaxed tracking-wide"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const finalName = tempName.trim() || 'Anonymous Operative';
+                        if (checkRestrictionsText(finalName)) {
+                          const nextOffense = offenseCount + 1;
+                          setOffenseCount(nextOffense);
+                          localStorage.setItem('shout_offense_count', nextOffense.toString());
+
+                          if (nextOffense === 1) {
+                            setWarningPopup({
+                              title: "Comment not posted.",
+                              message: "Your message includes language that violates our community guidelines. Please ensure your future comments are respectful and free of profanity. This is your first warning; please note that we track repeated violations.",
+                              violationNumber: 1
+                            });
+                            setNameValidationError(
+                              `Comment not posted.\n\nYour message includes language that violates our community guidelines. Please ensure your future comments are respectful and free of profanity. This is your first warning; please note that we track repeated violations.`
+                            );
+                          } else if (nextOffense === 2) {
+                            setWarningPopup({
+                              title: "Action Required:",
+                              message: "Final Warning.\nYour recent comment was flagged for inappropriate language. This is your second violation. Please be advised that one more instance of profanity or disparaging remarks will result in the immediate suspension of your commenting privileges.",
+                              violationNumber: 2
+                            });
+                            setNameValidationError(
+                              `Action Required:\n\nFinal Warning.\nYour recent comment was flagged for inappropriate language. This is your second violation. Please be advised that one more instance of profanity or disparaging remarks will result in the immediate suspension of your commenting privileges.`
+                            );
+                          } else {
+                            const banPeriod = 24 * 60 * 60 * 1000;
+                            const activeBanUntil = Date.now() + banPeriod;
+                            setBanUntil(activeBanUntil);
+                            localStorage.setItem('shout_ban_until', activeBanUntil.toString());
+                            setIsCommentingBanned(true);
+                            localStorage.setItem('shout_commenting_banned', 'true');
+                            setWarningPopup({
+                              title: "Commenting privileges suspended.",
+                              message: "Due to repeated violations of our community guidelines regarding profanity and harassment, your ability to post comments has been removed. If you believe this is an error, please contact support.",
+                              violationNumber: 3
+                            });
+                            setNameValidationError(
+                              `Commenting privileges suspended.\n\nDue to repeated violations of our community guidelines regarding profanity and harassment, your ability to post comments has been removed. If you believe this is an error, please contact support.`
+                            );
+                            setTimeout(() => {
+                              setIsNamePromptOpen(false);
+                            }, 5000);
+                          }
+                          return;
+                        }
+
+                        setNameValidationError(null);
+                        setShoutName(finalName);
+                        setIsNamePromptOpen(false);
+                        setIsShoutBoxOpen(true);
+                      }
+                    }}
+                  />
+                  <div className="mt-1 flex justify-between text-[8px] font-mono text-neutral-600 tracking-wider mb-2">
+                    <span>MAX 30 CHARS</span>
+                    <span>{tempName.length}/30</span>
+                  </div>
+
+                  {/* Name Restriction Warning Error display */}
+                  {nameValidationError && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-3 p-3 bg-red-950/35 border border-red-500/35 text-red-105 text-[11px] font-sans rounded-xl flex items-start gap-2 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+                    >
+                      <span className="text-sm shrink-0">⚠️</span>
+                      <span className="leading-relaxed font-semibold whitespace-pre-line">{nameValidationError}</span>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer CTA */}
+              <div className="flex gap-2 relative z-10 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNamePromptOpen(false)}
+                  className="flex-1 py-2 px-3 bg-neutral-950 border border-neutral-900 hover:border-neutral-800 text-neutral-400 hover:text-white font-mono text-[10px] uppercase font-bold tracking-wider transition-all cursor-pointer rounded-none"
+                >
+                  ABORT
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const finalName = tempName.trim() || 'Anonymous Operative';
+                    if (checkRestrictionsText(finalName)) {
+                      const nextOffense = offenseCount + 1;
+                      setOffenseCount(nextOffense);
+                      localStorage.setItem('shout_offense_count', nextOffense.toString());
+
+                      if (nextOffense === 1) {
+                        setWarningPopup({
+                          title: "Comment not posted.",
+                          message: "Your message includes language that violates our community guidelines. Please ensure your future comments are respectful and free of profanity. This is your first warning; please note that we track repeated violations.",
+                          violationNumber: 1
+                        });
+                        setNameValidationError(
+                          `Comment not posted.\n\nYour message includes language that violates our community guidelines. Please ensure your future comments are respectful and free of profanity. This is your first warning; please note that we track repeated violations.`
+                        );
+                      } else if (nextOffense === 2) {
+                        setWarningPopup({
+                          title: "Action Required:",
+                          message: "Final Warning.\nYour recent comment was flagged for inappropriate language. This is your second violation. Please be advised that one more instance of profanity or disparaging remarks will result in the immediate suspension of your commenting privileges.",
+                          violationNumber: 2
+                        });
+                        setNameValidationError(
+                          `Action Required:\n\nFinal Warning.\nYour recent comment was flagged for inappropriate language. This is your second violation. Please be advised that one more instance of profanity or disparaging remarks will result in the immediate suspension of your commenting privileges.`
+                        );
+                      } else {
+                        const banPeriod = 24 * 60 * 60 * 1000;
+                        const activeBanUntil = Date.now() + banPeriod;
+                        setBanUntil(activeBanUntil);
+                        localStorage.setItem('shout_ban_until', activeBanUntil.toString());
+                        setIsCommentingBanned(true);
+                        localStorage.setItem('shout_commenting_banned', 'true');
+                        setWarningPopup({
+                          title: "Commenting privileges suspended.",
+                          message: "Due to repeated violations of our community guidelines regarding profanity and harassment, your ability to post comments has been removed. If you believe this is an error, please contact support.",
+                          violationNumber: 3
+                        });
+                        setNameValidationError(
+                          `Commenting privileges suspended.\n\nDue to repeated violations of our community guidelines regarding profanity and harassment, your ability to post comments has been removed. If you believe this is an error, please contact support.`
+                        );
+                        setTimeout(() => {
+                          setIsNamePromptOpen(false);
+                        }, 5000);
+                      }
+                      return;
+                    }
+
+                    setNameValidationError(null);
+                    setShoutName(finalName);
+                    setIsNamePromptOpen(false);
+                    setIsShoutBoxOpen(true);
+                  }}
+                  className="flex-1 py-2 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-mono text-[10px] uppercase font-bold tracking-wider shadow-md transition-all cursor-pointer rounded-none"
+                >
+                  INITIALIZE UPLINK
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Shout Out Box Modal */}
+      <AnimatePresence>
+        {isShoutBoxOpen && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto w-full" id="shout-box-modal">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 30 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-[#0b061a] border-2 border-purple-500/25 w-full max-w-4xl rounded-3xl shadow-[0_0_50px_rgba(168,85,247,0.2)] relative z-50 overflow-hidden p-5 md:p-8 text-white font-sans flex flex-col max-h-[92vh]"
+            >
+              {/* Neon background glows */}
+              <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-25" />
+
+              {/* Close Button at top right of modal */}
+              <button
+                onClick={() => setIsShoutBoxOpen(false)}
+                className="absolute top-4 right-4 p-1.5 border border-purple-950 bg-neutral-950 hover:border-purple-500/30 hover:bg-purple-950/20 text-neutral-400 hover:text-white rounded-lg transition-all cursor-pointer z-20"
+              >
+                <X size={16} />
+              </button>
+
+              {/* Header Title & Subtitle */}
+              <div className="text-center mb-5 relative z-10 shrink-0">
+                <div className="flex items-center justify-center gap-1.5 mb-1 flex-wrap">
+                  <span className="text-xl filter drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]">🔮</span>
+                  <span className="text-sm text-amber-500 filter drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]">⭐</span>
+                  <h3 className="text-xl md:text-2xl font-black tracking-[0.2em] bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent font-sans uppercase">
+                    SHOUT OUT BOX
+                  </h3>
+                  <span className="text-xl filter drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]">🖤</span>
+                  <span className="text-xl filter drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]">🍷</span>
+                </div>
+                <p className="text-xs md:text-sm text-neutral-400 font-sans tracking-wide">
+                  Whisper secret messages into the abyss. We operate in the dark! 💜
+                </p>
+              </div>
+
+              {/* Grid content */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 relative z-10 overflow-y-auto no-scrollbar pb-3 flex-1 min-h-[300px]">
+                
+                {/* Left Panel: DECRYPTED ARCHIVES */}
+                <div className="md:col-span-7 flex flex-col h-full md:border-r md:border-neutral-900/80 md:pr-4">
+                  <div className="flex items-center gap-2 mb-2 pb-1 border-b border-neutral-900 shrink-0">
+                    <span className="text-[11px] font-mono font-bold tracking-[0.2em] text-neutral-300 uppercase select-none">
+                      DECRYPTED ARCHIVES
+                    </span>
+                    <span className="px-1.5 py-0.5 bg-purple-600/25 border border-purple-500/30 text-purple-400 text-[9px] font-bold font-mono rounded-none leading-none shadow-[0_0_8px_rgba(168,85,247,0.2)]">
+                      {shouts.length} SECURE LOGS
+                    </span>
+                  </div>
+
+                  {/* Scrollable list of archives with a fixed height viewport so scrolling is explicitly guaranteed */}
+                  <div className="h-[290px] md:h-[430px] overflow-y-auto pr-1.5 space-y-2 scrollbar-thin scrollbar-thumb-purple-500/30 hover:scrollbar-thumb-purple-500/50 scrollbar-track-transparent">
+                    {shouts.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-900 rounded-none bg-neutral-950/40">
+                        <span className="text-2xl mb-2 animate-pulse">🌌</span>
+                        <p className="text-xs uppercase font-mono text-neutral-600 tracking-wider">No active transmissions.</p>
+                      </div>
+                    ) : (
+                      shouts.map((shout) => (
+                        <div 
+                          key={shout.id}
+                          className="p-2 px-3 rounded-xl bg-neutral-900/25 hover:bg-neutral-900/40 border border-neutral-950 hover:border-purple-500/10 transition-all duration-300 flex items-start gap-3 group relative"
+                        >
+                          {/* Avatar */}
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-base shadow-inner border ${shout.avatarBg}`}>
+                            {shout.avatar}
+                          </div>
+ 
+                          {/* Content */}
+                          <div className="flex-1 min-w-0 pr-12 text-left">
+                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                              <span className="font-sans font-extrabold text-[13px] text-purple-300 tracking-wide">
+                                {shout.name}
+                              </span>
+                              <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest font-bold">
+                                {shout.time === 'now' ? shout.time : getRelativeTime(shout.timestamp)}
+                              </span>
+                            </div>
+                            <p className="text-[12.5px] leading-relaxed text-neutral-300 whitespace-pre-wrap font-sans">
+                              {shout.message}
+                            </p>
+                          </div>
+ 
+                          {/* Like action */}
+                          <button 
+                            onClick={() => handleLikeShout(shout.id)}
+                            className={`absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-1 rounded-none border text-[10px] font-mono font-bold transition-all duration-300 cursor-pointer ${
+                              shout.likedByUser 
+                                ? 'bg-purple-950/95 border-purple-500/40 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.25)] scale-105' 
+                                : 'bg-neutral-950 border-neutral-900 hover:border-neutral-800 text-neutral-400 hover:text-neutral-355'
+                            }`}
+                          >
+                            <span className={`text-[10px] transition-transform duration-300 ${shout.likedByUser ? 'scale-110 filter drop-shadow-[0_0_3px_rgba(168,85,247,0.5)]' : 'group-hover:scale-110'}`}>🖤</span>
+                            <span>{shout.likes}</span>
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+ 
+                {/* Right Panel:                   {isCommentingBanned ? (
+                    <div className="h-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-red-500/35 bg-red-950/20 text-center rounded-2xl space-y-4 my-auto">
+                      <div className="w-14 h-14 bg-red-950/40 rounded-full border border-red-500/30 flex items-center justify-center mb-1 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse">
+                        <span className="text-2xl">☠️</span>
+                      </div>
+                      <h4 className="text-red-400 font-mono font-black text-xs tracking-[0.15em] uppercase">Commenting privileges suspended.</h4>
+                      <p className="text-xs text-neutral-300 font-sans leading-relaxed px-2 whitespace-pre-line">
+                        Due to repeated violations of our community guidelines regarding profanity and harassment, your ability to post comments has been removed. If you believe this is an error, please contact support.
+                      </p>
+                    </div>
+                  ) : (      ⚠️ {banPasscodeError}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handlePostShout} className="flex flex-col text-left justify-between h-full">
+                      <div>
+                        <div className="mb-2 pb-1 border-b border-neutral-900 flex justify-between items-center shrink-0">
+                          <span className="text-[11px] font-mono font-bold tracking-[0.2em] text-neutral-300 uppercase">
+                            INITIALIZE CIPHER
+                          </span>
+                          <span className="text-[9px] font-mono text-purple-400 font-bold uppercase tracking-wider">
+                            LIMIT: MAX 3 SENTENCES
+                          </span>
+                        </div>
+ 
+                        {/* Textarea */}
+                        <div className="relative mb-3">
+                          <textarea
+                            value={shoutMessage}
+                            onChange={(e) => {
+                              setShoutMessage(e.target.value.substring(0, 300));
+                              if (shoutValidationError) setShoutValidationError(null);
+                            }}
+                            placeholder="Whisper your coded transmission here... (Maximum 3 sentences only, negative comments & profanity are restricted)"
+                            maxLength={300}
+                            className="w-full h-40 text-left text-[14px] placeholder:text-neutral-600 text-neutral-100 bg-neutral-950 border border-neutral-900 focus:border-purple-500/35 p-3 pr-8 rounded-none outline-none transition-all no-scrollbar resize-none font-sans leading-relaxed"
+                          />
+                          
+                          {/* Character Counter */}
+                          <div className="absolute bottom-2.5 right-3 font-mono text-[9px] text-neutral-600 tracking-wider">
+                            {shoutMessage.length}/300
+                          </div>
+ 
+                          {/* Left smiley icon decoration */}
+                          <div className="absolute bottom-2.5 left-3 text-neutral-600">
+                            <Smile size={13} className="opacity-50" />
+                          </div>
+                        </div>
+
+                        {/* Restriction Error Message display */}
+                        {shoutValidationError && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-3 p-3 bg-red-950/30 border border-red-500/35 text-red-200 text-xs font-sans rounded-xl flex items-start gap-2.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+                          >
+                            <span className="text-sm shrink-0">⚠️</span>
+                            <span className="leading-relaxed font-semibold whitespace-pre-line">{shoutValidationError}</span>
+                          </motion.div>
+                        )}
+
+                        {/* Submit Button & Footer message (Now below the textarea/chatbox) */}
+                        <div className="mb-4">
+                          <button
+                            type="submit"
+                            disabled={!shoutMessage.trim()}
+                            className="w-full py-2.5 bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 hover:brightness-110 active:scale-[0.98] shadow-[0_0_10px_rgba(168,85,247,0.35)] text-white font-mono text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer"
+                          >
+                            <span>🔮</span>
+                            <span>Send to shadows</span>
+                          </button>
+ 
+                          <div className="mt-1.5 text-[9px] text-neutral-500 uppercase tracking-widest text-center font-mono">
+                            Stay disguised in the deep shadows. 💜
+                          </div>
+                        </div>
+
+                        {/* Runes selection row/wrap (Moved down) */}
+                        <div className="mb-1">
+                          <div className="text-[9px] font-mono tracking-[0.2em] uppercase text-neutral-500 mb-1.5 text-left">
+                            SELECT RUNES (EMOJI)
+                          </div>
+                          <div className="flex flex-wrap gap-1 justify-start">
+                            {[
+                              { char: '🔥', label: 'abyss flame' },
+                              { char: '🖤', label: 'shadow heart' },
+                              { char: '🔮', label: 'mystery essence' },
+                              { char: '🗡️', label: 'magic blade' },
+                              { char: '🐺', label: 'beast power' },
+                              { char: '⭐', label: 'theatrical star' },
+                              { char: '✨', label: 'abyssal spark' },
+                              { char: '🕶️', label: 'shades' },
+                              { char: '🍷', label: 'gamma sherry' },
+                              { char: '💯', label: 'max magical force' },
+                              { char: '😈', label: 'mischievous devil' },
+                              { char: '😎', label: 'cool operative' },
+                              { char: '😏', label: 'smug mastermind' },
+                              { char: '🤫', label: 'silent whisperer' },
+                              { char: '🧐', label: 'critical intellect' },
+                              { char: '💀', label: 'dead cold' },
+                              { char: '👽', label: 'mysterious presence' },
+                              { char: '👾', label: 'cyber code' },
+                              { char: '🤖', label: 'autonomous bot' },
+                              { char: '😜', label: 'wild play' }
+                            ].map((emoji) => (
+                              <button
+                                key={emoji.char}
+                                type="button"
+                                onClick={() => {
+                                  if (shoutMessage.length + emoji.char.length <= 300) {
+                                    setShoutMessage(prev => prev + emoji.char);
+                                    if (shoutValidationError) setShoutValidationError(null);
+                                  }
+                                }}
+                                className="w-7 h-7 rounded-none bg-neutral-900 hover:bg-neutral-800 border border-neutral-900/60 hover:border-purple-500/25 flex items-center justify-center text-sm hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                                title={emoji.label}
+                              >
+                                {emoji.char}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom bar inside modal card */}
+              <div className="mt-3 flex flex-col sm:flex-row items-center justify-between gap-2 p-2 border border-purple-500/20 bg-purple-950/10 shrink-0">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-300 text-center sm:text-left leading-relaxed">
+                  All technician files and curated tools are organized cleanly within the main database.
+                </p>
+                <button 
+                  onClick={() => {
+                    setIsShoutBoxOpen(false);
+                    onEnter();
+                  }}
+                  className="w-full sm:w-auto px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-mono text-[11px] uppercase font-bold tracking-widest shadow-md transition-all cursor-pointer whitespace-nowrap rounded-none"
+                >
+                  Access Portal Now
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Section 1: Hero Entry Lounge (Takes min-h-screen) */}
       <div className="min-h-screen w-full relative z-10 flex flex-col justify-between">
         {/* Centered text container to constraint screen stretch */}
@@ -1938,7 +2624,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.85] mb-4 text-white select-none"
               >
                 Shadow<br />
-                <span className="text-purple-500">Project.</span>
+                <span className="text-purple-500">Tech.</span>
               </motion.h2>
 
               <motion.div 
@@ -1951,7 +2637,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                 }}
                 className="inline-block self-start px-3 py-1 bg-neutral-900 border border-neutral-800 text-purple-400 font-mono text-[10px] uppercase tracking-[0.3em] mb-3 md:mb-5 font-bold"
               >
-                By: Adrian Gabionza // V.1.0
+                By: Cid Kagenou // V.1.0
               </motion.div>
 
               <motion.div 
@@ -2290,6 +2976,65 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
           </div>
         </motion.button>
       </div>
+
+      {/* Community Violation Warning popup */}
+      <AnimatePresence>
+        {warningPopup && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-[#0f071f] border-2 border-red-500/35 rounded-2xl p-6 md:p-8 max-w-md w-full text-white font-sans relative shadow-[0_0_50px_rgba(239,68,68,0.25)] flex flex-col items-center text-center overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-40 h-40 bg-red-500/5 rounded-full blur-[50px] pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-40 h-40 bg-purple-500/5 rounded-full blur-[50px] pointer-events-none" />
+
+              {/* Warning symbol */}
+              <div className="w-14 h-14 bg-red-950/40 rounded-full border border-red-500/30 flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse">
+                <span className="text-2xl">⚠️</span>
+              </div>
+
+              {/* Title Section */}
+              <h3 className="text-lg md:text-xl font-black tracking-wider uppercase bg-gradient-to-r from-red-400 via-orange-400 to-pink-500 bg-clip-text text-transparent mb-4 font-sans whitespace-pre-line leading-snug">
+                {warningPopup.title}
+              </h3>
+
+              {/* Message text with newline rendering support */}
+              <p className="text-xs md:text-sm text-neutral-300 leading-relaxed font-sans font-medium whitespace-pre-line px-1 mb-6 max-h-48 overflow-y-auto no-scrollbar">
+                {warningPopup.message}
+              </p>
+
+              {/* Warning Counter Indicator */}
+              <div className="w-full bg-neutral-950/70 border border-neutral-900 rounded-xl px-4 py-2.5 mb-6 flex justify-between items-center">
+                <span className="text-[10px] font-mono tracking-[0.1em] text-neutral-500 uppercase font-black">Violation Tracker:</span>
+                <span className={`text-[10px] font-mono tracking-wider font-extrabold uppercase px-2 py-0.5 rounded ${
+                  warningPopup.violationNumber === 1 
+                    ? 'bg-amber-950/40 border border-amber-500/25 text-amber-500' 
+                    : warningPopup.violationNumber === 2 
+                    ? 'bg-orange-950/40 border border-orange-500/25 text-orange-400' 
+                    : 'bg-red-950/40 border border-red-500/35 text-red-400'
+                }`}>
+                  {warningPopup.violationNumber === 3 ? 'BANNED' : `Warning ${warningPopup.violationNumber} / 2`}
+                </span>
+              </div>
+
+              {/* Acknowledge/Dismiss CTAs */}
+              <button
+                type="button"
+                onClick={() => setWarningPopup(null)}
+                className={`w-full py-2.5 text-xs text-white uppercase font-mono font-black tracking-widest transition-all duration-300 active:scale-[0.98] shadow-md cursor-pointer ${
+                  warningPopup.violationNumber === 3
+                    ? 'bg-gradient-to-r from-red-600 to-red-500 hover:brightness-110 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
+                    : 'bg-gradient-to-r from-purple-650 to-indigo-650 hover:brightness-110 shadow-[0_0_15px_rgba(168,85,247,0.35)]'
+                }`}
+              >
+                {warningPopup.violationNumber === 3 ? 'I ACCEPT CONSEQUENCES' : 'I UNDERSTAND & DESIST'}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
