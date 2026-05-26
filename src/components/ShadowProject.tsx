@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare } from 'lucide-react';
+import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
+import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
+import shadowGardenLogo from '../assets/images/shadow_garden_logo_1779199904393.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
 export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, isAudioAllowed = false, onLogout }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void; isAudioAllowed?: boolean; onLogout?: () => void }) {
@@ -212,10 +214,15 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   // Tab dynamic state
   const [activeTab, setActiveTab] = useState<'uplink' | 'linked'>('uplink');
   const [unlinkTrigger, setUnlinkTrigger] = useState(0);
+  const [isAdminSuggestionsOpen, setIsAdminSuggestionsOpen] = useState(false);
 
   // --- SUGGESTIONS STATE ---
   const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
   const [isShoutBoxOpen, setIsShoutBoxOpen] = useState(false);
+  const [isSendingSuggestion, setIsSendingSuggestion] = useState(false);
+  const [sendingSuggestionProgress, setSendingSuggestionProgress] = useState(0);
+  const [sendingSuggestionStage, setSendingSuggestionStage] = useState('');
+  const [suggestionToSubmit, setSuggestionToSubmit] = useState<{ text: string; category: string; status: string } | null>(null);
 
   const [suggestions, setSuggestions] = useState<Array<{ id: string; text: string; date: string; category: string; status: string }>>(() => {
     const saved = localStorage.getItem('shadow_suggestions');
@@ -238,6 +245,12 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   const [newSuggestionText, setNewSuggestionText] = useState('');
   const [newSuggestionCategory, setNewSuggestionCategory] = useState('SYSTEM');
   const [newSuggestionStatus, setNewSuggestionStatus] = useState('NEW');
+
+  // Sustain/Donation section states
+  const [copiedAddressLanding, setCopiedAddressLanding] = useState<string | null>(null);
+  const [hardwareBoostLanding, setHardwareBoostLanding] = useState<number>(74);
+  const [isGcashModalOpenLanding, setIsGcashModalOpenLanding] = useState(false);
+  const [copiedFieldLanding, setCopiedFieldLanding] = useState<string | null>(null);
 
   // Suggestion deletion security authentication
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
@@ -288,10 +301,71 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
   const [banTimeRemaining, setBanTimeRemaining] = useState<string>('');
   const [shoutValidationError, setShoutValidationError] = useState<string | null>(null);
+  const [suggestionValidationError, setSuggestionValidationError] = useState<string | null>(null);
   const [nameValidationError, setNameValidationError] = useState<string | null>(null);
   const [warningPopup, setWarningPopup] = useState<{ title: string; message: string; violationNumber: number } | null>(null);
   const [banPasscodeInput, setBanPasscodeInput] = useState<string>('');
   const [banPasscodeError, setBanPasscodeError] = useState<string | null>(null);
+
+  // Suggestion sending simulator (5-seconds)
+  useEffect(() => {
+    if (!isSendingSuggestion || !suggestionToSubmit) return;
+
+    const startTime = Date.now();
+    const duration = 5000;
+    
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
+      setSendingSuggestionProgress(progress);
+
+      if (progress < 15) {
+        setSendingSuggestionStage('ESTABLISHING SECURE COLD HANDSHAKE...');
+      } else if (progress < 40) {
+        setSendingSuggestionStage('GENERATING ROTATIONAL COGNITIVE SHIELD...');
+      } else if (progress < 65) {
+        setSendingSuggestionStage('ENCRYPTING SUGGESTION BUFFER...');
+      } else if (progress < 85) {
+        setSendingSuggestionStage('DISPATCHING ATOMIC SYSTEM PACKETS...');
+      } else if (progress < 100) {
+        setSendingSuggestionStage('FINISHING TRANSACTION UPLINK...');
+      } else {
+        setSendingSuggestionStage('TRANSMISSION SUCCESSFUL // DATA VERIFIED!');
+      }
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        
+        setTimeout(() => {
+          const newSugg = {
+            id: 's_' + Date.now(),
+            text: suggestionToSubmit.text,
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(),
+            category: suggestionToSubmit.category,
+            status: suggestionToSubmit.status
+          };
+
+          setSuggestions(prev => {
+            const updated = [newSugg, ...prev];
+            localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+            return updated;
+          });
+
+          // Reset everything successfully
+          setNewSuggestionText('');
+          setNewSuggestionCategory('SYSTEM');
+          setNewSuggestionStatus('NEW');
+          setSuggestionToSubmit(null);
+          setIsSendingSuggestion(false);
+          setSendingSuggestionProgress(0);
+          setSendingSuggestionStage('');
+          setSuggestionValidationError(null);
+        }, 500);
+      }
+    }, 40);
+
+    return () => clearInterval(interval);
+  }, [isSendingSuggestion, suggestionToSubmit]);
 
   useEffect(() => {
     if (!isCommentingBanned) return;
@@ -1489,7 +1563,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 30 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-xl rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
+              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-2xl rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
             >
               {/* Interactive Holographic style overrides */}
               <style dangerouslySetInnerHTML={{__html: `
@@ -1576,11 +1650,11 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               </div>
 
               {/* Tabs Switcher */}
-              <div className="flex border-b border-neutral-900 mb-5 relative z-10">
+              <div className="flex border-b border-neutral-900 mb-5 relative z-10 gap-x-1.5 justify-start w-full">
                 <button
                   type="button"
                   onClick={() => setActiveTab('uplink')}
-                  className={`pb-2.5 px-3 font-mono text-[10px] uppercase tracking-[0.2em] font-bold border-b-2 transition-all cursor-pointer ${
+                  className={`pb-2.5 px-3 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.1em] md:tracking-[0.18em] font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'uplink'
                       ? 'border-purple-500 text-purple-400 font-extrabold'
                       : 'border-transparent text-neutral-500 hover:text-neutral-300'
@@ -1591,7 +1665,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                 <button
                   type="button"
                   onClick={() => setActiveTab('linked')}
-                  className={`pb-2.5 px-3 font-mono text-[10px] uppercase tracking-[0.2em] font-bold border-b-2 transition-all cursor-pointer relative ${
+                  className={`pb-2.5 px-3 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.1em] md:tracking-[0.18em] font-bold border-b-2 transition-all cursor-pointer relative whitespace-nowrap ${
                     activeTab === 'linked'
                       ? 'border-purple-500 text-purple-400 font-extrabold'
                       : 'border-transparent text-neutral-500 hover:text-neutral-300'
@@ -1599,7 +1673,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                 >
                   [02] VIEW LINKED DIRECTORY
                   {getLinkedItems().length > 0 && (
-                    <span className="ml-1.5 px-1.5 py-0.5 bg-purple-600 text-white font-black text-[9px] rounded-full">
+                    <span className="ml-1.5 px-1 py-0.5 bg-purple-600 text-white font-black text-[8px] sm:text-[9px] rounded-full font-mono">
                       {getLinkedItems().length}
                     </span>
                   )}
@@ -1746,14 +1820,30 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   </div>
 
                   {/* Cancel / Sync Footer Controls */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-neutral-900 mt-6 gap-4 font-mono">
-                    <button 
-                      type="button"
-                      onClick={handleAbortTransit}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-xl font-mono text-[10px] uppercase tracking-[0.15em] text-neutral-400 hover:text-white transition-all cursor-pointer text-center"
-                    >
-                      ABORT TRANSIT
-                    </button>
+                  <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-neutral-900 mt-6 gap-3.5 font-mono">
+                    <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+                      <button 
+                        type="button"
+                        onClick={handleAbortTransit}
+                        className="w-full sm:w-auto px-4 py-2.5 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-xl font-mono text-[10px] uppercase tracking-[0.15em] text-neutral-400 hover:text-white transition-all cursor-pointer text-center"
+                      >
+                        ABORT TRANSIT
+                      </button>
+                      
+                      <button 
+                        type="button"
+                        onClick={() => setIsAdminSuggestionsOpen(true)}
+                        className="w-full sm:w-auto px-4 py-2.5 bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-950/40 text-purple-400 hover:text-purple-300 rounded-xl font-mono text-[10px] uppercase tracking-[0.15em] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Sparkles size={11} className="text-purple-400 animate-pulse" />
+                        <span>SUGGESTIONS</span>
+                        {suggestions.length > 0 && (
+                          <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[8px] font-black rounded font-mono leading-none">
+                            {suggestions.length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
                     
                     <button 
                       type="submit"
@@ -1933,17 +2023,34 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   </div>
                   
                   {/* Cancel Controls */}
-                  <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-2 shrink-0">
+                  <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-neutral-900 mt-2 shrink-0 gap-3 w-full font-mono">
+                    <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+                      <button 
+                        type="button"
+                        onClick={() => setIsModalOpen(false)}
+                        className="w-full sm:w-auto px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] text-neutral-300 hover:text-white transition-all cursor-pointer text-center font-bold"
+                      >
+                        DISCONNECT CONSOLE
+                      </button>
+                      
+                      <button 
+                        type="button"
+                        onClick={() => setIsAdminSuggestionsOpen(true)}
+                        className="w-full sm:w-auto px-4 py-2 bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-950/40 text-purple-400 hover:text-purple-300 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Sparkles size={11} className="text-purple-400 animate-pulse" />
+                        <span>SUGGESTIONS</span>
+                        {suggestions.length > 0 && (
+                          <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[8px] font-black rounded font-mono leading-none">
+                            {suggestions.length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                    
                     <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500">
                       SECURE TERMINAL DIRECTORY INDEX
                     </span>
-                    <button 
-                      type="button"
-                      onClick={() => setIsModalOpen(false)}
-                      className="px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] text-neutral-300 hover:text-white transition-all cursor-pointer text-center"
-                    >
-                      DISCONNECT CONSOLE
-                    </button>
                   </div>
                 </div>
               )}
@@ -1961,7 +2068,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 30 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-4xl rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono flex flex-col max-h-[90vh]"
+              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-xl rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono flex flex-col max-h-[90vh]"
             >
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-20" />
               <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-purple-500/30 rounded-tl-xl pointer-events-none" />
@@ -1985,18 +2092,27 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   </div>
                 </div>
                 <button
-                  onClick={() => setIsSuggestionModalOpen(false)}
-                  className="p-1.5 border border-neutral-850 hover:border-neutral-700 hover:bg-neutral-900 text-neutral-400 hover:text-white rounded-lg transition-all cursor-pointer"
+                  onClick={() => {
+                    if (isSendingSuggestion) return;
+                    setIsSuggestionModalOpen(false);
+                  }}
+                  disabled={isSendingSuggestion}
+                  className={`p-1.5 border border-neutral-850 rounded-lg transition-all ${
+                    isSendingSuggestion 
+                      ? 'opacity-30 cursor-not-allowed' 
+                      : 'hover:border-neutral-700 hover:bg-neutral-900 text-neutral-400 hover:text-white cursor-pointer'
+                  }`}
+                  title={isSendingSuggestion ? "Transmission active" : "Close console"}
                 >
-                  <X size={16} />
+                  {isSendingSuggestion ? <Lock size={16} className="text-purple-400 animate-pulse" /> : <X size={16} />}
                 </button>
               </div>
 
-              {/* Main Content Area: Split Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 overflow-y-auto no-scrollbar pb-4 flex-1">
+              {/* Main Content Area: Single Column Form */}
+              <div className="flex flex-col gap-6 relative z-10 overflow-y-auto no-scrollbar pb-4 flex-1">
                 
-                {/* Left Column: Form */}
-                <div className="lg:col-span-5 flex flex-col gap-5 border-r border-neutral-900/65 pr-0 lg:pr-6">
+                {/* Single Column: Form */}
+                <div className="w-full flex flex-col gap-5">
                   <div>
                     <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold mb-1">
                       Log New Suggestion
@@ -2006,133 +2122,164 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                     </p>
                   </div>
 
-                  <form 
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (!newSuggestionText.trim()) return;
-
-                      const newSugg = {
-                        id: 's_' + Date.now(),
-                        text: newSuggestionText.trim(),
-                        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(),
-                        category: newSuggestionCategory,
-                        status: newSuggestionStatus
-                      };
-
-                      const updated = [newSugg, ...suggestions];
-                      setSuggestions(updated);
-                      localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+                  {isSendingSuggestion ? (
+                    /* Holographic Tactical Loading Animation Screen (5 Seconds) */
+                    <div className="flex flex-col items-center justify-center p-6 border border-purple-500/20 bg-purple-950/10 rounded-2xl space-y-5 my-auto min-h-[220px] relative overflow-hidden font-mono text-center">
+                      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-pulse" />
                       
-                      // Reset inputs
-                      setNewSuggestionText('');
-                      setNewSuggestionCategory('SYSTEM');
-                      setNewSuggestionStatus('NEW');
-                    }}
-                    className="space-y-4"
-                  >
-                    <div>
-                      <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                        Suggestion Prompt / Code Draft
-                      </label>
-                      <textarea
-                        value={newSuggestionText}
-                        onChange={(e) => setNewSuggestionText(e.target.value)}
-                        placeholder="ENTER SUGGESTED SYSTEM OPTIMIZATION..."
-                        rows={4}
-                        required
-                        className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white p-3 rounded-xl resize-none outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
-                      />
+                      {/* Interactive Radar Ring */}
+                      <div className="relative flex items-center justify-center w-14 h-14">
+                        <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/30 animate-spin [animation-duration:8s]" />
+                        <div className="absolute inset-1.5 rounded-full border border-purple-400/20 animate-ping [animation-duration:2.5s]" />
+                        <div className="relative w-9 h-9 rounded-full bg-purple-950/50 border border-purple-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+                          <Cpu className="text-purple-400 animate-pulse" size={16} />
+                        </div>
+                      </div>
+
+                      {/* Info & Phase Text */}
+                      <div className="space-y-1 w-full">
+                        <span className="text-[8px] uppercase tracking-[0.25em] text-neutral-500 block">TRANSMITTING METADATA</span>
+                        <h4 className="text-purple-400 font-mono font-black text-[10px] sm:text-xs tracking-[0.1em] uppercase h-5 overflow-hidden">
+                          {sendingSuggestionStage}
+                        </h4>
+                      </div>
+
+                      {/* Percentage Indicator */}
+                      <div className="w-full max-w-xs space-y-1.5">
+                        <div className="flex justify-between items-center text-[8px] text-neutral-400 font-bold px-1 font-mono">
+                          <span>SYSTEM: DIRECT_UPLINK</span>
+                          <span className="text-purple-400 font-extrabold">{sendingSuggestionProgress}%</span>
+                        </div>
+                        
+                        {/* Custom bar */}
+                        <div className="w-full h-2.5 bg-neutral-900 border border-neutral-800 rounded-full p-0.5 overflow-hidden relative">
+                          <div 
+                            className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 rounded-full transition-all duration-75"
+                            style={{ width: `${sendingSuggestionProgress}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Realtime logs scrolling below the bar */}
+                      <div className="h-6 text-[7px] text-neutral-500 font-mono flex items-center justify-center font-semibold overflow-hidden leading-snug w-full px-4 border-t border-neutral-900 pt-2 shrink-0">
+                        <p className="uppercase tracking-widest animate-pulse">
+                          SECURE_PORT:3000 // PKT_SIZE: {Math.max(12, Math.floor(sendingSuggestionProgress * 12.8))}B // COLD_STREAM_ACK
+                        </p>
+                      </div>
                     </div>
-
-                    <button
-                      type="submit"
-                      className="w-full py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-mono text-[9px] uppercase font-bold tracking-[0.20em] transition-all hover:brightness-110 active:scale-95 cursor-pointer rounded-xl flex items-center justify-center gap-2 shadow-lg"
-                    >
-                      <Send size={11} className="animate-pulse" />
-                      <span>Send Suggestion</span>
-                    </button>
-                  </form>
-                </div>
-
-                {/* Right Column: Listing Table */}
-                <div className="lg:col-span-7 flex flex-col gap-4 overflow-hidden">
-                  <div className="flex justify-between items-center bg-neutral-900/40 p-3 rounded-xl border border-neutral-900/65">
-                    <div>
-                      <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold">
-                        Database Memory Index ({suggestions.length})
-                      </h4>
-                      <p className="text-[8px] uppercase tracking-wider text-neutral-500 mt-0.5">
-                        Synced suggestions entries persistent to user space.
+                  ) : isCommentingBanned ? (
+                    <div className="h-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-red-500/35 bg-red-955/20 text-center rounded-2xl space-y-4 my-auto min-h-[220px]">
+                      <div className="w-12 h-12 bg-red-955/40 rounded-full border border-red-500/30 flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse">
+                        <span className="text-xl">☠️</span>
+                      </div>
+                      <h4 className="text-red-400 font-mono font-black text-xs tracking-[0.1em] uppercase">Suggestions Suppressed</h4>
+                      <p className="text-[10px] text-neutral-300 font-sans leading-relaxed px-2">
+                        Due to repeated violations of our community guidelines regarding profanity and harassment, your ability to post suggestions has been removed. If you believe this is an error, please contact support.
                       </p>
                     </div>
-                  </div>
+                  ) : (
+                    <form 
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!newSuggestionText.trim()) return;
 
-                  <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 pr-1 max-h-[350px]">
-                    {suggestions.length === 0 ? (
-                      <div className="h-44 border border-dashed border-neutral-900 text-neutral-600 rounded-2xl flex flex-col items-center justify-center text-center p-6 gap-2">
-                        <ShieldAlert size={20} className="opacity-40 animate-pulse text-purple-400" />
-                        <span className="text-[9px] uppercase tracking-widest font-bold">DIRECTORY ARCHIVES VACANT</span>
-                        <span className="text-[8px] uppercase tracking-wider opacity-60">Log recommendations above to begin live data feed.</span>
+                        if (isCommentingBanned) {
+                          setSuggestionValidationError('TRANSMISSION BLOCKED: YOUR POSTING PRIVILEGES HAVE BEEN REVOKED.');
+                          return;
+                        }
+
+                        const text = newSuggestionText.trim();
+                        if (checkRestrictionsText(text)) {
+                          const nextOffense = offenseCount + 1;
+                          setOffenseCount(nextOffense);
+                          localStorage.setItem('shout_offense_count', nextOffense.toString());
+
+                          if (nextOffense === 1) {
+                            setWarningPopup({
+                              title: "Comment not posted.",
+                              message: "Your message includes language that violates our community guidelines. Please ensure your future comments are respectful and free of profanity. This is your first warning; please note that we track repeated violations.",
+                              violationNumber: 1
+                            });
+                            setSuggestionValidationError(
+                              `Suggestion not posted.\n\nYour message includes language that violates our community guidelines. Please ensure your future submissions are respectful and free of profanity. This is your first warning; please note that we track repeated violations.`
+                            );
+                          } else if (nextOffense === 2) {
+                            setWarningPopup({
+                              title: "Action Required:",
+                              message: "Final Warning.\nYour recent comment was flagged for inappropriate language. This is your second violation. Please be advised that one more instance of profanity or disparaging remarks will result in the immediate suspension of your commenting privileges.",
+                              violationNumber: 2
+                            });
+                            setSuggestionValidationError(
+                              `Action Required:\n\nFinal Warning.\nYour recent suggestion was flagged for inappropriate language. This is your second violation. Please be advised that one more instance of profanity or disparaging remarks will result in the immediate suspension of your privileges.`
+                            );
+                          } else {
+                            const banPeriod = 24 * 60 * 60 * 1000; // 24 hours
+                            const activeBanUntil = Date.now() + banPeriod;
+                            setBanUntil(activeBanUntil);
+                            localStorage.setItem('shout_ban_until', activeBanUntil.toString());
+                            setIsCommentingBanned(true);
+                            localStorage.setItem('shout_commenting_banned', 'true');
+                            setWarningPopup({
+                              title: "Commenting privileges suspended.",
+                              message: "Due to repeated violations of our community guidelines regarding profanity and harassment, your ability to post comments has been removed. If you believe this is an error, please contact support.",
+                              violationNumber: 3
+                            });
+                            setSuggestionValidationError(
+                              `Commenting privileges suspended.\n\nDue to repeated violations of our community guidelines regarding profanity and harassment, your ability to post comments has been removed. If you believe this is an error, please contact support.`
+                            );
+                          }
+                          return;
+                        }
+
+                        // Start 5 second simulated transmission uplink
+                        setSuggestionToSubmit({
+                          text: text,
+                          category: newSuggestionCategory,
+                          status: newSuggestionStatus
+                        });
+                        setIsSendingSuggestion(true);
+                        setSendingSuggestionProgress(0);
+                        setSendingSuggestionStage('ESTABLISHING SECURE COLD HANDSHAKE...');
+                      }}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                          Suggestion Prompt / Code Draft
+                        </label>
+                        <textarea
+                          value={newSuggestionText}
+                          onChange={(e) => {
+                            setNewSuggestionText(e.target.value);
+                            if (suggestionValidationError) setSuggestionValidationError(null);
+                          }}
+                          placeholder="ENTER SUGGESTED SYSTEM OPTIMIZATION..."
+                          rows={4}
+                          required
+                          className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white p-3 rounded-xl resize-none outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
+                        />
                       </div>
-                    ) : (
-                      suggestions.map((item) => (
-                        <div 
-                          key={item.id}
-                          className="border border-neutral-900/60 hover:border-purple-500/20 bg-neutral-950 p-4 rounded-xl relative group transition-all duration-300"
+
+                      {suggestionValidationError && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="p-3 bg-red-955/35 border border-red-500/35 text-red-200 text-[10px] font-sans rounded-xl flex items-start gap-2 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex flex-col gap-1.5 flex-1 select-none">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="px-1.5 py-0.5 bg-purple-950/30 border border-purple-500/20 text-purple-400 font-mono text-[7.5px] uppercase tracking-widest rounded text-[7.5px]">
-                                  {item.category}
-                                </span>
-                                <span 
-                                  className={`px-1.5 py-0.5 font-mono text-[7.5px] uppercase tracking-widest rounded border cursor-pointer select-none text-[7.5px] ${
-                                    item.status === 'NEW' 
-                                      ? 'bg-purple-500/10 border-purple-500/35 text-purple-400 font-extrabold animate-pulse'
-                                      : item.status === 'PENDING'
-                                      ? 'bg-amber-500/10 border-amber-500/35 text-amber-400 font-bold'
-                                      : 'bg-emerald-500/10 border-emerald-500/35 text-emerald-400 font-bold'
-                                  }`}
-                                  onClick={() => {
-                                    const nextStatus = item.status === 'NEW' ? 'PENDING' : item.status === 'PENDING' ? 'RESOLVED' : 'NEW';
-                                    const updated = suggestions.map(s => s.id === item.id ? { ...s, status: nextStatus } : s);
-                                    setSuggestions(updated);
-                                    localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
-                                  }}
-                                  title="Click to cycle status"
-                                >
-                                  STATUS: {item.status}
-                                </span>
-                                <span className="text-[7.5px] font-mono text-neutral-500 uppercase font-black uppercase">
-                                  {item.date}
-                                </span>
-                              </div>
+                          <span className="text-xs shrink-0">⚠️</span>
+                          <span className="leading-normal font-semibold whitespace-pre-line">{suggestionValidationError}</span>
+                        </motion.div>
+                      )}
 
-                              <p className="text-[10px] text-neutral-200 leading-relaxed font-sans uppercase break-words text-left">
-                                {item.text}
-                              </p>
-                            </div>
-
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                onClick={() => {
-                                  setDeleteItemId(item.id);
-                                  setDeletePasswordInput('');
-                                  setDeletePasswordError('');
-                                  setShowDeletePasswordModal(true);
-                                }}
-                                className="p-1.5 hover:bg-red-955/40 hover:text-red-400 text-neutral-500 border border-transparent hover:border-red-900/30 rounded-lg transition-all cursor-pointer ml-1 animate-none flex items-center justify-center"
-                                title="Purge suggestion item"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-mono text-[9px] uppercase font-bold tracking-[0.20em] transition-all hover:brightness-110 active:scale-95 cursor-pointer rounded-xl flex items-center justify-center gap-2 shadow-lg"
+                      >
+                        <Send size={11} className="animate-pulse" />
+                        <span>Send Suggestion</span>
+                      </button>
+                    </form>
+                  )}
                 </div>
               </div>
 
@@ -2141,6 +2288,130 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                 <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500 text-center">
                   SHADOW SUGGESTIONS SYSTEM GATEWAY // PE PLATFORM
                 </span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Admin Suggestion View Modal */}
+      <AnimatePresence>
+        {isAdminSuggestionsOpen && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto w-full" id="admin-suggestions-view-modal">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 30 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-2xl rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono flex flex-col max-h-[85vh]"
+            >
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-20" />
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-purple-500/30 rounded-tl-xl pointer-events-none" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-purple-500/30 rounded-tr-xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-purple-500/30 rounded-bl-xl pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-500/30 rounded-br-xl pointer-events-none" />
+
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6 pb-4 border-b border-neutral-900 relative z-10 font-mono">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-purple-950/40 border border-purple-500/30">
+                    <Sparkles size={13} className="text-purple-400 animate-pulse" />
+                  </div>
+                  <div>
+                    <span className="text-xs uppercase tracking-[0.2em] text-purple-400 font-extrabold block">ADMIN CONSOLE</span>
+                    <span className="text-[8px] uppercase tracking-widest text-neutral-500 block">SYSTEM USER SUGGESTIONS REGISTRY</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAdminSuggestionsOpen(false)}
+                  className="p-1.5 hover:bg-neutral-900 text-neutral-400 hover:text-white rounded-lg transition-colors cursor-pointer border border-transparent hover:border-neutral-800"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Suggestions List Container */}
+              <div className="flex-1 overflow-y-auto pr-1 space-y-3.5 font-mono mb-5 relative z-10 max-h-[50vh]">
+                {suggestions.length === 0 ? (
+                  <div className="h-44 flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-800 bg-neutral-900/20 rounded-2xl font-mono">
+                    <Sparkles className="text-neutral-500 w-9 h-9 mb-2 animate-pulse" />
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-500 font-mono">NO SUGGESTIONS IN MEMORY</span>
+                    <p className="text-[8px] uppercase tracking-wider text-neutral-400 mt-1 max-w-xs font-mono">
+                      System optimization recommendations logged by network operators will materialize here.
+                    </p>
+                  </div>
+                ) : (
+                  suggestions.map((item) => (
+                    <div 
+                      key={item.id}
+                      className="p-4 rounded-xl bg-neutral-900/30 border border-neutral-900 hover:border-purple-500/25 flex flex-col gap-2.5 transition-all relative group text-left"
+                    >
+                      <div className="flex items-start justify-between gap-3 w-full">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2 mb-2 font-mono">
+                            <span className="px-1.5 py-0.5 bg-purple-950/40 border border-purple-500/20 text-purple-400 font-mono text-[7.5px] uppercase tracking-widest rounded-md font-bold">
+                              {item.category}
+                            </span>
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const statuses = ['NEW', 'PENDING', 'RESOLVED'];
+                                const nextIdx = (statuses.indexOf(item.status) + 1) % statuses.length;
+                                const nextStatus = statuses[nextIdx];
+                                const updated = suggestions.map(s => s.id === item.id ? { ...s, status: nextStatus } : s);
+                                setSuggestions(updated);
+                                localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+                              }}
+                              className={`px-2 py-0.5 font-mono text-[7.5px] uppercase tracking-widest rounded border cursor-pointer select-none font-extrabold transition-all hover:brightness-110 active:scale-95 ${
+                                item.status === 'NEW' 
+                                  ? 'bg-purple-500/10 border-purple-500/30 text-purple-400 animate-pulse'
+                                  : item.status === 'PENDING'
+                                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                              }`}
+                              title="Click to advance status"
+                            >
+                              STATUS: {item.status}
+                            </button>
+                            <span className="text-[8px] text-neutral-500 font-bold ml-auto">{item.date}</span>
+                          </div>
+                          <p className="text-xs text-[#ececec] leading-relaxed font-sans pl-2 border-l-2 border-purple-500/30 bg-neutral-950/20 py-1">
+                            {item.text}
+                          </p>
+                        </div>
+                        
+                        {/* Actions */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = suggestions.filter(s => s.id !== item.id);
+                            setSuggestions(updated);
+                            localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+                          }}
+                          className="p-1.5 hover:bg-red-955/40 hover:text-red-400 text-neutral-500 border border-transparent hover:border-red-900/35 rounded-lg transition-all cursor-pointer self-start shrink-0"
+                          title="Purge suggestion record"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Footer cancel controls */}
+              <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-neutral-900 shrink-0 gap-3 font-mono">
+                <span className="text-[8px] uppercase tracking-[0.12em] text-neutral-500 order-2 sm:order-1">
+                  SECURE CONTROL PANEL // PERSISTENT STORE SYSTEM
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsAdminSuggestionsOpen(false)}
+                  className="w-full sm:w-auto px-5 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white rounded-xl text-[9px] uppercase tracking-widest font-bold transition-all cursor-pointer text-center order-1 sm:order-2"
+                >
+                  DISCONNECT VIEW
+                </button>
               </div>
             </motion.div>
           </div>
@@ -2171,7 +2442,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               <div className="flex items-center justify-between border-b border-neutral-900 pb-3 relative z-10">
                 <div className="flex items-center gap-2">
                   <User size={16} className="text-purple-400 animate-pulse" />
-                  <span className="font-extrabold font-mono text-sm tracking-[0.2em] uppercase text-purple-400">IDENTIFICATION REQUIRED</span>
+                  <span className="font-extrabold font-mono text-sm tracking-[0.2em] uppercase text-purple-400">CREATE AN ALIAS / NICKNAME</span>
                 </div>
                 <button
                   onClick={() => setIsNamePromptOpen(false)}
@@ -2720,6 +2991,293 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
             </div>
 
           </div>
+        </div>
+      </div>
+
+      {/* Section 2: Why Sustain the Shadows (Sustain/Donation Space) */}
+      <div className="w-full relative z-10 border-t border-neutral-900 bg-neutral-950/80 backdrop-blur-md py-16 px-6 md:px-12">
+        <div className="relative z-10 max-w-4xl mx-auto w-full space-y-6 md:space-y-8">
+          
+          {/* Header Ribbon */}
+          <div className="flex flex-col items-center text-center space-y-3 pb-6 border-b border-neutral-900">
+            <div>
+              <span className="text-[9px] font-mono tracking-[0.3em] uppercase text-purple-400 font-extrabold">// SYSTEM_SUSTENANCE</span>
+              <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-neutral-100 via-white to-purple-300">
+                WHY SUSTAIN THE SHADOWS?
+              </h2>
+            </div>
+          </div>
+
+          {/* Core Manifesto Text (Fulfill user prompt text requirement perfectly, compressed ~30%) */}
+          <div className="bg-neutral-950/80 border border-neutral-900/50 backdrop-blur-md rounded-2xl p-6 md:p-8 space-y-5 text-neutral-300 leading-relaxed font-sans text-sm md:text-base relative overflow-hidden shadow-inner font-sans">
+            <div className="absolute top-0 right-0 p-3 select-none pointer-events-none opacity-5 font-mono text-[90px] font-black leading-none uppercase text-purple-500">
+              SHDW
+            </div>
+            
+            <div className="space-y-4 text-left">
+              <p className="font-extrabold text-white text-lg md:text-xl border-l-2 border-purple-500 pl-4 tracking-tight leading-snug">
+                True innovation cannot be bound by standard hardware. To construct tomorrow's digital frameworks, mundane tools are no longer sufficient.
+              </p>
+
+              <p className="leading-relaxed opacity-90 pl-4 border-l-2 border-transparent">
+                Currently, an optimized, remote-access environment combined with advanced AI creation arrays operates from the shadows to design and deploy elite models with maximum efficiency. Your support directly upgrades our core infrastructure, shattering hardware bottlenecks.
+              </p>
+
+              <p className="font-medium text-purple-200 pl-4 border-l-2 border-purple-500/40">
+                Supporting this page does not merely fund code. It directly sustains a technician operating from the shadows to keep our local community connected, functional, and secure.
+              </p>
+            </div>
+          </div>
+
+          {/* Dynamic Interactive Hardware Optimization Block */}
+          <div className="bg-neutral-900/30 border border-neutral-900 rounded-2xl p-6 relative overflow-hidden backdrop-blur-sm text-left">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Cpu className="w-4 h-4 text-purple-400" />
+                  <h3 className="font-mono text-xs uppercase font-black tracking-widest text-neutral-200">
+                    Infrastructure Gateway Status
+                  </h3>
+                </div>
+                <p className="text-[11px] font-sans text-neutral-400">
+                  Adjust support impact configuration to target bottleneck thresholds.
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-3 bg-neutral-950/90 border border-neutral-800 rounded-lg px-3 py-1.5 shrink-0 self-start md:self-auto">
+                <span className="text-[10px] font-mono font-bold text-neutral-400">CORE_CAPACITY:</span>
+                <span className={`text-xs font-mono font-black ${hardwareBoostLanding === 100 ? 'text-emerald-400' : hardwareBoostLanding >= 90 ? 'text-purple-400' : 'text-amber-500'}`}>
+                  {hardwareBoostLanding === 100 ? '100% (ATOMIC_LIMIT)' : `${hardwareBoostLanding}% THROTTLED`}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Interactive sliders for support levels */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  {
+                    id: 'tier-1',
+                    title: 'COOLING & CORE BOOST',
+                    cost: '$10 - $25',
+                    benefit: 'Upgrades cooling vents & CPU clock stability thresholds.',
+                    simValue: 85,
+                    glow: 'shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.3)]',
+                    border: 'border-purple-500/20 hover:border-purple-500/50',
+                  },
+                  {
+                    id: 'tier-2',
+                    title: 'COGNITIVE ARRAY UPGRADE',
+                    cost: '$50 - $100',
+                    benefit: 'Expands hyperparameter limits & parallel high-speed memory modules.',
+                    simValue: 95,
+                    glow: 'shadow-[0_0_15px_rgba(139,92,246,0.2)] hover:shadow-[0_0_25px_rgba(139,92,246,0.45)]',
+                    border: 'border-violet-500/20 hover:border-violet-500/50',
+                  },
+                  {
+                    id: 'tier-3',
+                    title: 'SHADOW ARCHITECTURE GATEWAY',
+                    cost: '$200+',
+                    benefit: 'Sustains remote access deployment grids & shadow protection pipelines.',
+                    simValue: 100,
+                    glow: 'shadow-[0_0_20px_rgba(99,102,241,0.25)] hover:shadow-[0_0_30px_rgba(99,102,241,0.55)]',
+                    border: 'border-indigo-500/20 hover:border-indigo-500/50',
+                  }
+                ].map((tier) => (
+                  <button
+                    key={tier.id}
+                    onClick={() => setHardwareBoostLanding(tier.simValue)}
+                    className={`p-4 border rounded-xl text-left transition-all duration-300 cursor-pointer flex flex-col justify-between ${tier.glow} ${tier.border} ${
+                      hardwareBoostLanding === tier.simValue 
+                        ? 'bg-purple-950/40 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.25)]' 
+                        : 'bg-neutral-950/50 border-neutral-800 hover:bg-neutral-900/40'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] font-mono font-extrabold tracking-wider text-purple-400">
+                          {tier.title}
+                        </span>
+                        <span className="text-[10px] font-mono font-bold bg-neutral-900 text-neutral-300 border border-neutral-800 px-1.5 py-0.5 rounded">
+                          {tier.cost}
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-400 font-sans leading-snug">
+                        {tier.benefit}
+                      </p>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between text-[10px] font-mono pt-2 border-t border-neutral-900/50">
+                      <span className="text-neutral-500">SIMULATE IMPACT:</span>
+                      <span className="text-purple-300 font-bold">+{tier.simValue}% API SPEED</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Support Shadow Button & GCash Trigger */}
+          <div className="flex flex-col items-center justify-center py-4 relative z-10">
+            <button
+              onClick={() => setIsGcashModalOpenLanding(true)}
+              className="group relative px-8 py-3.5 bg-gradient-to-r from-purple-800 to-indigo-800 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl border border-purple-500/50 hover:border-purple-400 font-mono text-[10px] sm:text-xs font-black uppercase tracking-[0.25em] transition-all duration-300 shadow-[0_0_25px_rgba(168,85,247,0.3)] hover:shadow-[0_0_35px_rgba(168,85,247,0.55)] cursor-pointer flex items-center gap-2 px-6 active:scale-95 overflow-hidden"
+            >
+              <Heart className="w-4 h-4 text-purple-300 fill-purple-300 group-hover:scale-120 transition-transform" />
+              <span>Click to support Shadow Garden</span>
+              <Heart className="w-4 h-4 text-purple-300 fill-purple-300 group-hover:scale-120 transition-transform" />
+            </button>
+            <p className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest mt-2">// DIRECT GCASH CONDUIT SECURE GATEWAY</p>
+          </div>
+
+          {/* GCash Details Popup Modal */}
+          <AnimatePresence>
+            {isGcashModalOpenLanding && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                {/* Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsGcashModalOpenLanding(false)}
+                  className="absolute inset-0 bg-black/90 backdrop-blur-md"
+                />
+
+                {/* Modal Card */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 180 }}
+                  className="relative w-full max-w-md bg-neutral-950 border border-purple-500/40 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.4)] font-mono text-neutral-200 z-10 p-1"
+                >
+                  <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-purple-600 via-sky-400 to-indigo-600" />
+                  
+                  <div className="p-6 md:p-8 bg-neutral-950 rounded-[22px] relative space-y-5">
+                    
+                    {/* Close Button */}
+                    <button
+                      onClick={() => setIsGcashModalOpenLanding(false)}
+                      className="absolute top-4 right-4 text-neutral-500 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <X size={16} />
+                    </button>
+
+                    {/* Cyber Header */}
+                    <div className="text-center pt-2 space-y-1">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-sky-950/45 border border-sky-500/30 rounded-full text-[9px] text-sky-400 font-extrabold tracking-wider uppercase">
+                        <Smartphone size={10} className="text-sky-400" />
+                        <span>GCash Secure Conduit</span>
+                      </div>
+                      <h3 className="text-base font-black text-white tracking-wide uppercase mt-1">
+                        SUPPORT RECIPIENT
+                      </h3>
+                    </div>
+
+                    {/* QR Screen Wrapper */}
+                    <div className="border border-dashed border-purple-500/25 p-5 rounded-2xl bg-neutral-900/30 flex flex-col items-center justify-center relative group select-none">
+                      <div className="absolute top-2.5 left-2.5 w-3 h-3 border-t-2 border-l-2 border-purple-500/40 rounded-tl" />
+                      <div className="absolute top-2.5 right-2.5 w-3 h-3 border-t-2 border-r-2 border-purple-500/40 rounded-tr" />
+                      <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b-2 border-l-2 border-purple-500/40 rounded-bl" />
+                      <div className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b-2 border-r-2 border-purple-500/40 rounded-br" />
+                      
+                      {/* Outer glowing target scan effect */}
+                      <div className="absolute top-0 inset-x-0 h-0.5 bg-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.6)] animate-[bounce_3s_infinite] pointer-events-none" />
+
+                      <QrCode className="w-16 h-16 text-purple-400 opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-300" strokeWidth={1.5} />
+                      
+                      <span className="text-[9px] text-neutral-400 uppercase tracking-widest mt-2.5">
+                        SCAN QR OR COPY INFO BELOW
+                      </span>
+                    </div>
+
+                    {/* Fields Table */}
+                    <div className="space-y-3">
+                      {/* Recipient Account Name */}
+                      <div className="bg-neutral-900/40 border border-neutral-800 rounded-xl p-3 flex items-center justify-between gap-3 text-left">
+                        <div className="min-w-0">
+                          <span className="text-[8px] text-neutral-500 font-bold uppercase tracking-wider block">ACCOUNT NAME</span>
+                          <span className="text-xs font-black text-white uppercase tracking-wide">ADRIAN G.</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText('ADRIAN G.');
+                            setCopiedFieldLanding('name');
+                            setTimeout(() => setCopiedFieldLanding(null), 2000);
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg border border-neutral-800 text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1 hover:border-purple-500 hover:text-white text-neutral-400 bg-neutral-900/60"
+                        >
+                          {copiedFieldLanding === 'name' ? (
+                            <>
+                              <Check size={10} className="text-emerald-400" />
+                              <span className="text-emerald-400">COPIED</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={10} />
+                              <span>COPY</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Recipient GCash Number */}
+                      <div className="bg-neutral-900/40 border border-neutral-800 rounded-xl p-3 flex items-center justify-between gap-3 text-left">
+                        <div className="min-w-0">
+                          <span className="text-[8px] text-neutral-500 font-bold uppercase tracking-wider block">GCASH MOBILE NUMBER</span>
+                          <span className="text-xs font-black text-purple-400 tracking-wider">0993 618 8535</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText('09936188535');
+                            setCopiedFieldLanding('number');
+                            setTimeout(() => setCopiedFieldLanding(null), 2000);
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg border border-neutral-800 text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1 hover:border-purple-500 hover:text-white text-neutral-400 bg-neutral-900/60"
+                        >
+                          {copiedFieldLanding === 'number' ? (
+                            <>
+                              <Check size={10} className="text-emerald-400" />
+                              <span className="text-emerald-400">COPIED</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={10} />
+                              <span>COPY</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Footer Warning / Guide */}
+                    <div className="bg-purple-950/20 border border-purple-500/10 rounded-xl p-3 text-center">
+                      <p className="text-[10px] text-purple-300 leading-relaxed font-sans font-medium">
+                        Funds directly sponsor advanced cloud development resources, remote servers, and shadow tech tool maintenance.
+                      </p>
+                    </div>
+
+                    {/* ID badge bottom ribbon */}
+                    <div className="flex items-center justify-between pt-2 border-t border-neutral-900 text-[8px] text-neutral-500 uppercase tracking-widest">
+                      <span>SECURE_ID: #4c46-GCASH</span>
+                      <div className="flex items-center gap-1 text-emerald-500">
+                        <ShieldCheck size={9} />
+                        <span>ACTIVE</span>
+                      </div>
+                    </div>
+
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* Bottom Watermark */}
+          <div className="text-center pt-6 border-t border-neutral-900/80">
+            <p className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest max-w-sm mx-auto">
+              COGNITIVE SUITE HARDWARE INTERFACE // SECURE SECRECY LEVEL 4
+            </p>
+          </div>
+
         </div>
       </div>
 

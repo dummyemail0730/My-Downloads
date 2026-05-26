@@ -63,10 +63,10 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
       duration: Math.random() * 12 + 18, // 18s to 30s
       delay: Math.random() * -25, // pre-warmed so there's smoke already visible
       color: i % 3 === 0 
-        ? 'rgba(88, 28, 135, 0.03)' // Deep purple smoke
+        ? 'rgba(168, 85, 247, 0.06)' // Mystic purple nebula
         : i % 3 === 1
-        ? 'rgba(2, 6, 23, 0.05)'   // Deep slate smoke
-        : 'rgba(0, 0, 0, 0.2)'      // Black smoke to absorb light
+        ? 'rgba(255, 255, 255, 0.03)'   // Soft white celestial glow
+        : 'rgba(0, 0, 0, 0.35)'      // Deep shadow smoke
     }));
   }, []);
 
@@ -115,8 +115,8 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
       }}
       className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 select-none overflow-hidden font-mono text-white cursor-pointer"
     >
-      {/* Dynamic Animated Smoke Layer (completely disabled for super black background) */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-0" style={{ filter: 'url(#shadow-smoke-filter)' }}>
+      {/* Dynamic Animated Smoke Layer */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-70" style={{ filter: 'url(#shadow-smoke-filter)' }}>
         {smokeParticles.map((p) => (
           <motion.div
             key={p.id}
@@ -159,24 +159,37 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
       </svg>
 
       {/* Background Radial Shadows and Grid Overlay */}
-      <div className="absolute inset-0 z-0 bg-black pointer-events-none" />
+      <div 
+        className="absolute inset-0 z-0 bg-black pointer-events-none opacity-20" 
+        style={{
+          backgroundImage: 'radial-gradient(circle, rgba(168,85,247,0.15) 1px, transparent 1px), linear-gradient(rgba(147,51,234,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(147,51,234,0.03) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }}
+      />
+      {/* White ambient nodes overlaying */}
+      <div 
+        className="absolute inset-0 z-0 bg-transparent pointer-events-none opacity-10" 
+        style={{
+          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.08) 1.5px, transparent 1.5px)',
+          backgroundSize: '80px 80px',
+        }}
+      />
       
-      {/* Laser light scan effect sweeping across background */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-0" />
+
 
       <div className="w-full max-w-md flex flex-col items-center justify-center relative z-10">
         
         {/* Mysterious Ambient Ring behind Logo */}
-        <div className="relative mb-6 w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 bg-black rounded-full shadow-[0_0_50px_rgba(0,0,0,1)]">
+        <div className="relative mb-6 w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 bg-black rounded-full shadow-[0_0_60px_rgba(168,85,247,0.35),_0_0_120px_rgba(255,255,255,0.1)]">
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 rounded-full border border-neutral-900 border-t-neutral-700 border-b-neutral-800 blur-[1px]"
+            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            className="absolute -inset-1 rounded-full border border-purple-500/20 border-t-white border-b-purple-600 blur-[1px] shadow-[0_0_20px_rgba(168,85,247,0.25)]"
           />
           <motion.div
             animate={{ rotate: -360 }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute -inset-3 rounded-full border border-neutral-950/20 border-r-neutral-900/10 border-l-neutral-900/10 opacity-30 blur-[2px]"
+            transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+            className="absolute -inset-4 rounded-full border border-purple-950/40 border-r-white/30 border-l-purple-500/30 opacity-60 blur-[2px] shadow-[0_0_15px_rgba(255,255,255,0.12)]"
           />
           <div className="absolute inset-2 bg-black rounded-full" />
           
@@ -221,15 +234,15 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
         <div className="w-full space-y-2 px-6">
           <div className="flex justify-between items-center text-[10px] font-mono font-bold tracking-widest text-neutral-400">
             <span>UPLINK_SYS_BUSY</span>
-            <span className="text-white bg-neutral-900 border border-neutral-700 px-1.5 py-0.5 rounded text-[9px]">
+            <span className="text-white bg-black border border-purple-500 px-2 py-0.5 rounded text-[9.5px] font-black shadow-[0_0_10px_rgba(168,85,247,0.2)]">
               {progress}%
             </span>
           </div>
 
           {/* Progress Bar Container */}
-          <div className="h-[3px] w-full bg-neutral-900 border border-neutral-800 rounded-full overflow-hidden relative">
+          <div className="h-[8px] w-full bg-black border border-purple-500/30 rounded-full overflow-hidden relative shadow-[0_0_15px_rgba(168,85,247,0.12)]">
             <motion.div 
-              className="h-full bg-gradient-to-r from-neutral-800 via-neutral-100 to-neutral-400 shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+              className="h-full bg-gradient-to-r from-purple-950 via-white to-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.85),_0_0_10px_rgba(255,255,255,0.7)]"
               style={{ width: `${progress}%` }}
               layoutId="loading-progress-bar"
             />
@@ -274,16 +287,16 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
           `}} />
           
           <div 
-            className="w-full py-3 px-4 rounded-xl border bg-purple-950/10 border-purple-500/20 text-purple-400 hover:text-white shadow-[0_0_15px_rgba(168,85,247,0.08)] flex items-center justify-center gap-3 select-none relative overflow-hidden"
+            className="w-full py-3 px-4 rounded-xl border bg-black border-purple-500/40 text-purple-400 hover:text-white shadow-[0_0_20px_rgba(168,85,247,0.12)] flex items-center justify-center gap-3 select-none relative overflow-hidden"
           >
             {isMuted ? (
               <span className="text-[10px] h-3.5 flex items-center">🔇</span>
             ) : (
-              <span className="flex items-end gap-[1.5px] h-3.5 mb-0.5">
-                <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0s' }} />
-                <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.2s', animationDuration: '0.4s' }} />
+              <span className="flex items-end gap-[2px] h-3.5 mb-0.5">
+                <span className="w-0.5 bg-purple-500 rounded-full shadow-bar" style={{ animationDelay: '0s' }} />
+                <span className="w-0.5 bg-white rounded-full shadow-bar" style={{ animationDelay: '0.2s', animationDuration: '0.4s' }} />
                 <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.1s', animationDuration: '0.5s' }} />
-                <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0.3s', animationDuration: '0.3s' }} />
+                <span className="w-0.5 bg-white rounded-full shadow-bar" style={{ animationDelay: '0.3s', animationDuration: '0.3s' }} />
               </span>
             )}
             <span className="text-[9px] font-mono uppercase tracking-[0.2em] font-extrabold text-neutral-200">

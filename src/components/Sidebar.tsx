@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { ArrowLeft, Target, User } from 'lucide-react';
+import { ArrowLeft, Target, User, Heart } from 'lucide-react';
 
 interface Tab {
   id: string;
@@ -65,15 +65,23 @@ export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, on
       <div className="flex-1 p-2 md:p-6 flex flex-col justify-end">
         <div className="mb-4 space-y-4 md:space-y-4">
           <button 
-            onClick={onHomeClick}
-            className="w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 pb-1 md:pb-0 group transition-all duration-300 text-neutral-400 hover:text-white"
+            onClick={() => setActiveTab('SUSTAIN')}
+            className={`w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 pb-1 md:pb-0 group transition-all duration-300 ${
+              activeTab === 'SUSTAIN' 
+                ? 'text-white' 
+                : 'text-neutral-400 hover:text-white'
+            }`}
           >
-            <div className="w-8 h-8 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center text-neutral-400 group-hover:text-purple-400 group-hover:border-purple-500/50 transition-all shadow-[0_0_8px_rgba(168,85,247,0.05)] group-hover:shadow-[0_0_12px_rgba(168,85,247,0.25)] shrink-0">
-              <ArrowLeft className="w-4 h-4" />
+            <div className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all shrink-0 ${
+              activeTab === 'SUSTAIN'
+                ? 'bg-purple-950/40 border-purple-500 text-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.35)]'
+                : 'bg-neutral-900/50 border-purple-500/25 text-neutral-400 group-hover:text-purple-400 group-hover:border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.15)] group-hover:shadow-[0_0_12px_rgba(168,85,247,0.35)]'
+            }`}>
+              <Heart className="w-4 h-4 text-purple-400" />
             </div>
             <span className="font-mono text-[9px] md:text-[10px] font-extrabold uppercase tracking-wider leading-[1.15] text-center md:text-left block cursor-pointer">
-              <span className="md:hidden">RETURN<br/>HOME</span>
-              <span className="hidden md:inline">Return_Home</span>
+              <span className="md:hidden">SUSTAIN<br/>SHADOWS</span>
+              <span className="hidden md:inline">Sustain the Shadows</span>
             </span>
           </button>
 
@@ -88,7 +96,7 @@ export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, on
             <div className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all shrink-0 ${
               activeTab === 'EXPERTISE'
                 ? 'bg-purple-950/40 border-purple-500 text-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.35)]'
-                : 'bg-neutral-950 border-neutral-800 text-neutral-400 group-hover:text-purple-400 group-hover:border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.05)] group-hover:shadow-[0_0_12px_rgba(168,85,247,0.25)]'
+                : 'bg-neutral-900/50 border-purple-500/25 text-neutral-400 group-hover:text-purple-400 group-hover:border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.15)] group-hover:shadow-[0_0_12px_rgba(168,85,247,0.35)]'
             }`}>
               <Target className="w-4 h-4" />
             </div>
@@ -102,7 +110,7 @@ export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, on
             onClick={onShowOwnerClick}
             className="w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 pb-1 md:pb-0 group transition-all duration-305 text-neutral-400 hover:text-white"
           >
-            <div className="w-8 h-8 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center text-neutral-400 group-hover:text-purple-400 group-hover:border-purple-500/50 transition-all shadow-[0_0_8px_rgba(168,85,247,0.05)] group-hover:shadow-[0_0_12px_rgba(168,85,247,0.25)] shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-neutral-900/50 border border-purple-500/25 flex items-center justify-center text-purple-400 group-hover:text-purple-300 group-hover:border-purple-500/50 transition-all shadow-[0_0_8px_rgba(168,85,247,0.15)] group-hover:shadow-[0_0_12px_rgba(168,85,247,0.35)] shrink-0">
               <User className="w-4 h-4 text-purple-400" />
             </div>
             <span className="font-mono text-[9px] md:text-[10px] font-extrabold uppercase tracking-wider leading-[1.15] text-center md:text-left block cursor-pointer">

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { PROJECTS as STATIC_PROJECTS } from '../constants';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Download } from 'lucide-react';
 import { Project } from '../types';
 
 export default function SoftwareView() {
@@ -9,7 +9,6 @@ export default function SoftwareView() {
     const saved = localStorage.getItem('custom_projects');
     const loaded = saved ? JSON.parse(saved) : STATIC_PROJECTS;
     return loaded
-      .filter((proj: Project) => STATIC_PROJECTS.some(p => p.id === proj.id))
       .map((proj: Project) => {
         // Find the corresponding static project to merge newly updated details/assets
         const staticProj = STATIC_PROJECTS.find(p => p.id === proj.id);
@@ -22,29 +21,47 @@ export default function SoftwareView() {
             tags: isDbPlaceholder ? staticProj.tags : (proj.tags || staticProj.tags)
           };
         }
-        return proj;
+        // Return custom projects completely (with a fallback empty tags array)
+        return {
+          ...proj,
+          tags: proj.tags || []
+        };
       });
   });
+
+  const defaultLinks: { [key: string]: string } = {
+    '1': 'https://drive.google.com/file/d/1Lz',
+    '2': 'https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing',
+    '3': 'https://drive.google.com/file/d/1O_MSOfficeLTSC2021',
+    '4': 'https://github.com/topics/omniscript',
+    '5': 'https://github.com/topics/headless-cms',
+  };
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-full border-b border-neutral-900 bg-neutral-950">
       {projects.map((project, idx) => {
         const hasBgImage = !!project.image;
-        const Tag = project.link ? motion.a : motion.div;
+        const Tag = motion.div;
+        
+        const targetLink = project.link || defaultLinks[project.id] || 'https://drive.google.com/drive/my-drive';
+
+        const handleClick = (e: React.MouseEvent) => {
+          e.preventDefault();
+          if (typeof window !== 'undefined' && (window as any).triggerRedirectLoader) {
+            (window as any).triggerRedirectLoader(targetLink, project.title);
+          } else {
+            window.open(targetLink, '_blank', 'noopener,noreferrer');
+          }
+        };
+
         return (
           <Tag
             key={project.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: idx * 0.05 }}
-            {...(project.link ? {
-              href: project.link,
-              target: "_blank",
-              rel: "noopener noreferrer"
-            } : {})}
-            className={`border-r border-b border-neutral-900 p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-300 group ${
-              project.link ? 'cursor-pointer' : 'cursor-default'
-            } ${
+            onClick={handleClick}
+            className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-pointer ${
               hasBgImage 
                 ? 'bg-neutral-950 text-white' 
                 : 'bg-neutral-900/35 hover:bg-neutral-900/80 text-white'
@@ -62,7 +79,7 @@ export default function SoftwareView() {
               </div>
             )}
 
-            <div className="relative z-10">
+            <div className="relative z-10 flex-1 flex flex-col">
               <div className={`w-8 h-1 mb-4 transition-colors ${
                 hasBgImage ? 'bg-cyan-400 group-hover:bg-cyan-300' : 'bg-purple-500 group-hover:bg-purple-400'
               }`}></div>
@@ -72,40 +89,27 @@ export default function SoftwareView() {
                 }`}>
                   {project.title}
                 </h3>
-                {project.link && (
-                  <ExternalLink size={16} className={`transition-opacity ${
-                    hasBgImage ? 'opacity-70 group-hover:opacity-100 text-white' : 'opacity-40 group-hover:opacity-100 text-neutral-400 group-hover:text-purple-300'
-                  }`} />
-                )}
+                <ExternalLink size={16} className={`transition-opacity ${
+                  hasBgImage ? 'opacity-70 group-hover:opacity-100 text-white' : 'opacity-40 group-hover:opacity-100 text-neutral-400 group-hover:text-purple-300'
+                }`} />
               </div>
-              <p className={`text-[11px] leading-relaxed max-w-sm font-medium transition-colors ${
-                hasBgImage ? 'text-neutral-300' : 'text-neutral-400 group-hover:text-neutral-200'
-              }`}>
-                {project.description}
-              </p>
-            </div>
-            <div className={`mt-8 flex justify-between items-end border-t pt-3 transition-colors relative z-10 ${
-              hasBgImage ? 'border-white/10' : 'border-neutral-800 group-hover:border-neutral-700'
-            }`}>
-              <div className="flex flex-wrap gap-2">
-                {project.tags.map(tag => (
-                  <span 
-                    key={tag} 
-                    className={`text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded transition-colors ${
-                      hasBgImage 
-                        ? 'bg-cyan-950/50 text-cyan-300 group-hover:bg-cyan-950/70 border border-cyan-500/20' 
-                        : 'bg-neutral-950/60 text-neutral-300 border border-neutral-800/80 group-hover:bg-neutral-800 group-hover:text-white'
-                    }`}
-                  >
-                    {tag}
-                  </span>
-                ))}
+              
+              <div className="mt-auto pt-6">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClick(e);
+                  }}
+                  className={`inline-flex items-center gap-2 px-4 py-2.5 text-[9px] font-mono font-black uppercase tracking-[0.16em] border rounded-lg transition-all duration-300 cursor-pointer w-full justify-center ${
+                    hasBgImage
+                      ? 'bg-cyan-950/40 hover:bg-cyan-900/60 border-cyan-500/40 text-cyan-300 hover:text-white shadow-[0_0_15px_rgba(34,211,238,0.12)] hover:shadow-[0_0_20px_rgba(34,211,238,0.35)] hover:border-cyan-400'
+                      : 'bg-purple-950/40 hover:bg-purple-900/60 border-purple-500/40 text-purple-300 hover:text-white shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400'
+                  }`}
+                >
+                  <Download size={12} className="shrink-0 animate-[pulse_2s_infinite]" />
+                  <span>DOWNLOAD</span>
+                </button>
               </div>
-              <span className={`text-[10px] font-mono font-bold uppercase transition-colors ${
-                hasBgImage ? 'text-neutral-400' : 'text-neutral-500 group-hover:text-neutral-300'
-              }`}>
-                BUILD://{project.id.length < 3 && !isNaN(Number(project.id)) ? project.id.padStart(2, '0') : 'CUSTOM'}
-              </span>
             </div>
           </Tag>
         );

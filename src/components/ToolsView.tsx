@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { TOOLS as STATIC_TOOLS } from '../constants';
-import { Terminal, Cpu, Database, ExternalLink } from 'lucide-react';
+import { Terminal, Cpu, Database, ExternalLink, Download } from 'lucide-react';
 import { Tool } from '../types';
 
 import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
@@ -48,7 +48,6 @@ export default function ToolsView() {
     }
 
     return loaded
-      .filter((tool: Tool) => STATIC_TOOLS.some(t => t.id === tool.id))
       .map((tool: Tool) => {
         const staticTool = STATIC_TOOLS.find(t => t.id === tool.id);
         if (staticTool) {
@@ -63,26 +62,42 @@ export default function ToolsView() {
       });
   });
 
+  const defaultToolLinks: { [key: string]: string } = {
+    '1': 'https://drive.google.com/file/d/1Lz',
+    '2': 'https://www.3dpchip.com',
+    '3': 'https://www.wagnardsoft.com/display-driver-uninstaller-ddu',
+    '4': 'https://www.cpuid.com/softwares/cpu-z.html',
+    '5': 'https://www.hwinfo.com/download/',
+    '6': 'https://rufus.ie/en/',
+    '7': 'https://github.com/topics/dashboard',
+  };
+
   return (
     <div className="h-full flex flex-col bg-neutral-950">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-neutral-900">
         {tools.map((tool, idx) => {
-          const Tag = tool.link ? motion.a : motion.div;
+          const Tag = motion.div;
           const bgImage = shadowMasterAtomic;
+
+          const targetLink = tool.link || defaultToolLinks[tool.id] || 'https://drive.google.com/drive/my-drive';
+
+          const handleClick = (e: React.MouseEvent) => {
+            e.preventDefault();
+            if (typeof window !== 'undefined' && (window as any).triggerRedirectLoader) {
+              (window as any).triggerRedirectLoader(targetLink, tool.name);
+            } else {
+              window.open(targetLink, '_blank', 'noopener,noreferrer');
+            }
+          };
+
           return (
             <Tag
               key={tool.id}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: idx * 0.05 }}
-              {...(tool.link ? {
-                href: tool.link,
-                target: "_blank",
-                rel: "noopener noreferrer"
-              } : {})}
-              className={`border-r border-b border-neutral-900 p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-300 group text-white ${
-                tool.link ? 'cursor-pointer' : 'cursor-default'
-              }`}
+              onClick={handleClick}
+              className="border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group text-white cursor-pointer"
             >
               {/* Background Image of Cid Kagenou with purple gradient blending */}
               <div className="absolute inset-0 z-0 overflow-hidden">
@@ -96,7 +111,7 @@ export default function ToolsView() {
               </div>
 
               {/* Top part / main content */}
-              <div className="relative z-10">
+              <div className="relative z-10 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-4">
                   <div className="p-2 border border-white/20 group-hover:border-purple-500/50 transition-colors bg-black/40 group-hover:bg-neutral-900 text-purple-400 shrink-0 relative z-10 shadow-lg rounded">
                     {getIcon(tool.category)}
@@ -105,9 +120,7 @@ export default function ToolsView() {
                     <span className="text-[8px] font-mono font-bold bg-neutral-900 text-neutral-300 border border-neutral-800 px-1.5 py-0.5 group-hover:bg-purple-500 group-hover:text-black transition-all duration-300 rounded">
                       V{tool.version}
                     </span>
-                    {tool.link && (
-                      <ExternalLink size={14} className="opacity-45 group-hover:opacity-100 transition-opacity text-neutral-400 group-hover:text-purple-300" />
-                    )}
+                    <ExternalLink size={14} className="opacity-45 group-hover:opacity-100 transition-opacity text-neutral-400 group-hover:text-purple-300" />
                   </div>
                 </div>
 
@@ -115,21 +128,18 @@ export default function ToolsView() {
                   {tool.name}
                 </h3>
                 
-                <p className="text-[11px] leading-relaxed max-w-sm font-medium text-neutral-400 group-hover:text-neutral-200 transition-colors">
-                  {tool.description}
-                </p>
-              </div>
-
-              {/* Bottom footer bar matching SoftwareView */}
-              <div className="mt-8 flex justify-between items-end border-t border-neutral-800 group-hover:border-neutral-700 pt-3 transition-colors relative z-10">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded bg-neutral-950/60 text-purple-300 border border-neutral-800/80 group-hover:bg-neutral-800 group-hover:text-white transition-all duration-300">
-                    {tool.category.toUpperCase()}
-                  </span>
+                <div className="mt-auto pt-6">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClick(e);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-[9px] font-mono font-black uppercase tracking-[0.16em] border border-purple-500/40 bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 hover:text-white rounded-lg transition-all duration-300 cursor-pointer w-full justify-center shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400"
+                  >
+                    <Download size={12} className="shrink-0 animate-[pulse_2s_infinite]" />
+                    <span>DOWNLOAD</span>
+                  </button>
                 </div>
-                <span className="text-[10px] font-mono font-bold uppercase text-neutral-500 group-hover:text-purple-300 transition-all duration-300 font-mono">
-                  SYS://{tool.category.toUpperCase().slice(0, 15)}
-                </span>
               </div>
             </Tag>
           );

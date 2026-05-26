@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle } from 'lucide-react';
+import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
 import AnimeView from './components/AnimeView';
 import GamesView from './components/GamesView';
 import ToolsView from './components/ToolsView';
 import ExpertiseView from './components/ExpertiseView';
+import SustainView from './components/SustainView';
 import ShadowProject from './components/ShadowProject';
 import LoadingScreen from './components/LoadingScreen';
 import ShadowLoreView from './components/ShadowLoreView';
+import RedirectLoader from './components/RedirectLoader';
 import shadowBg from './assets/images/shadow_master_atomic_1779279129608.png';
 import ownerIdPhoto from './assets/images/owner_id_photo_1779279731967.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from './constants';
@@ -24,7 +26,10 @@ try {
     let w11CustomIdx = projectsList.findIndex((p: any) => 
       p.title && p.id !== '1' && (
         p.title.toLowerCase().includes('custom os') || 
-        p.title.toLowerCase().includes('w11 custom')
+        p.title.toLowerCase().includes('w11 custom') ||
+        p.title.toLowerCase().includes('tinycore') ||
+        p.title.toLowerCase().includes('tiny11') ||
+        p.title.toLowerCase().includes('tiny core')
       )
     );
     while (w11CustomIdx !== -1) {
@@ -35,10 +40,12 @@ try {
       if (targetIdx !== -1) {
         if (customLink) projectsList[targetIdx].link = customLink;
         if (customDesc) projectsList[targetIdx].description = customDesc;
+        // Merge the title to indicate it represents both
+        projectsList[targetIdx].title = 'G.S. W11 ISO / TINYCORE11';
       } else {
         projectsList.push({
           id: '1',
-          title: 'G.S. W11 ISO',
+          title: 'G.S. W11 ISO / TINYCORE11',
           description: customDesc || 'all-in-one, bootable Windows Preinstallation Environment (WinPE)',
           link: customLink || 'https://drive.google.com/file/d/1Lz'
         });
@@ -47,7 +54,10 @@ try {
       w11CustomIdx = projectsList.findIndex((p: any) => 
         p.title && p.id !== '1' && (
           p.title.toLowerCase().includes('custom os') || 
-          p.title.toLowerCase().includes('w11 custom')
+          p.title.toLowerCase().includes('w11 custom') ||
+          p.title.toLowerCase().includes('tinycore') ||
+          p.title.toLowerCase().includes('tiny11') ||
+          p.title.toLowerCase().includes('tiny core')
         )
       );
     }
@@ -200,6 +210,25 @@ export default function App() {
   const [showOwnerDetails, setShowOwnerDetails] = useState(false);
   const [copiedText, setCopiedText] = useState<'EMAIL' | 'KEY' | 'PHONE' | null>(null);
 
+  const [redirectLoaderState, setRedirectLoaderState] = useState<{ isOpen: boolean; targetUrl: string; itemTitle: string }>({
+    isOpen: false,
+    targetUrl: '',
+    itemTitle: '',
+  });
+
+  useEffect(() => {
+    (window as any).triggerRedirectLoader = (url: string, title: string) => {
+      setRedirectLoaderState({
+        isOpen: true,
+        targetUrl: url,
+        itemTitle: title,
+      });
+    };
+    return () => {
+      delete (window as any).triggerRedirectLoader;
+    };
+  }, []);
+
   useEffect(() => {
     if (showArchive) {
       setIntroPlayed(true);
@@ -224,6 +253,8 @@ export default function App() {
         return <GamesView />;
       case 'TOOLS':
         return <ToolsView />;
+      case 'SUSTAIN':
+        return <SustainView />;
       case 'EXPERTISE':
         return <ExpertiseView onBack={() => setShowArchive(false)} />;
       default:
@@ -610,17 +641,28 @@ export default function App() {
         
         <div className="flex-1 flex flex-col overflow-hidden relative z-10">
           {/* Header Section */}
-          <header className="h-24 border-b border-neutral-900 flex items-center justify-between px-8 bg-neutral-950/95 backdrop-blur-md shrink-0 pointer-events-none sm:pointer-events-auto">
+          <header className="h-24 border-b border-neutral-900 flex items-center justify-between px-4 md:px-8 bg-neutral-950/95 backdrop-blur-md shrink-0 sm:pointer-events-auto">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-neutral-900 border border-neutral-800 flex items-center justify-center cursor-default hover:bg-neutral-800 transition-colors pointer-events-auto">
               <Folder className="text-purple-400" size={20} strokeWidth={2.5} />
             </div>
-            <div>
+            <div className="hidden xs:block">
               <h1 className="text-xl font-black uppercase tracking-tighter leading-none text-white">Digital Archive</h1>
               <p className="text-[10px] uppercase tracking-widest text-neutral-400">Design & Development / 2026 Edition</p>
             </div>
           </div>
-          <div className="hidden sm:flex flex-col items-end">
+          <div className="flex flex-col items-end pointer-events-auto">
+            <button 
+              onClick={() => setShowArchive(false)}
+              className="flex items-center gap-2 md:gap-3 group transition-all duration-300 text-purple-400 hover:text-white"
+            >
+              <div className="w-16 h-16 rounded-xl bg-purple-950/20 border border-purple-500/40 flex items-center justify-center text-purple-400 group-hover:text-purple-300 group-hover:border-purple-500/80 transition-all shadow-[0_0_15px_rgba(168,85,247,0.25)] group-hover:shadow-[0_0_25px_rgba(168,85,247,0.55)] shrink-0">
+                <ArrowLeft className="w-7 h-7" />
+              </div>
+              <span className="font-mono text-xs md:text-sm lg:text-base font-black uppercase tracking-widest block cursor-pointer text-purple-400/90 group-hover:text-white transition-colors duration-300">
+                Return_Home
+              </span>
+            </button>
           </div>
         </header>
  
@@ -661,17 +703,7 @@ export default function App() {
           </main>
         </div>
  
-        {/* Footer Bar */}
-        <footer className="h-10 border-t border-neutral-900 flex items-center justify-between px-8 bg-black text-neutral-400 text-[9px] uppercase tracking-[0.2em] shrink-0 overflow-hidden">
-          <div className="flex gap-4 md:gap-8">
-            <span className="hidden sm:inline">LOCAL: {currentTime}</span>
-            <span>STATUS: READY_FOR_HIRE</span>
-          </div>
-          <div className="flex gap-4 md:gap-8">
-            <a href="#" className="hover:text-white transition-colors">GITHUB://CID</a>
-            <a href="#" className="hidden sm:inline hover:text-white transition-colors">MAIL://HELO@ARCHIVE</a>
-          </div>
-        </footer>
+
       </div>
 
       {/* Immersive Owner Account Modal */}
@@ -840,6 +872,14 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Global Redirect Interceptor Loader modal */}
+      <RedirectLoader
+        isOpen={redirectLoaderState.isOpen}
+        targetUrl={redirectLoaderState.targetUrl}
+        itemTitle={redirectLoaderState.itemTitle}
+        onClose={() => setRedirectLoaderState(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }
