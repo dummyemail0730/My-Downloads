@@ -2453,8 +2453,10 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                     )}
                   </div>
                 </div>
- 
-                {/* Right Panel:                   {isCommentingBanned ? (
+
+                {/* Right Panel: Form with ban capability and validation error warnings */}
+                <div className="md:col-span-5 flex flex-col justify-between h-full min-h-[380px]">
+                  {isCommentingBanned ? (
                     <div className="h-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-red-500/35 bg-red-950/20 text-center rounded-2xl space-y-4 my-auto">
                       <div className="w-14 h-14 bg-red-950/40 rounded-full border border-red-500/30 flex items-center justify-center mb-1 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse">
                         <span className="text-2xl">☠️</span>
@@ -2463,11 +2465,6 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       <p className="text-xs text-neutral-300 font-sans leading-relaxed px-2 whitespace-pre-line">
                         Due to repeated violations of our community guidelines regarding profanity and harassment, your ability to post comments has been removed. If you believe this is an error, please contact support.
                       </p>
-                    </div>
-                  ) : (      ⚠️ {banPasscodeError}
-                          </span>
-                        )}
-                      </div>
                     </div>
                   ) : (
                     <form onSubmit={handlePostShout} className="flex flex-col text-left justify-between h-full">
