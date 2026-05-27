@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone } from 'lucide-react';
+import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
@@ -103,30 +103,9 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
       return;
     }
 
-    const allCurrent = [...STATIC_PLAYLIST, ...customTracks];
-    const matchIdx = allCurrent.findIndex(t => t.id === id);
-    if (matchIdx !== -1) {
-      handleSelectTrack(matchIdx);
-      setSoundtrackInput('');
-      return;
-    }
-
-    const newTrack = {
-      id,
-      name: `User Frequency Audio [${id.substring(0, 4)}]`,
-      desc: `Injected frequencies: ${id}`
-    };
-    const updated = [newTrack, ...customTracks];
-    setCustomTracks(updated);
-    localStorage.setItem('shadow_custom_tracks_data', JSON.stringify(updated));
-    setSoundtrackInput('');
-    
-    // Select the newly added track
-    const newIdx = STATIC_PLAYLIST.length;
-    setCurrentTrackIndex(newIdx);
-    localStorage.setItem('shadow_soundtrack_active_index', String(newIdx));
-    setLocalAudioActive(true);
-    setIsPlaying(true);
+    setTrackInputPayload(soundtrackInput);
+    setIsInjectingTrack(true);
+    setInjectingTrackProgress(0);
   };
 
   const handlePurgeTrack = (id: string, e: React.MouseEvent) => {
@@ -216,13 +195,158 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   const [unlinkTrigger, setUnlinkTrigger] = useState(0);
   const [isAdminSuggestionsOpen, setIsAdminSuggestionsOpen] = useState(false);
 
+  // --- APPOINTMENTS STATE ---
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [isFiledAppointmentsDropdownOpen, setIsFiledAppointmentsDropdownOpen] = useState(false);
+  const [isSubmittingAppointment, setIsSubmittingAppointment] = useState(false);
+  const [showAppointmentSuccess, setShowAppointmentSuccess] = useState(false);
+  const [appointmentProgress, setAppointmentProgress] = useState(0);
+  const [appointmentStage, setAppointmentStage] = useState('');
+  const [appointmentToSubmit, setAppointmentToSubmit] = useState<{ id: string; name: string; contact: string; specs: string; problem: string; description: string; date: string; status: string } | null>(null);
+  const [aptActiveTab, setAptActiveTab] = useState<'book' | 'view'>('book');
+  
+  const [aptName, setAptName] = useState('');
+  const [aptContact, setAptContact] = useState('');
+  const [aptSpecs, setAptSpecs] = useState('');
+  const [aptCpu, setAptCpu] = useState('Intel Core i7-13700K');
+  const [aptCpuBrand, setAptCpuBrand] = useState<'Intel' | 'AMD'>('Intel');
+  const [aptMobo, setAptMobo] = useState('ASUS ROG Series');
+  const [aptGpu, setAptGpu] = useState('NVIDIA GeForce RTX 4070');
+  const [aptRam, setAptRam] = useState('16GB DDR5');
+  const [aptStep, setAptStep] = useState(1);
+  const [aptProblem, setAptProblem] = useState('Slow Performance & Freezing');
+  const [aptExplain, setAptExplain] = useState('');
+  const [appointmentValidationError, setAppointmentValidationError] = useState<string | null>(null);
+
   // --- SUGGESTIONS STATE ---
   const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
   const [isShoutBoxOpen, setIsShoutBoxOpen] = useState(false);
+  const [shoutSuccessCountdown, setShoutSuccessCountdown] = useState<number | null>(null);
   const [isSendingSuggestion, setIsSendingSuggestion] = useState(false);
+  const [showSuggestionSuccess, setShowSuggestionSuccess] = useState(false);
   const [sendingSuggestionProgress, setSendingSuggestionProgress] = useState(0);
   const [sendingSuggestionStage, setSendingSuggestionStage] = useState('');
   const [suggestionToSubmit, setSuggestionToSubmit] = useState<{ text: string; category: string; status: string } | null>(null);
+
+  // --- ADDITIONAL SIMULATOR STATES ---
+  const [isSendingUplink, setIsSendingUplink] = useState(false);
+  const [sendingUplinkProgress, setSendingUplinkProgress] = useState(0);
+  const [uplinkToSubmit, setUplinkToSubmit] = useState<{ gameTitle: string; category: string; description: string; linkType: string; gameFile: string } | null>(null);
+
+  const [isPostingShout, setIsPostingShout] = useState(false);
+  const [postingShoutProgress, setPostingShoutProgress] = useState(0);
+  const [shoutPayload, setShoutPayload] = useState<{ text: string; nameToUse: string; avatars: string[]; backgrounds: string[] } | null>(null);
+
+  const [isInjectingTrack, setIsInjectingTrack] = useState(false);
+  const [injectingTrackProgress, setInjectingTrackProgress] = useState(0);
+  const [trackInputPayload, setTrackInputPayload] = useState<string>('');
+
+  const [isDecryptingKey, setIsDecryptingKey] = useState(false);
+  const [decryptingKeyProgress, setDecryptingKeyProgress] = useState(0);
+  const [pendingDecryptPayload, setPendingDecryptPayload] = useState<{ normalizedInput: string } | null>(null);
+
+  const [isVerifyingDelete, setIsVerifyingDelete] = useState(false);
+  const [verifyingDeleteProgress, setVerifyingDeleteProgress] = useState(0);
+  const [pendingDeletePayload, setPendingDeletePayload] = useState<{ normalizedInput: string } | null>(null);
+
+  const [isEnteringArchive, setIsEnteringArchive] = useState(false);
+  const [enteringArchiveProgress, setEnteringArchiveProgress] = useState(1);
+
+  const [isAccessingTutorials, setIsAccessingTutorials] = useState(false);
+  const [accessingTutorialsProgress, setAccessingTutorialsProgress] = useState(1);
+
+  const [shouts, setShouts] = useState<Array<{
+    id: string;
+    name: string;
+    message: string;
+    time: string;
+    timestamp: number;
+    avatar: string;
+    avatarBg: string;
+    likes: number;
+    likedByUser?: boolean;
+  }>>(() => {
+    const saved = localStorage.getItem('shadow_shout_outs_v3');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [
+      {
+        id: 's1',
+        name: 'Alpha [Seven Shadows]',
+        message: 'All core database nodes are completely secured under Shadow\'s direct command. No Cult of Diablos influence detected. 🔮🖤',
+        time: '2m ago',
+        timestamp: Date.now() - 2 * 60 * 1000,
+        avatar: '👑',
+        avatarBg: 'bg-purple-950/85 border border-purple-500/35 text-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.2)]',
+        likes: 12
+      },
+      {
+        id: 's2',
+        name: 'Beta [Seven Shadows]',
+        message: 'Completed volume 14 of the Shadow Chronicles! Lord Shadow\'s peerless brilliance must be recorded beautifully! 📖✨',
+        time: '5m ago',
+        timestamp: Date.now() - 5 * 60 * 1000,
+        avatar: '✍️',
+        avatarBg: 'bg-amber-950/85 border border-amber-500/35 text-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.2)]',
+        likes: 9
+      },
+      {
+        id: 's3',
+        name: 'Gamma [Seven Shadows]',
+        message: 'Mitsugoshi Company has secured additional golden reserves. The grand supply chain grows silently in the night. 💰🍷',
+        time: '12m ago',
+        timestamp: Date.now() - 12 * 60 * 1000,
+        avatar: '💸',
+        avatarBg: 'bg-pink-950/85 border border-pink-500/35 text-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.2)]',
+        likes: 8
+      },
+      {
+        id: 's4',
+        name: 'Delta [Seven Shadows]',
+        message: 'BUG HATING TIME! Delta crush all weak codes! SMASH SMASH! Master said I did a good job! 🐺⚔️',
+        time: '18m ago',
+        timestamp: Date.now() - 18 * 60 * 1000,
+        avatar: '🐺',
+        avatarBg: 'bg-emerald-950/85 border border-emerald-500/35 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)]',
+        likes: 15
+      },
+      {
+        id: 's5',
+        name: 'Epsilon [Seven Shadows]',
+        message: 'Calibrating our slime-suit compression and magic density to absolute precision. Peak operational performance! 🎻🎶',
+        time: '25m ago',
+        timestamp: Date.now() - 25 * 60 * 1000,
+        avatar: '🎹',
+        avatarBg: 'bg-orange-950/85 border border-orange-500/35 text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]',
+        likes: 7
+      },
+      {
+        id: 's6',
+        name: 'Zeta [Seven Shadows]',
+        message: 'Exploring the outer wild borders. No cult traces found in the east, only quiet ruins waiting for Master\'s word. 🐱✨',
+        time: '35m ago',
+        timestamp: Date.now() - 35 * 60 * 1000,
+        avatar: '🐱',
+        avatarBg: 'bg-teal-950/85 border border-teal-500/35 text-teal-400 shadow-[0_0_8px_rgba(20,184,166,0.2)]',
+        likes: 5
+      },
+      {
+        id: 's7',
+        name: 'Eta [Seven Shadows]',
+        message: 'Master\'s ancient formulas are decrypted. The research lab completed the new cyber defense protocol. 🧪🧠',
+        time: '50m ago',
+        timestamp: Date.now() - 50 * 60 * 1000,
+        avatar: '🧪',
+        avatarBg: 'bg-indigo-950/85 border border-indigo-500/35 text-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.2)]',
+        likes: 11
+      }
+    ];
+  });
 
   const [suggestions, setSuggestions] = useState<Array<{ id: string; text: string; date: string; category: string; status: string }>>(() => {
     const saved = localStorage.getItem('shadow_suggestions');
@@ -242,6 +366,37 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
     return defaults;
   });
 
+  const [appointments, setAppointments] = useState<Array<{ id: string; name: string; contact: string; specs: string; problem: string; description: string; date: string; status: string }>>(() => {
+    const saved = localStorage.getItem('shadow_appointments');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Ensure legacy fields don't crash, map them if legacy found
+        if (parsed && parsed.length > 0) {
+          return parsed.map((item: any) => ({
+            id: item.id || 'ap-' + Math.random(),
+            name: item.name || 'Anonymous',
+            contact: item.contact || item.email || 'N/A',
+            specs: item.specs || item.location || 'Core i7 13700H, 16GB RAM, RTX 4060, Windows 11',
+            problem: item.problem || item.purpose || 'Slow Performance & Freezing',
+            description: item.description || item.purpose || 'No additional explanation provided.',
+            date: item.date || '2026-05-28',
+            status: item.status || 'PENDING'
+          }));
+        }
+        return parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const defaults = [
+      { id: 'ap-1', name: 'Alpha', contact: 'alpha@shadow-garden.net', specs: 'Intel Core i9-13900K, 64GB DDR5, NVMe Gen4 2TB', problem: 'Slow Performance & Freezing', description: 'The compilation of system files is taking more than 5 minutes due to IO storage bottle-necks.', date: '2026-05-28', status: 'CONFIRMED' },
+      { id: 'ap-2', name: 'Sherry Barnett', contact: 'sherry@academic.net', specs: 'AMD Ryzen 7 5800X, 32GB RAM, AMD RX 6700XT', problem: 'Windows / OS Boot Failure', description: 'System hangs on the BIOS screen with an unidentified artifact verification failure code.', date: '2026-05-27', status: 'PENDING' }
+    ];
+    localStorage.setItem('shadow_appointments', JSON.stringify(defaults));
+    return defaults;
+  });
+
   const [newSuggestionText, setNewSuggestionText] = useState('');
   const [newSuggestionCategory, setNewSuggestionCategory] = useState('SYSTEM');
   const [newSuggestionStatus, setNewSuggestionStatus] = useState('NEW');
@@ -257,6 +412,15 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   const [showDeletePasswordModal, setShowDeletePasswordModal] = useState(false);
   const [deletePasswordInput, setDeletePasswordInput] = useState('');
   const [deletePasswordError, setDeletePasswordError] = useState('');
+
+  // Shoutout deletion security authentication
+  const [deleteShoutId, setDeleteShoutId] = useState<string | null>(null);
+  const [showDeleteShoutPasswordModal, setShowDeleteShoutPasswordModal] = useState(false);
+  const [deleteShoutPasswordInput, setDeleteShoutPasswordInput] = useState('');
+  const [deleteShoutPasswordError, setDeleteShoutPasswordError] = useState('');
+  const [isVerifyingDeleteShout, setIsVerifyingDeleteShout] = useState(false);
+  const [verifyingDeleteShoutProgress, setVerifyingDeleteShoutProgress] = useState(0);
+  const [pendingDeleteShoutPayload, setPendingDeleteShoutPayload] = useState<{ normalizedInput: string } | null>(null);
 
   // Interactive Shadow Chibi Chat Room States
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; text: string; sender: 'user' | 'shadow'; time: string }>>([
@@ -360,12 +524,573 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
           setSendingSuggestionProgress(0);
           setSendingSuggestionStage('');
           setSuggestionValidationError(null);
+          // Highlight that the suggestion has been sent
+          setShowSuggestionSuccess(true);
         }, 500);
       }
     }, 40);
 
     return () => clearInterval(interval);
   }, [isSendingSuggestion, suggestionToSubmit]);
+
+  // Appointment scheduling simulator (4-seconds)
+  useEffect(() => {
+    if (!isSubmittingAppointment || !appointmentToSubmit) return;
+
+    const startTime = Date.now();
+    const duration = 4000;
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
+      setAppointmentProgress(progress);
+
+      if (progress < 15) {
+        setAppointmentStage('DIAGNOSING SYSTEM LOGS & CONTEXT...');
+      } else if (progress < 40) {
+        setAppointmentStage('ISOLATING DEVICE DRIVER DISCREPANCIES...');
+      } else if (progress < 70) {
+        setAppointmentStage('DETERMINING SYSTEM RESOLUTION PATHWAY...');
+      } else if (progress < 90) {
+        setAppointmentStage('SUBMITTING SUPPORT TICKET TO HQ ARCHIVES...');
+      } else {
+        setAppointmentStage('TICKET SECURED // ACTION DISPATCH ACTIVE!');
+      }
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+
+        setTimeout(() => {
+          const newApt = {
+            id: 'ap-' + Date.now(),
+            name: appointmentToSubmit.name,
+            contact: appointmentToSubmit.contact,
+            specs: appointmentToSubmit.specs,
+            problem: appointmentToSubmit.problem,
+            description: appointmentToSubmit.description,
+            date: appointmentToSubmit.date,
+            status: 'PENDING'
+          };
+
+          setAppointments(prev => {
+            const updated = [newApt, ...prev];
+            localStorage.setItem('shadow_appointments', JSON.stringify(updated));
+            return updated;
+          });
+
+          // Reset forms
+          setAptName('');
+          setAptContact('');
+          setAptSpecs('');
+          setAptCpu('Intel Core i7-13700K');
+          setAptCpuBrand('Intel');
+          setAptMobo('ASUS ROG Series');
+          setAptGpu('NVIDIA GeForce RTX 4070');
+          setAptRam('16GB DDR5');
+          setAptStep(1);
+          setAptProblem('Slow Performance & Freezing');
+          setAptExplain('');
+          
+          setAppointmentToSubmit(null);
+          setIsSubmittingAppointment(false);
+          setAppointmentProgress(0);
+          setAppointmentStage('');
+          setAppointmentValidationError(null);
+          setShowAppointmentSuccess(true);
+        }, 500);
+      }
+    }, 40);
+
+    return () => clearInterval(interval);
+  }, [isSubmittingAppointment, appointmentToSubmit]);
+
+  // Uplink sending simulator (5-seconds)
+  useEffect(() => {
+    if (!isSendingUplink || !uplinkToSubmit) return;
+
+    const startTime = Date.now();
+    const duration = 5000;
+    
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
+      setSendingUplinkProgress(progress);
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        
+        setTimeout(() => {
+          const trimTitle = uplinkToSubmit.gameTitle;
+          const { category, description, linkType, gameFile } = uplinkToSubmit;
+
+          if (category === 'SOFTWARE') {
+            const saved = localStorage.getItem('custom_projects');
+            const projectsList = saved ? JSON.parse(saved) : STATIC_PROJECTS;
+            
+            const existingIdx = projectsList.findIndex((p: any) => p.title.toLowerCase() === trimTitle.toLowerCase());
+            
+            const updatedProject = {
+              id: existingIdx !== -1 ? projectsList[existingIdx].id : String(Date.now()),
+              title: trimTitle,
+              description: description,
+              tags: [linkType],
+              link: gameFile
+            };
+
+            let updatedList;
+            if (existingIdx !== -1) {
+              updatedList = [...projectsList];
+              updatedList[existingIdx] = updatedProject;
+            } else {
+              updatedList = [updatedProject, ...projectsList];
+            }
+
+            localStorage.setItem('custom_projects', JSON.stringify(updatedList));
+          } else {
+            const saved = localStorage.getItem('custom_tools');
+            const toolsList = saved ? JSON.parse(saved) : STATIC_TOOLS;
+            
+            const existingIdx = toolsList.findIndex((t: any) => t.name.toLowerCase() === trimTitle.toLowerCase());
+
+            const updatedTool = {
+              id: existingIdx !== -1 ? toolsList[existingIdx].id : String(Date.now()),
+              name: trimTitle,
+              description: description,
+              category: linkType,
+              link: gameFile
+            };
+
+            let updatedList;
+            if (existingIdx !== -1) {
+              updatedList = [...toolsList];
+              updatedList[existingIdx] = updatedTool;
+            } else {
+              updatedList = [updatedTool, ...toolsList];
+            }
+
+            localStorage.setItem('custom_tools', JSON.stringify(updatedList));
+          }
+
+          localStorage.setItem('admin_console_link', gameFile);
+          setConsoleLink(gameFile);
+
+          // Reset inputs / state
+          setGameTitle('');
+          setCategory('SOFTWARE');
+          setDescription('');
+          setGameFile('');
+          setSelectedDriveUrl('CUSTOM_URL');
+          setUplinkToSubmit(null);
+          setIsSendingUplink(false);
+          setSendingUplinkProgress(0);
+
+          // Show success message
+          setSuccessStatus('PROTOCOL SYNCHRONIZED SUCCESSFULLY');
+          setTimeout(() => {
+            setSuccessStatus(null);
+            setIsModalOpen(false);
+          }, 1200);
+
+        }, 500);
+      }
+    }, 40);
+
+    return () => clearInterval(interval);
+  }, [isSendingUplink, uplinkToSubmit]);
+
+  // Shoutout sending simulator (5-seconds)
+  useEffect(() => {
+    if (!isPostingShout || !shoutPayload) return;
+
+    const startTime = Date.now();
+    const duration = 5000;
+    
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
+      setPostingShoutProgress(progress);
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        
+        setTimeout(() => {
+          const { text, nameToUse, avatars, backgrounds } = shoutPayload;
+
+          const randomIdx = Math.floor(Math.random() * avatars.length);
+          const randomBgIdx = Math.floor(Math.random() * backgrounds.length);
+          
+          const newShout = {
+            id: `shout-${Date.now()}`,
+            name: nameToUse,
+            message: text,
+            time: 'now',
+            timestamp: Date.now(),
+            avatar: avatars[randomIdx],
+            avatarBg: backgrounds[randomBgIdx],
+            likes: 0,
+            likedByUser: false
+          };
+
+          const updated = [newShout, ...shouts];
+          setShouts(updated);
+          localStorage.setItem('shadow_shout_outs_v3', JSON.stringify(updated));
+          
+          // Reset fields
+          setShoutMessage('');
+          setShoutValidationError(null);
+          setIsPostingShout(false);
+          setPostingShoutProgress(0);
+          setShoutPayload(null);
+          setShoutSuccessCountdown(20);
+        }, 500);
+      }
+    }, 40);
+
+    return () => clearInterval(interval);
+  }, [isPostingShout, shoutPayload, shouts]);
+
+  // Track injection simulator (5-seconds)
+  useEffect(() => {
+    if (!isInjectingTrack || !trackInputPayload) return;
+
+    const startTime = Date.now();
+    const duration = 5000;
+    
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
+      setInjectingTrackProgress(progress);
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        
+        setTimeout(() => {
+          const id = parseYoutubeId(trackInputPayload);
+          if (!id) {
+            alert("UNABLE TO RESOLVE COG-LINK URL // Re-evaluate YouTube details.");
+            setIsInjectingTrack(false);
+            setInjectingTrackProgress(0);
+            setTrackInputPayload('');
+            return;
+          }
+
+          const allCurrent = [...STATIC_PLAYLIST, ...customTracks];
+          const matchIdx = allCurrent.findIndex(t => t.id === id);
+          if (matchIdx !== -1) {
+            setCurrentTrackIndex(matchIdx);
+            localStorage.setItem('shadow_soundtrack_active_index', String(matchIdx));
+            setLocalAudioActive(true);
+            setIsPlaying(true);
+            setSoundtrackInput('');
+            setIsInjectingTrack(false);
+            setInjectingTrackProgress(0);
+            setTrackInputPayload('');
+            return;
+          }
+
+          const newTrack = {
+            id,
+            name: `User Frequency Audio [${id.substring(0, 4)}]`,
+            desc: `Injected frequencies: ${id}`
+          };
+          const updated = [newTrack, ...customTracks];
+          setCustomTracks(updated);
+          localStorage.setItem('shadow_custom_tracks_data', JSON.stringify(updated));
+          
+          const newIdx = STATIC_PLAYLIST.length;
+          setCurrentTrackIndex(newIdx);
+          localStorage.setItem('shadow_soundtrack_active_index', String(newIdx));
+          setLocalAudioActive(true);
+          setIsPlaying(true);
+
+          setSoundtrackInput('');
+          setIsInjectingTrack(false);
+          setInjectingTrackProgress(0);
+          setTrackInputPayload('');
+        }, 500);
+      }
+    }, 40);
+
+    return () => clearInterval(interval);
+  }, [isInjectingTrack, trackInputPayload, customTracks]);
+
+  // Passcode decryption simulator (5-seconds)
+  useEffect(() => {
+    if (!isDecryptingKey || !pendingDecryptPayload) return;
+
+    const startTime = Date.now();
+    const duration = 5000;
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
+      setDecryptingKeyProgress(progress);
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+
+        setTimeout(async () => {
+          const normalizedInput = pendingDecryptPayload.normalizedInput;
+          let isMatch = false;
+
+          try {
+            const msgBuffer = new TextEncoder().encode(normalizedInput);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            if (hashHex === '9811036de8c2a393d542fb081e5107ce7944d2ed3ba7a421812db1c65c7dcd8d') {
+              isMatch = true;
+            }
+          } catch (err) {
+            if (btoa(normalizedInput) === 'a2dhYjA3MzA=') {
+              isMatch = true;
+            }
+          }
+
+          if (isMatch) {
+            setIsAuthenticated(true);
+            setShowPasswordModal(false);
+            setPasswordError('');
+            setPasswordInput('');
+            setIsModalOpen(true);
+            
+            // Reset security tracker
+            setPasswordAttempts(0);
+            setLockoutUntil(null);
+            localStorage.removeItem('shadow_admin_password_attempts');
+            localStorage.removeItem('shadow_admin_lockout_until');
+          } else {
+            const nextAttempts = passwordAttempts + 1;
+            setPasswordAttempts(nextAttempts);
+            localStorage.setItem('shadow_admin_password_attempts', nextAttempts.toString());
+            setPasswordInput('');
+
+            if (nextAttempts >= 3) {
+              const lockTime = Date.now() + 5 * 60 * 1000; // 5 minutes lockout
+              setLockoutUntil(lockTime);
+              localStorage.setItem('shadow_admin_lockout_until', lockTime.toString());
+              setPasswordError('Too many unsuccessful login attempts. Please try again in 5 minutes.');
+            } else {
+              const remaining = 3 - nextAttempts;
+              setPasswordError(`INVALID DECRYPTION KEY. (attempts remaining: ${remaining}/3)`);
+            }
+          }
+
+          setIsDecryptingKey(false);
+          setDecryptingKeyProgress(0);
+          setPendingDecryptPayload(null);
+        }, 500);
+      }
+    }, 40);
+
+    return () => clearInterval(interval);
+  }, [isDecryptingKey, pendingDecryptPayload, passwordAttempts]);
+
+  // Deletion passcode verification simulator (5-seconds)
+  useEffect(() => {
+    if (!isVerifyingDelete || !pendingDeletePayload) return;
+
+    const startTime = Date.now();
+    const duration = 5000;
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
+      setVerifyingDeleteProgress(progress);
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+
+        setTimeout(async () => {
+          const normalizedInput = pendingDeletePayload.normalizedInput;
+          let isMatch = false;
+
+          try {
+            const msgBuffer = new TextEncoder().encode(normalizedInput);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            if (hashHex === '9811036de8c2a393d542fb081e5107ce7944d2ed3ba7a421812db1c65c7dcd8d') {
+              isMatch = true;
+            }
+          } catch (err) {
+            if (btoa(normalizedInput) === 'a2dhYjA3MzA=') {
+              isMatch = true;
+            }
+          }
+
+          if (isMatch) {
+            const updated = suggestions.filter(s => s.id !== deleteItemId);
+            setSuggestions(updated);
+            localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+            
+            setShowDeletePasswordModal(false);
+            setDeletePasswordError('');
+            setDeletePasswordInput('');
+            setDeleteItemId(null);
+          } else {
+            setDeletePasswordInput('');
+            setDeletePasswordError('INVALID PASSWORD. ACCESS TO DELETION TERMINATED.');
+          }
+
+          setIsVerifyingDelete(false);
+          setVerifyingDeleteProgress(0);
+          setPendingDeletePayload(null);
+        }, 500);
+      }
+    }, 40);
+
+    return () => clearInterval(interval);
+  }, [isVerifyingDelete, pendingDeletePayload, suggestions, deleteItemId]);
+
+  // Shoutout deletion passcode verification simulator (5-seconds)
+  useEffect(() => {
+    if (!isVerifyingDeleteShout || !pendingDeleteShoutPayload) return;
+
+    const startTime = Date.now();
+    const duration = 5000;
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
+      setVerifyingDeleteShoutProgress(progress);
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+
+        setTimeout(async () => {
+          const normalizedInput = pendingDeleteShoutPayload.normalizedInput;
+          let isMatch = false;
+
+          try {
+            const msgBuffer = new TextEncoder().encode(normalizedInput);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            if (hashHex === '9811036de8c2a393d542fb081e5107ce7944d2ed3ba7a421812db1c65c7dcd8d') {
+              isMatch = true;
+            }
+          } catch (err) {
+            if (btoa(normalizedInput) === 'a2dhYjA3MzA=') {
+              isMatch = true;
+            }
+          }
+
+          if (isMatch) {
+            const updated = shouts.filter(s => s.id !== deleteShoutId);
+            setShouts(updated);
+            localStorage.setItem('shadow_shout_outs_v3', JSON.stringify(updated));
+            
+            setShowDeleteShoutPasswordModal(false);
+            setDeleteShoutPasswordError('');
+            setDeleteShoutPasswordInput('');
+            setDeleteShoutId(null);
+          } else {
+            setDeleteShoutPasswordInput('');
+            setDeleteShoutPasswordError('INVALID PASSWORD. ACCESS TO DELETION TERMINATED.');
+          }
+
+          setIsVerifyingDeleteShout(false);
+          setVerifyingDeleteShoutProgress(0);
+          setPendingDeleteShoutPayload(null);
+        }, 500);
+      }
+    }, 40);
+
+    return () => clearInterval(interval);
+  }, [isVerifyingDeleteShout, pendingDeleteShoutPayload, shouts, deleteShoutId]);
+
+  // Reset shout success countdown when modal closes
+  useEffect(() => {
+    if (!isShoutBoxOpen) {
+      setShoutSuccessCountdown(null);
+    }
+  }, [isShoutBoxOpen]);
+
+  // Shoutout success 20-second automatic close countdown
+  useEffect(() => {
+    if (shoutSuccessCountdown === null) return;
+    if (!isShoutBoxOpen) {
+      setShoutSuccessCountdown(null);
+      return;
+    }
+    if (shoutSuccessCountdown <= 0) {
+      setIsShoutBoxOpen(false);
+      setShoutSuccessCountdown(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setShoutSuccessCountdown(prev => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [shoutSuccessCountdown, isShoutBoxOpen]);
+
+  // Store callbacks in refs to avoid restarting simulator on dependency change
+  const onEnterRef = useRef(onEnter);
+  const onShowShadowLoreRef = useRef(onShowShadowLore);
+
+  useEffect(() => {
+    onEnterRef.current = onEnter;
+  }, [onEnter]);
+
+  useEffect(() => {
+    onShowShadowLoreRef.current = onShowShadowLore;
+  }, [onShowShadowLore]);
+
+  // Entering Archive simulator (5-seconds)
+  useEffect(() => {
+    if (!isEnteringArchive) return;
+
+    const startTime = Date.now();
+    const duration = 5000;
+    
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.max(1, Math.min(100, Math.floor((elapsed / duration) * 100)));
+      setEnteringArchiveProgress(progress);
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        
+        setTimeout(() => {
+          setIsEnteringArchive(false);
+          setEnteringArchiveProgress(1);
+          onEnterRef.current();
+        }, 300);
+      }
+    }, 30);
+
+    return () => clearInterval(interval);
+  }, [isEnteringArchive]);
+
+  // Accessing Tutorials simulator (5-seconds)
+  useEffect(() => {
+    if (!isAccessingTutorials) return;
+
+    const startTime = Date.now();
+    const duration = 5000;
+    
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.max(1, Math.min(100, Math.floor((elapsed / duration) * 100)));
+      setAccessingTutorialsProgress(progress);
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        
+        setTimeout(() => {
+          setIsAccessingTutorials(false);
+          setAccessingTutorialsProgress(1);
+          onShowShadowLoreRef.current();
+        }, 300);
+      }
+    }, 30);
+
+    return () => clearInterval(interval);
+  }, [isAccessingTutorials]);
 
   useEffect(() => {
     if (!isCommentingBanned) return;
@@ -401,99 +1126,6 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
     return () => clearInterval(interval);
   }, [isCommentingBanned]);
-
-  const [shouts, setShouts] = useState<Array<{
-    id: string;
-    name: string;
-    message: string;
-    time: string;
-    timestamp: number;
-    avatar: string;
-    avatarBg: string;
-    likes: number;
-    likedByUser?: boolean;
-  }>>(() => {
-    const saved = localStorage.getItem('shadow_shout_outs_v3');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return [
-      {
-        id: 's1',
-        name: 'Alpha [Seven Shadows]',
-        message: 'All core database nodes are completely secured under Shadow\'s direct command. No Cult of Diablos influence detected. 🔮🖤',
-        time: '2m ago',
-        timestamp: Date.now() - 2 * 60 * 1000,
-        avatar: '👑',
-        avatarBg: 'bg-purple-950/85 border border-purple-500/35 text-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.2)]',
-        likes: 12
-      },
-      {
-        id: 's2',
-        name: 'Beta [Seven Shadows]',
-        message: 'Completed volume 14 of the Shadow Chronicles! Lord Shadow\'s peerless brilliance must be recorded beautifully! 📖✨',
-        time: '5m ago',
-        timestamp: Date.now() - 5 * 60 * 1000,
-        avatar: '✍️',
-        avatarBg: 'bg-amber-950/85 border border-amber-500/35 text-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.2)]',
-        likes: 9
-      },
-      {
-        id: 's3',
-        name: 'Gamma [Seven Shadows]',
-        message: 'Mitsugoshi Company has secured additional golden reserves. The grand supply chain grows silently in the night. 💰🍷',
-        time: '12m ago',
-        timestamp: Date.now() - 12 * 60 * 1000,
-        avatar: '💸',
-        avatarBg: 'bg-pink-950/85 border border-pink-500/35 text-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.2)]',
-        likes: 8
-      },
-      {
-        id: 's4',
-        name: 'Delta [Seven Shadows]',
-        message: 'BUG HATING TIME! Delta crush all weak codes! SMASH SMASH! Master said I did a good job! 🐺⚔️',
-        time: '18m ago',
-        timestamp: Date.now() - 18 * 60 * 1000,
-        avatar: '🐺',
-        avatarBg: 'bg-emerald-950/85 border border-emerald-500/35 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)]',
-        likes: 15
-      },
-      {
-        id: 's5',
-        name: 'Epsilon [Seven Shadows]',
-        message: 'Calibrating our slime-suit compression and magic density to absolute precision. Peak operational performance! 🎻🎶',
-        time: '25m ago',
-        timestamp: Date.now() - 25 * 60 * 1000,
-        avatar: '🎹',
-        avatarBg: 'bg-orange-950/85 border border-orange-500/35 text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]',
-        likes: 7
-      },
-      {
-        id: 's6',
-        name: 'Zeta [Seven Shadows]',
-        message: 'Exploring the outer wild borders. No cult traces found in the east, only quiet ruins waiting for Master\'s word. 🐱✨',
-        time: '35m ago',
-        timestamp: Date.now() - 35 * 60 * 1000,
-        avatar: '🐱',
-        avatarBg: 'bg-teal-950/85 border border-teal-500/35 text-teal-400 shadow-[0_0_8px_rgba(20,184,166,0.2)]',
-        likes: 5
-      },
-      {
-        id: 's7',
-        name: 'Eta [Seven Shadows]',
-        message: 'Master\'s ancient formulas are decrypted. The research lab completed the new cyber defense protocol. 🧪🧠',
-        time: '50m ago',
-        timestamp: Date.now() - 50 * 60 * 1000,
-        avatar: '🧪',
-        avatarBg: 'bg-indigo-950/85 border border-indigo-500/35 text-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.2)]',
-        likes: 11
-      }
-    ];
-  });
 
   const handleLikeShout = (id: string) => {
     const updated = shouts.map(s => {
@@ -647,26 +1279,14 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
       'bg-amber-950/80 border border-amber-500/20 text-amber-500',
     ];
 
-    const randomIdx = Math.floor(Math.random() * avatars.length);
-    const randomBgIdx = Math.floor(Math.random() * backgrounds.length);
-    
-    const newShout = {
-      id: `shout-${Date.now()}`,
-      name: nameToUse,
-      message: text,
-      time: 'now',
-      timestamp: Date.now(),
-      avatar: avatars[randomIdx],
-      avatarBg: backgrounds[randomBgIdx],
-      likes: 0,
-      likedByUser: false
-    };
-
-    const updated = [newShout, ...shouts];
-    setShouts(updated);
-    localStorage.setItem('shadow_shout_outs_v3', JSON.stringify(updated));
-    setShoutMessage('');
-    setShoutValidationError(null);
+    setShoutPayload({
+      text,
+      nameToUse,
+      avatars,
+      backgrounds
+    });
+    setIsPostingShout(true);
+    setPostingShoutProgress(0);
   };
 
   const getRelativeTime = (timestamp: number) => {
@@ -1094,66 +1714,15 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
     const trimTitle = gameTitle.trim();
     if (!trimTitle) return;
 
-    if (category === 'SOFTWARE') {
-      const saved = localStorage.getItem('custom_projects');
-      const projectsList = saved ? JSON.parse(saved) : STATIC_PROJECTS;
-      
-      const existingIdx = projectsList.findIndex((p: any) => p.title.toLowerCase() === trimTitle.toLowerCase());
-      
-      const updatedProject = {
-        id: existingIdx !== -1 ? projectsList[existingIdx].id : String(Date.now()),
-        title: trimTitle,
-        description: description,
-        tags: [linkType],
-        link: gameFile
-      };
-
-      let updatedList;
-      if (existingIdx !== -1) {
-        updatedList = [...projectsList];
-        updatedList[existingIdx] = updatedProject;
-      } else {
-        updatedList = [updatedProject, ...projectsList];
-      }
-
-      localStorage.setItem('custom_projects', JSON.stringify(updatedList));
-    } else {
-      const saved = localStorage.getItem('custom_tools');
-      const toolsList = saved ? JSON.parse(saved) : STATIC_TOOLS;
-      
-      const existingIdx = toolsList.findIndex((t: any) => t.name.toLowerCase() === trimTitle.toLowerCase());
-
-      const updatedTool = {
-        id: existingIdx !== -1 ? toolsList[existingIdx].id : String(Date.now()),
-        name: trimTitle,
-        description: description,
-        category: linkType,
-        link: gameFile
-      };
-
-      let updatedList;
-      if (existingIdx !== -1) {
-        updatedList = [...toolsList];
-        updatedList[existingIdx] = updatedTool;
-      } else {
-        updatedList = [updatedTool, ...toolsList];
-      }
-
-      localStorage.setItem('custom_tools', JSON.stringify(updatedList));
-    }
-
-    // Save global default target link
-    localStorage.setItem('admin_console_link', gameFile);
-    setConsoleLink(gameFile);
-
-    // Show nice synchronized notification
-    setSuccessStatus('PROTOCOL SYNCHRONIZED SUCCESSFULLY');
-    
-    // Auto-close with delay
-    setTimeout(() => {
-      setSuccessStatus(null);
-      setIsModalOpen(false);
-    }, 1200);
+    setUplinkToSubmit({
+      gameTitle: trimTitle,
+      category,
+      description,
+      linkType,
+      gameFile
+    });
+    setIsSendingUplink(true);
+    setSendingUplinkProgress(0);
   };
 
   return (
@@ -1194,8 +1763,169 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
         initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={skip ? { duration: 0 } : { delay: 1.0, duration: 0.6, ease: "easeOut" }}
-        className="absolute top-8 right-8 md:top-12 md:right-12 z-30 flex items-center gap-2"
+        className="absolute top-8 right-8 md:top-12 md:right-12 z-30 flex items-center gap-2 flex-wrap justify-end"
       >
+        <button
+          onClick={() => {
+            setIsAppointmentModalOpen(true);
+            setAptStep(1);
+          }}
+          className="flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
+          id="appointment-scheduler-btn"
+        >
+          <Calendar size={11} className="text-purple-450 animate-pulse" />
+          <span>Appointment</span>
+        </button>
+
+        {/* Filed Appointments Reference Button with Interactive Dropdown Container */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setIsFiledAppointmentsDropdownOpen(!isFiledAppointmentsDropdownOpen);
+            }}
+            className={`flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none ${
+              isFiledAppointmentsDropdownOpen
+                ? 'bg-neutral-800 border-purple-400 text-purple-300'
+                : 'bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400'
+            }`}
+            id="filed-appointments-toggle-btn"
+          >
+            <Clock size={11} className={`text-purple-450 ${isFiledAppointmentsDropdownOpen ? 'rotate-45' : ''} transition-transform`} />
+            <span>Filed ({appointments.length})</span>
+          </button>
+
+          <AnimatePresence>
+            {isFiledAppointmentsDropdownOpen && (
+              <>
+                {/* Backdrop overlay for closing on outside click */}
+                <div 
+                  className="fixed inset-0 z-30 bg-transparent cursor-default" 
+                  onClick={() => setIsFiledAppointmentsDropdownOpen(false)}
+                />
+                
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute right-0 mt-2 w-80 md:w-[22rem] bg-neutral-950 border-2 border-neutral-900 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.85)] p-4 z-40 text-left font-mono relative"
+                >
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none opacity-20" />
+                  
+                  {/* Dropdown Header */}
+                  <div className="flex items-center justify-between pb-2.5 border-b border-neutral-900 mb-3 relative z-10">
+                    <span className="text-[9px] font-black text-purple-400 tracking-wider">
+                      // SYSTEM FILED APPOINTMENTS ({appointments.length})
+                    </span>
+                    <button 
+                      type="button"
+                      onClick={() => setIsFiledAppointmentsDropdownOpen(false)}
+                      className="text-neutral-500 hover:text-white transition-colors text-[8px] font-bold"
+                    >
+                      CLOSE
+                    </button>
+                  </div>
+                  
+                  {/* List Container */}
+                  <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1 relative z-10 scrollbar-thin scrollbar-thumb-purple-500/10 hover:scrollbar-thumb-purple-500/30">
+                    {appointments.length === 0 ? (
+                      <div className="py-8 text-center border border-dashed border-neutral-900 rounded-xl bg-neutral-950/20">
+                        <span className="text-lg block mb-1">⏱️</span>
+                        <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest leading-normal">
+                          NO DIAGNOSTIC ORDERS LOADED
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsFiledAppointmentsDropdownOpen(false);
+                            setIsAppointmentModalOpen(true);
+                            setAptStep(1);
+                          }}
+                          className="mt-2.5 text-[7px] text-purple-400 hover:text-purple-300 underline uppercase tracking-wider block mx-auto cursor-pointer"
+                        >
+                          CREATE APPOINTMENT NOW
+                        </button>
+                      </div>
+                    ) : (
+                      appointments.map((apt) => (
+                        <div 
+                          key={apt.id}
+                          className="p-2.5 rounded-xl bg-neutral-900/60 border border-neutral-900 hover:border-neutral-850 transition-all space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                            <span className="text-[9.5px] font-bold text-white tracking-wide truncate max-w-[130px]" title={apt.name}>
+                              {apt.name}
+                            </span>
+                            <span className="px-1.5 py-0.5 bg-yellow-950/20 border border-yellow-500/25 text-[6.5px] text-amber-400 font-extrabold tracking-widest uppercase rounded leading-none">
+                              ● {apt.status}
+                            </span>
+                          </div>
+                          
+                          <div className="text-[8px] space-y-1 text-neutral-400">
+                            <div>
+                              <span className="text-neutral-600 font-black mr-1">ISSUE:</span>
+                              <span className="text-purple-400 font-black tracking-wide uppercase">{apt.problem}</span>
+                            </div>
+                            <div className="truncate text-neutral-300 font-sans" title={apt.specs}>
+                              <span className="text-neutral-600 font-mono font-black mr-1">SPEC:</span>
+                              {apt.specs}
+                            </div>
+                            {apt.description && (
+                              <p className="line-clamp-2 text-neutral-450 font-sans text-[8px] leading-tight bg-neutral-950/50 p-1.5 rounded-lg border border-neutral-950">
+                                "{apt.description}"
+                              </p>
+                            )}
+                            <div className="text-neutral-500 font-black flex justify-between items-center text-[7.5px] pt-1">
+                              <span>ID: {apt.id.substring(3).toUpperCase()}</span>
+                              <span>{apt.date.split('T')[0] || apt.date}</span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons Bar */}
+                          <div className="flex items-center gap-1.5 pt-1 border-t border-neutral-950 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsAppointmentModalOpen(true);
+                                setAptActiveTab('view');
+                                setIsFiledAppointmentsDropdownOpen(false);
+                              }}
+                              className="flex-grow py-1 px-1.5 bg-neutral-950 hover:bg-neutral-850 border border-neutral-850 text-[8px] font-bold text-neutral-300 rounded hover:text-white transition-all text-center uppercase tracking-widest cursor-pointer"
+                            >
+                              Explore Detail
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const filtered = appointments.filter(item => item.id !== apt.id);
+                                setAppointments(filtered);
+                                localStorage.setItem('shadow_appointments', JSON.stringify(filtered));
+                              }}
+                              className="py-1 px-1.5 bg-red-955/20 border border-red-500/20 hover:border-red-500 text-[6.5px] text-red-400 rounded hover:bg-red-500 hover:text-white transition-all uppercase tracking-widest cursor-pointer"
+                            >
+                              Revoke
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <button
+          onClick={() => {
+            setIsSuggestionModalOpen(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
+          id="suggestion-system-btn"
+        >
+          <Sparkles size={11} className="text-purple-450 animate-pulse" />
+          <span>Suggestions DB</span>
+        </button>
+
         <button
           onClick={() => {
             setTempName(shoutName || '');
@@ -1207,17 +1937,6 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
         >
           <MessageSquare size={11} className="text-purple-450 animate-pulse" />
           <span>Shout Out Box</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setIsSuggestionModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
-          id="suggestion-system-btn"
-        >
-          <Sparkles size={11} className="text-purple-450 animate-pulse" />
-          <span>Suggestions DB</span>
         </button>
 
         <button 
@@ -1319,52 +2038,9 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   }
 
                   const normalizedInput = passwordInput.trim().toLowerCase();
-                  let isMatch = false;
-
-                  try {
-                    const msgBuffer = new TextEncoder().encode(normalizedInput);
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-                    const hashArray = Array.from(new Uint8Array(hashBuffer));
-                    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                    
-                    if (hashHex === '9811036de8c2a393d542fb081e5107ce7944d2ed3ba7a421812db1c65c7dcd8d') {
-                      isMatch = true;
-                    }
-                  } catch (err) {
-                    // Fallback verification using basic obscuration in case subtle crypto is unavailable
-                    if (btoa(normalizedInput) === 'a2dhYjA3MzA=') {
-                      isMatch = true;
-                    }
-                  }
-
-                  if (isMatch) {
-                    setIsAuthenticated(true);
-                    setShowPasswordModal(false);
-                    setPasswordError('');
-                    setPasswordInput('');
-                    setIsModalOpen(true);
-                    
-                    // Reset security tracker
-                    setPasswordAttempts(0);
-                    setLockoutUntil(null);
-                    localStorage.removeItem('shadow_admin_password_attempts');
-                    localStorage.removeItem('shadow_admin_lockout_until');
-                  } else {
-                    const nextAttempts = passwordAttempts + 1;
-                    setPasswordAttempts(nextAttempts);
-                    localStorage.setItem('shadow_admin_password_attempts', nextAttempts.toString());
-                    setPasswordInput('');
-
-                    if (nextAttempts >= 3) {
-                      const lockTime = Date.now() + 5 * 60 * 1000; // 5 minutes lockout
-                      setLockoutUntil(lockTime);
-                      localStorage.setItem('shadow_admin_lockout_until', lockTime.toString());
-                      setPasswordError('Too many unsuccessful login attempts. Please try again in 5 minutes.');
-                    } else {
-                      const remaining = 3 - nextAttempts;
-                      setPasswordError(`INVALID DECRYPTION KEY. (attempts remaining: ${remaining}/3)`);
-                    }
-                  }
+                  setPendingDecryptPayload({ normalizedInput });
+                  setIsDecryptingKey(true);
+                  setDecryptingKeyProgress(0);
                 }}
                 className="space-y-4 relative z-10"
               >
@@ -1372,21 +2048,21 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   <input 
                     type="password"
                     value={passwordInput}
-                    disabled={lockoutUntil !== null && Date.now() < lockoutUntil}
+                    disabled={isDecryptingKey || (lockoutUntil !== null && Date.now() < lockoutUntil)}
                     onChange={(e) => {
                       setPasswordInput(e.target.value);
                       if (passwordError) setPasswordError('');
                     }}
-                    placeholder={lockoutUntil !== null && Date.now() < lockoutUntil ? "LOCKED OUT" : "ENTER PASSCODE"}
-                    className={`w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em] ${lockoutUntil !== null && Date.now() < lockoutUntil ? 'opacity-45 cursor-not-allowed border-purple-950 text-neutral-600' : ''}`}
+                    placeholder={isDecryptingKey ? "DECRYPTING..." : (lockoutUntil !== null && Date.now() < lockoutUntil ? "LOCKED OUT" : "ENTER PASSCODE")}
+                    className={`w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em] ${(lockoutUntil !== null && Date.now() < lockoutUntil) || isDecryptingKey ? 'opacity-45 cursor-not-allowed border-purple-950 text-neutral-600' : ''}`}
                     autoFocus
-                    required={!(lockoutUntil !== null && Date.now() < lockoutUntil)}
+                    required={!isDecryptingKey && !(lockoutUntil !== null && Date.now() < lockoutUntil)}
                   />
                   {(() => {
                     const isLocked = lockoutUntil !== null && Date.now() < lockoutUntil;
                     const errorMsg = isLocked ? 'Too many unsuccessful login attempts. Please try again in 5 minutes.' : passwordError;
                     
-                    if (!errorMsg) return null;
+                    if (!errorMsg || isDecryptingKey) return null;
                     return (
                       <motion.p 
                         initial={{ opacity: 0, y: -4 }}
@@ -1399,17 +2075,60 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   })()}
                 </div>
 
-                <button 
-                  type="submit"
-                  disabled={lockoutUntil !== null && Date.now() < lockoutUntil}
-                  className={`w-full py-2.5 border font-black uppercase tracking-[0.2em] text-[9px] rounded-xl transition-all cursor-pointer select-none active:scale-95 ${
-                    lockoutUntil !== null && Date.now() < lockoutUntil
-                      ? 'bg-neutral-900/40 border-neutral-850 text-neutral-600 cursor-not-allowed'
-                      : 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-900/40 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]'
-                  }`}
-                >
-                  {lockoutUntil !== null && Date.now() < lockoutUntil ? 'TACTICAL UPLINK BLOCKED' : 'DECRYPT & AUTHENTICATE'}
-                </button>
+                {isDecryptingKey ? (
+                  <div className="flex flex-col items-center justify-center py-2">
+                    {/* Circular Progress Loader */}
+                    <div className="relative flex items-center justify-center w-14 h-14 mx-auto">
+                      {/* Outer rotating ring */}
+                      <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/20 animate-spin [animation-duration:10s]" />
+                      
+                      {/* Inner SVG Circular Progress */}
+                      <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 80 80">
+                        {/* Background Track */}
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="34"
+                          className="stroke-neutral-900"
+                          strokeWidth="5"
+                          fill="transparent"
+                        />
+                        {/* Foreground Progress */}
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="34"
+                          className="stroke-purple-500 transition-all duration-100 ease-out"
+                          strokeWidth="5"
+                          fill="transparent"
+                          strokeDasharray="213.6"
+                          strokeDashoffset={213.6 * (1 - decryptingKeyProgress / 100)}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      
+                      {/* Center text showing percentage */}
+                      <div className="absolute flex flex-col items-center justify-center font-mono">
+                        <span className="text-[8px] font-black text-purple-400 leading-none">
+                          {decryptingKeyProgress}%
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[7.5px] font-mono text-purple-400 font-extrabold uppercase tracking-widest mt-1">DISSOLVING SHA256 LAYERS...</span>
+                  </div>
+                ) : (
+                  <button 
+                    type="submit"
+                    disabled={lockoutUntil !== null && Date.now() < lockoutUntil}
+                    className={`w-full py-2.5 border font-black uppercase tracking-[0.2em] text-[9px] rounded-xl transition-all cursor-pointer select-none active:scale-95 ${
+                      lockoutUntil !== null && Date.now() < lockoutUntil
+                        ? 'bg-neutral-900/40 border-neutral-850 text-neutral-600 cursor-not-allowed'
+                        : 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-900/40 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]'
+                    }`}
+                  >
+                    {lockoutUntil !== null && Date.now() < lockoutUntil ? 'TACTICAL UPLINK BLOCKED' : 'DECRYPT & AUTHENTICATE'}
+                  </button>
+                )}
               </form>
             </motion.div>
           </div>
@@ -1471,36 +2190,9 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const normalizedInput = deletePasswordInput.trim().toLowerCase();
-                  let isMatch = false;
-
-                  try {
-                    const msgBuffer = new TextEncoder().encode(normalizedInput);
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-                    const hashArray = Array.from(new Uint8Array(hashBuffer));
-                    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                    
-                    if (hashHex === '9811036de8c2a393d542fb081e5107ce7944d2ed3ba7a421812db1c65c7dcd8d') {
-                      isMatch = true;
-                    }
-                  } catch (err) {
-                    if (btoa(normalizedInput) === 'a2dhYjA3MzA=') {
-                      isMatch = true;
-                    }
-                  }
-
-                  if (isMatch) {
-                    const updated = suggestions.filter(s => s.id !== deleteItemId);
-                    setSuggestions(updated);
-                    localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
-                    
-                    setShowDeletePasswordModal(false);
-                    setDeletePasswordError('');
-                    setDeletePasswordInput('');
-                    setDeleteItemId(null);
-                  } else {
-                    setDeletePasswordInput('');
-                    setDeletePasswordError('INVALID PASSWORD. ACCESS TO DELETION TERMINATED.');
-                  }
+                  setPendingDeletePayload({ normalizedInput });
+                  setIsVerifyingDelete(true);
+                  setVerifyingDeleteProgress(0);
                 }}
                 className="space-y-4 relative z-10"
               >
@@ -1508,16 +2200,17 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   <input 
                     type="password"
                     value={deletePasswordInput}
+                    disabled={isVerifyingDelete}
                     onChange={(e) => {
                       setDeletePasswordInput(e.target.value);
                       if (deletePasswordError) setDeletePasswordError('');
                     }}
-                    placeholder="ENTER PASSWORD"
-                    className="w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em]"
+                    placeholder={isVerifyingDelete ? "AUTHLOCKED..." : "ENTER PASSWORD"}
+                    className={`w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em] ${isVerifyingDelete ? 'opacity-45 cursor-not-allowed text-neutral-600' : ''}`}
                     autoFocus
-                    required
+                    required={!isVerifyingDelete}
                   />
-                  {deletePasswordError && (
+                  {deletePasswordError && !isVerifyingDelete && (
                     <motion.p 
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -1528,26 +2221,224 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   )}
                 </div>
 
-                <div className="flex gap-2">
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setShowDeletePasswordModal(false);
-                      setDeletePasswordError('');
-                      setDeletePasswordInput('');
-                      setDeleteItemId(null);
-                    }}
-                    className="flex-1 py-2.5 bg-neutral-900/40 hover:bg-neutral-900/70 border border-neutral-800 text-neutral-400 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer select-none active:scale-95"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit"
-                    className="flex-1 py-2.5 bg-purple-950/40 hover:bg-purple-900/50 border border-purple-900/40 text-purple-400 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer select-none active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
-                  >
-                    Confirm
-                  </button>
+                {isVerifyingDelete ? (
+                  <div className="flex flex-col items-center justify-center py-2">
+                    {/* Circular Progress Loader */}
+                    <div className="relative flex items-center justify-center w-14 h-14 mx-auto">
+                      {/* Outer rotating ring */}
+                      <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/20 animate-spin [animation-duration:10s]" />
+                      
+                      {/* Inner SVG Circular Progress */}
+                      <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 80 80">
+                        {/* Background Track */}
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="34"
+                          className="stroke-neutral-900"
+                          strokeWidth="5"
+                          fill="transparent"
+                        />
+                        {/* Foreground Progress */}
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="34"
+                          className="stroke-purple-500 transition-all duration-100 ease-out"
+                          strokeWidth="5"
+                          fill="transparent"
+                          strokeDasharray="213.6"
+                          strokeDashoffset={213.6 * (1 - verifyingDeleteProgress / 100)}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      
+                      {/* Center text showing percentage */}
+                      <div className="absolute flex flex-col items-center justify-center font-mono">
+                        <span className="text-[8px] font-black text-purple-400 leading-none">
+                          {verifyingDeleteProgress}%
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[7.5px] font-mono text-purple-400 font-extrabold uppercase tracking-widest mt-1">VERIFYING DELETION CRITERIA...</span>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setShowDeletePasswordModal(false);
+                        setDeletePasswordError('');
+                        setDeletePasswordInput('');
+                        setDeleteItemId(null);
+                      }}
+                      className="flex-1 py-2.5 bg-neutral-900/40 hover:bg-neutral-900/70 border border-neutral-800 text-neutral-400 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer select-none active:scale-95"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      className="flex-1 py-2.5 bg-purple-950/40 hover:bg-purple-900/50 border border-purple-900/40 text-purple-400 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer select-none active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                )}
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Secure Delete Shoutout Authentication Modal */}
+      <AnimatePresence>
+        {showDeleteShoutPasswordModal && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-[#0b061a] border-2 border-purple-500/30 w-full max-w-sm rounded-[1.8rem] shadow-[0_0_40px_rgba(168,85,247,0.25)] relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
+            >
+              {/* Grid overlay decoration */}
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-35" />
+              <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-purple-500/40 rounded-tl-lg pointer-events-none" />
+              <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-purple-500/40 rounded-tr-lg pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-purple-500/40 rounded-bl-lg pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-purple-500/40 rounded-br-lg pointer-events-none" />
+
+              {/* Close Button UI */}
+              <div className="flex justify-between items-center mb-6 pb-3 border-b border-neutral-900 relative z-10">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="text-purple-400 w-4 h-4 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-400">Purge Shoutout</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteShoutPasswordModal(false);
+                    setDeleteShoutPasswordError('');
+                    setDeleteShoutPasswordInput('');
+                    setDeleteShoutId(null);
+                  }}
+                  className="p-1 hover:bg-neutral-900 text-neutral-400 hover:text-white rounded-md transition-colors cursor-pointer"
+                  title="Close purge prompt"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Icon & Message */}
+              <div className="text-center mb-6 relative z-10">
+                <div className="w-12 h-12 rounded-full bg-purple-950/20 border border-purple-900/40 flex items-center justify-center mx-auto mb-3">
+                  <Lock className="text-purple-400 w-5 h-5" />
+                </div>
+                <h4 className="text-[11px] uppercase tracking-[0.22em] font-black text-white mb-1.5">Authorization Key Required</h4>
+                <p className="text-[9px] uppercase tracking-wider text-neutral-400 leading-relaxed">
+                  Deleting shoutouts from persistent store requires verification. Enter admin password below.
+                </p>
+              </div>
+
+              {/* Password submission form */}
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const normalizedInput = deleteShoutPasswordInput.trim().toLowerCase();
+                  setPendingDeleteShoutPayload({ normalizedInput });
+                  setIsVerifyingDeleteShout(true);
+                  setVerifyingDeleteShoutProgress(0);
+                }}
+                className="space-y-4 relative z-10"
+              >
+                <div>
+                  <input 
+                    type="password"
+                    value={deleteShoutPasswordInput}
+                    disabled={isVerifyingDeleteShout}
+                    onChange={(e) => {
+                      setDeleteShoutPasswordInput(e.target.value);
+                      if (deleteShoutPasswordError) setDeleteShoutPasswordError('');
+                    }}
+                    placeholder={isVerifyingDeleteShout ? "AUTHLOCKED..." : "ENTER PASSWORD"}
+                    className={`w-full text-center rounded-xl bg-neutral-900 border border-neutral-800 p-3 text-white font-mono text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 outline-none transition-all placeholder:text-neutral-700 font-semibold uppercase tracking-[0.15em] ${isVerifyingDeleteShout ? 'opacity-45 cursor-not-allowed text-neutral-600' : ''}`}
+                    autoFocus
+                    required={!isVerifyingDeleteShout}
+                  />
+                  {deleteShoutPasswordError && !isVerifyingDeleteShout && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-[8.5px] text-purple-400 font-bold uppercase tracking-widest text-center mt-2.5 leading-relaxed px-1"
+                    >
+                      🔮 {deleteShoutPasswordError} 🔮
+                    </motion.p>
+                  )}
+                </div>
+
+                {isVerifyingDeleteShout ? (
+                  <div className="flex flex-col items-center justify-center py-2">
+                    {/* Circular Progress Loader */}
+                    <div className="relative flex items-center justify-center w-14 h-14 mx-auto">
+                      {/* Outer rotating ring */}
+                      <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/20 animate-spin [animation-duration:10s]" />
+                      
+                      {/* Inner SVG Circular Progress */}
+                      <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 80 80">
+                        {/* Background Track */}
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="34"
+                          className="stroke-neutral-900"
+                          strokeWidth="5"
+                          fill="transparent"
+                        />
+                        {/* Foreground Progress */}
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="34"
+                          className="stroke-purple-500 transition-all duration-100 ease-out"
+                          strokeWidth="5"
+                          fill="transparent"
+                          strokeDasharray="213.6"
+                          strokeDashoffset={213.6 * (1 - verifyingDeleteShoutProgress / 100)}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      
+                      {/* Center text showing percentage */}
+                      <div className="absolute flex flex-col items-center justify-center font-mono">
+                        <span className="text-[8px] font-black text-purple-400 leading-none">
+                          {verifyingDeleteShoutProgress}%
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[7.5px] font-mono text-purple-400 font-extrabold uppercase tracking-widest mt-1">VERIFYING DELETION CRITERIA...</span>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setShowDeleteShoutPasswordModal(false);
+                        setDeleteShoutPasswordError('');
+                        setDeleteShoutPasswordInput('');
+                        setDeleteShoutId(null);
+                      }}
+                      className="flex-1 py-2.5 bg-neutral-900/40 hover:bg-neutral-900/70 border border-neutral-800 text-neutral-400 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer select-none active:scale-95"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      className="flex-1 py-2.5 bg-purple-950/40 hover:bg-purple-900/50 border border-purple-900/40 text-purple-400 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer select-none active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                )}
               </form>
             </motion.div>
           </div>
@@ -1824,14 +2715,6 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                     <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
                       <button 
                         type="button"
-                        onClick={handleAbortTransit}
-                        className="w-full sm:w-auto px-4 py-2.5 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-xl font-mono text-[10px] uppercase tracking-[0.15em] text-neutral-400 hover:text-white transition-all cursor-pointer text-center"
-                      >
-                        ABORT TRANSIT
-                      </button>
-                      
-                      <button 
-                        type="button"
                         onClick={() => setIsAdminSuggestionsOpen(true)}
                         className="w-full sm:w-auto px-4 py-2.5 bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-950/40 text-purple-400 hover:text-purple-300 rounded-xl font-mono text-[10px] uppercase tracking-[0.15em] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                       >
@@ -1845,13 +2728,56 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       </button>
                     </div>
                     
-                    <button 
-                      type="submit"
-                      className="w-full sm:w-auto relative group flex items-center justify-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-750 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer shadow-lg active:scale-95 text-center font-mono"
-                    >
-                      <Sparkles size={12} className="text-white group-hover:rotate-12 transition-transform" />
-                      SYNC UPLINK PROTOCOL
-                    </button>
+                    {isSendingUplink ? (
+                      <div className="flex items-center gap-3 px-6 py-1.5 font-mono">
+                        {/* Circular Progress Loader */}
+                        <div className="relative flex items-center justify-center w-10 h-10">
+                          {/* Outer rotating ring */}
+                          <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/20 animate-spin [animation-duration:10s]" />
+                          
+                          {/* Inner SVG Circular Progress */}
+                          <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 80 80">
+                            {/* Background Track */}
+                            <circle
+                              cx="40"
+                              cy="40"
+                              r="34"
+                              className="stroke-neutral-900"
+                              strokeWidth="5"
+                              fill="transparent"
+                            />
+                            {/* Foreground Progress */}
+                            <circle
+                              cx="40"
+                              cy="40"
+                              r="34"
+                              className="stroke-purple-500 transition-all duration-100 ease-out"
+                              strokeWidth="5"
+                              fill="transparent"
+                              strokeDasharray="213.6"
+                              strokeDashoffset={213.6 * (1 - sendingUplinkProgress / 100)}
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          
+                          {/* Center text showing percentage */}
+                          <div className="absolute flex flex-col items-center justify-center font-mono">
+                            <span className="text-[7px] font-black text-purple-400 leading-none">
+                              {sendingUplinkProgress}%
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[8px] uppercase tracking-[0.15em] text-purple-400 font-bold animate-pulse">TRANSMITTING UPLINK...</span>
+                      </div>
+                    ) : (
+                      <button 
+                        type="submit"
+                        className="w-full sm:w-auto relative group flex items-center justify-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-750 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-xl transition-all cursor-pointer shadow-lg active:scale-95 text-center font-mono"
+                      >
+                        <Sparkles size={12} className="text-white group-hover:rotate-12 transition-transform" />
+                        SYNC UPLINK PROTOCOL
+                      </button>
+                    )}
                   </div>
 
                 </form>
@@ -2076,6 +3002,42 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-purple-500/30 rounded-bl-xl pointer-events-none" />
               <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-500/30 rounded-br-xl pointer-events-none" />
 
+              {/* Success Toast Overlay inside Suggestion Modal */}
+              <AnimatePresence>
+                {showSuggestionSuccess && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-x-0 inset-y-0 bg-neutral-950/98 z-50 flex flex-col items-center justify-center text-center p-6 gap-5"
+                  >
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl animate-pulse" />
+                      <CheckCircle className="text-purple-500 w-20 h-20 animate-bounce relative z-10" />
+                    </div>
+                    <div>
+                      <h4 className="text-purple-400 font-mono font-black uppercase text-base tracking-[0.3em] mb-2">SUCCESS</h4>
+                      <p className="text-neutral-200 font-sans text-xs max-w-sm mx-auto leading-relaxed">
+                        successfully sent to admin console suggestion box
+                      </p>
+                      <p className="text-neutral-500 font-mono text-[9px] uppercase tracking-widest mt-2">
+                        TRANSMISSION STABILIZED // SYSTEM PACKETS ARCHIVED
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSuggestionSuccess(false);
+                        setIsSuggestionModalOpen(false);
+                      }}
+                      className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 border border-purple-500/30 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:brightness-110 transition-all cursor-pointer active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.15)] mt-3"
+                    >
+                      Acknowledge
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Header */}
               <div className="flex justify-between items-center mb-6 pb-4 border-b border-neutral-900 relative z-10 shrink-0">
                 <div className="flex items-center gap-3">
@@ -2123,48 +3085,47 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   </div>
 
                   {isSendingSuggestion ? (
-                    /* Holographic Tactical Loading Animation Screen (5 Seconds) */
-                    <div className="flex flex-col items-center justify-center p-6 border border-purple-500/20 bg-purple-950/10 rounded-2xl space-y-5 my-auto min-h-[220px] relative overflow-hidden font-mono text-center">
-                      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-pulse" />
-                      
-                      {/* Interactive Radar Ring */}
-                      <div className="relative flex items-center justify-center w-14 h-14">
-                        <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/30 animate-spin [animation-duration:8s]" />
-                        <div className="absolute inset-1.5 rounded-full border border-purple-400/20 animate-ping [animation-duration:2.5s]" />
-                        <div className="relative w-9 h-9 rounded-full bg-purple-950/50 border border-purple-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-                          <Cpu className="text-purple-400 animate-pulse" size={16} />
-                        </div>
-                      </div>
-
-                      {/* Info & Phase Text */}
-                      <div className="space-y-1 w-full">
-                        <span className="text-[8px] uppercase tracking-[0.25em] text-neutral-500 block">TRANSMITTING METADATA</span>
-                        <h4 className="text-purple-400 font-mono font-black text-[10px] sm:text-xs tracking-[0.1em] uppercase h-5 overflow-hidden">
-                          {sendingSuggestionStage}
-                        </h4>
-                      </div>
-
-                      {/* Percentage Indicator */}
-                      <div className="w-full max-w-xs space-y-1.5">
-                        <div className="flex justify-between items-center text-[8px] text-neutral-400 font-bold px-1 font-mono">
-                          <span>SYSTEM: DIRECT_UPLINK</span>
-                          <span className="text-purple-400 font-extrabold">{sendingSuggestionProgress}%</span>
-                        </div>
+                    /* Holographic Tactical Circular Loading Animation (5 Seconds) */
+                    <div className="flex flex-col items-center justify-center py-12 my-auto relative">
+                      {/* Circular Progress Loader */}
+                      <div className="relative flex items-center justify-center w-20 h-20 mx-auto">
+                        {/* Outer rotating ring */}
+                        <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/20 animate-spin [animation-duration:10s]" />
                         
-                        {/* Custom bar */}
-                        <div className="w-full h-2.5 bg-neutral-900 border border-neutral-800 rounded-full p-0.5 overflow-hidden relative">
-                          <div 
-                            className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 rounded-full transition-all duration-75"
-                            style={{ width: `${sendingSuggestionProgress}%` }}
+                        {/* Inner SVG Circular Progress */}
+                        <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 80 80">
+                          {/* Background Track */}
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            className="stroke-neutral-900"
+                            strokeWidth="3.5"
+                            fill="transparent"
                           />
+                          {/* Foreground Progress */}
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            className="stroke-purple-500 transition-all duration-100 ease-out"
+                            strokeWidth="3.5"
+                            fill="transparent"
+                            strokeDasharray="213.6"
+                            strokeDashoffset={213.6 * (1 - sendingSuggestionProgress / 100)}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        
+                        {/* Center text showing percentage */}
+                        <div className="absolute flex flex-col items-center justify-center font-mono">
+                          <span className="text-[10px] font-black text-purple-400 leading-none">
+                            {sendingSuggestionProgress}%
+                          </span>
+                          <span className="text-[5.5px] text-neutral-500 tracking-widest uppercase mt-0.5 font-extrabold">
+                            TX
+                          </span>
                         </div>
-                      </div>
-
-                      {/* Realtime logs scrolling below the bar */}
-                      <div className="h-6 text-[7px] text-neutral-500 font-mono flex items-center justify-center font-semibold overflow-hidden leading-snug w-full px-4 border-t border-neutral-900 pt-2 shrink-0">
-                        <p className="uppercase tracking-widest animate-pulse">
-                          SECURE_PORT:3000 // PKT_SIZE: {Math.max(12, Math.floor(sendingSuggestionProgress * 12.8))}B // COLD_STREAM_ACK
-                        </p>
                       </div>
                     </div>
                   ) : isCommentingBanned ? (
@@ -2294,6 +3255,713 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
         )}
       </AnimatePresence>
 
+      {/* Appointment Booking Console Modal */}
+      <AnimatePresence>
+        {isAppointmentModalOpen && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto w-full" id="appointment-scheduler-modal">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 30 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-2xl rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono flex flex-col max-h-[90vh]"
+            >
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-20" />
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-purple-500/30 rounded-tl-xl pointer-events-none" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-purple-500/30 rounded-tr-xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-purple-500/30 rounded-bl-xl pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-500/30 rounded-br-xl pointer-events-none" />
+
+              {/* Success Toast Overlay inside Appointment Modal */}
+              <AnimatePresence>
+                {showAppointmentSuccess && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-x-0 inset-y-0 bg-neutral-950/98 z-50 flex flex-col items-center justify-center text-center p-6 gap-5"
+                  >
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl animate-pulse" />
+                      <CheckCircle className="text-purple-500 w-20 h-20 animate-bounce relative z-10" />
+                    </div>
+                    <div>
+                      <h4 className="text-purple-400 font-mono font-black uppercase text-base tracking-[0.3em] mb-2">DIAGNOSTIC TICKET LOGGED</h4>
+                      <p className="text-neutral-200 font-sans text-xs max-w-sm mx-auto leading-relaxed">
+                        Your PC problem has been reported successfully. Dispatch officers have allocated cognitive bandwidth for resolution!
+                      </p>
+                      <p className="text-neutral-500 font-mono text-[9px] uppercase tracking-widest mt-3">
+                        DIAGNOSIS INITIATED // TICKETS DATABASE SYNCHRONIZED
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAppointmentSuccess(false);
+                      }}
+                      className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 border border-purple-500/30 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:brightness-110 transition-all cursor-pointer active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.15)] mt-2"
+                    >
+                      Acknowledge Ticket
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6 pb-4 border-b border-neutral-900 relative z-10 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded-lg bg-purple-950/40 border border-purple-500/30 text-purple-400">
+                    <Calendar className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-extrabold uppercase tracking-[0.2em] text-white">
+                      PC Diagnostics Console
+                    </h3>
+                    <p className="text-[9px] uppercase tracking-wider text-purple-400 font-bold mt-0.5">
+                      // DIRECT TROUBLESHOOTING TELEMETRY SECURED
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (isSubmittingAppointment) return;
+                    setIsAppointmentModalOpen(false);
+                  }}
+                  disabled={isSubmittingAppointment}
+                  className={`p-1.5 border border-neutral-850 rounded-lg transition-all ${
+                    isSubmittingAppointment 
+                      ? 'opacity-30 cursor-not-allowed' 
+                      : 'hover:border-neutral-700 hover:bg-neutral-900 text-neutral-400 hover:text-white cursor-pointer'
+                  }`}
+                  title={isSubmittingAppointment ? "Transmission active" : "Close console"}
+                >
+                  {isSubmittingAppointment ? <Lock size={16} className="text-purple-400 animate-pulse" /> : <X size={16} />}
+                </button>
+              </div>
+
+              {/* Tabs selector */}
+              <div className="flex gap-2 mb-6 border-b border-neutral-900 pb-4 shrink-0 relative z-10">
+                <button
+                  onClick={() => setAptActiveTab('book')}
+                  disabled={isSubmittingAppointment}
+                  className={`px-4 py-2 border rounded-xl text-[10px] uppercase font-bold tracking-widest transition-all cursor-pointer ${
+                    aptActiveTab === 'book'
+                      ? 'bg-purple-950/40 border-purple-500 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.15)] font-black'
+                      : 'bg-neutral-950/50 border-neutral-900 text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  Log Ticket
+                </button>
+                <button
+                  onClick={() => setAptActiveTab('view')}
+                  disabled={isSubmittingAppointment}
+                  className={`px-4 py-2 border rounded-xl text-[10px] uppercase font-bold tracking-widest transition-all cursor-pointer flex items-center gap-2 ${
+                    aptActiveTab === 'view'
+                      ? 'bg-purple-950/40 border-purple-500 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.15)] font-black'
+                      : 'bg-neutral-950/50 border-neutral-900 text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  <span>Active Tickets</span>
+                  <span className="px-1.5 py-0.5 bg-neutral-900 border border-neutral-850 text-neutral-500 text-[8px] rounded font-bold leading-normal">
+                    {appointments.length}
+                  </span>
+                </button>
+              </div>
+
+              {/* Main Content Area */}
+              <div className="flex flex-col gap-6 relative z-10 overflow-y-auto no-scrollbar pb-4 flex-1">
+                
+                {aptActiveTab === 'book' ? (
+                  <div className="w-full flex flex-col gap-5">
+                    <div>
+                      <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold mb-1">
+                        Submit Diagnostic Report
+                      </h4>
+                      <p className="text-[8px] uppercase tracking-wider text-neutral-500 leading-normal">
+                        Submit your hardware or software issue details to dispatch immediate troubleshooting.
+                      </p>
+                    </div>
+
+                    {isSubmittingAppointment ? (
+                      /* Simulated progress bar */
+                      <div className="flex flex-col items-center justify-center py-12 my-auto relative">
+                        <div className="relative flex items-center justify-center w-20 h-20 mx-auto">
+                          <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/20 animate-spin [animation-duration:10s]" />
+                          <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 80 80">
+                            <circle
+                              cx="40"
+                              cy="40"
+                              r="34"
+                              className="stroke-neutral-900"
+                              strokeWidth="3.5"
+                              fill="transparent"
+                            />
+                            <circle
+                              cx="40"
+                              cy="40"
+                              r="34"
+                              className="stroke-purple-500 transition-all duration-100 ease-out"
+                              strokeWidth="3.5"
+                              fill="transparent"
+                              strokeDasharray="213.6"
+                              strokeDashoffset={213.6 * (1 - appointmentProgress / 100)}
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <div className="absolute flex flex-col items-center justify-center font-mono">
+                            <span className="text-xs font-black text-purple-300 leading-none">
+                              {appointmentProgress}%
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-center mt-6">
+                          <span className="text-[10px] tracking-[0.2em] text-neutral-300 uppercase font-bold block animate-pulse mb-1">
+                            {appointmentStage}
+                          </span>
+                          <span className="text-[8px] tracking-widest text-purple-300/60 uppercase font-black block">
+                            TRANSMITTING DIAGNOSTICS TELEMETRY SOCKETS
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          setAppointmentValidationError(null);
+
+                          const name = aptName.trim();
+                          const contact = aptContact.trim();
+                          
+                          // Compile specifications string from dropdown selections
+                          const specs = `CPU: ${aptCpu} | GPU: ${aptGpu} | MOBO: ${aptMobo} | RAM: ${aptRam}`;
+                          const problem = aptProblem;
+                          const description = aptExplain.trim();
+
+                          if (!name) {
+                            setAppointmentValidationError('VALIDATION ERROR: Name / Alias is required.');
+                            setAptStep(1);
+                            return;
+                          }
+
+                          if (!contact) {
+                            setAppointmentValidationError('VALIDATION ERROR: Contact Information (email, discord, phone) is required.');
+                            setAptStep(1);
+                            return;
+                          }
+
+                          if (!specs) {
+                            setAppointmentValidationError('VALIDATION ERROR: Please select your computer specifications in Step 2.');
+                            setAptStep(2);
+                            return;
+                          }
+
+                          if (!description) {
+                            setAppointmentValidationError('VALIDATION ERROR: Please explain your PC problem in the diagnostics chat box.');
+                            setAptStep(3);
+                            return;
+                          }
+
+                          const todayStr = new Date().toISOString().substring(0, 10);
+
+                          setAppointmentToSubmit({
+                            id: 'ap-' + Date.now(),
+                            name,
+                            contact,
+                            specs,
+                            problem,
+                            description,
+                            date: todayStr,
+                            status: 'PENDING'
+                          });
+                          setIsSubmittingAppointment(true);
+                          setAppointmentProgress(0);
+                          setAppointmentStage('DIAGNOSING SYSTEM LOGS & CONTEXT...');
+                        }}
+                        className="space-y-4"
+                      >
+                        {/* Progressive Stepper Indicator at the Top */}
+                        <div className="flex items-center justify-between pb-3 border-b border-neutral-900 mb-4 font-mono text-[9px]">
+                          <div className="flex items-center gap-1.5 font-bold">
+                            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] ${
+                              aptStep >= 1 ? 'bg-purple-600 text-white' : 'bg-neutral-900 border border-neutral-800 text-neutral-500'
+                            }`}>1</span>
+                            <span className={aptStep === 1 ? 'text-purple-400 font-extrabold' : 'text-neutral-500'}>COMMS</span>
+                          </div>
+                          <div className="h-[1px] flex-grow bg-neutral-900 mx-3" />
+                          <div className="flex items-center gap-1.5 font-bold">
+                            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] ${
+                              aptStep >= 2 ? 'bg-purple-600 text-white' : 'bg-neutral-900 border border-neutral-800 text-neutral-500'
+                            }`}>2</span>
+                            <span className={aptStep === 2 ? 'text-purple-400 font-extrabold' : 'text-neutral-500'}>HARDWARE SPECS</span>
+                          </div>
+                          <div className="h-[1px] flex-grow bg-neutral-900 mx-3" />
+                          <div className="flex items-center gap-1.5 font-bold">
+                            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] ${
+                              aptStep >= 3 ? 'bg-purple-600 text-white' : 'bg-neutral-900 border border-neutral-800 text-neutral-500'
+                            }`}>3</span>
+                            <span className={aptStep === 3 ? 'text-purple-400 font-extrabold' : 'text-neutral-500'}>DIAGNOSTIC REPORT</span>
+                          </div>
+                        </div>
+
+                        {/* STEP 1: COMMS INFO */}
+                        {aptStep === 1 && (
+                          <motion.div 
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="space-y-4"
+                          >
+                            <div className="space-y-4 bg-neutral-950/40 p-5 border border-neutral-900/60 rounded-2xl">
+                              <span className="text-[9px] font-mono font-black text-purple-400 uppercase tracking-widest block mb-1">
+                                // SECTION 01: OPERATOR DIGITAL IDENTITY
+                              </span>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                                    Your Name / Alias
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={aptName}
+                                    onChange={(e) => {
+                                      setAptName(e.target.value);
+                                      if (appointmentValidationError) setAppointmentValidationError(null);
+                                    }}
+                                    placeholder="e.g. Sherry Barnett"
+                                    required
+                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                                    Contact Information
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={aptContact}
+                                    onChange={(e) => {
+                                      setAptContact(e.target.value);
+                                      if (appointmentValidationError) setAppointmentValidationError(null);
+                                    }}
+                                    placeholder="e.g. email, discord, or phone"
+                                    required
+                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Verification state warnings */}
+                            {appointmentValidationError && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -2 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-2.5 bg-red-955/35 border border-red-500/35 text-red-200 text-[9.5px] font-sans rounded-xl flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+                              >
+                                <span className="text-xs">⚠️</span>
+                                <span>{appointmentValidationError}</span>
+                              </motion.div>
+                            )}
+
+                            {/* Lower navigations */}
+                            <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-2">
+                              <span className="text-[7.5px] font-mono text-neutral-500 tracking-wider">SECURE DIAGNOSTICS SYSTEM // PHASE 1 OF 3</span>
+                              
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!aptName.trim()) {
+                                    setAppointmentValidationError('VALIDATION ERROR: Your Name / Alias is required to proceed.');
+                                    return;
+                                  }
+                                  if (!aptContact.trim()) {
+                                    setAppointmentValidationError('VALIDATION ERROR: Contact information is required to proceed.');
+                                    return;
+                                  }
+                                  setAppointmentValidationError(null);
+                                  setAptStep(2);
+                                }}
+                                className="px-5 py-2.5 bg-neutral-900 border border-purple-500/60 text-purple-300 hover:text-purple-200 hover:bg-neutral-850 font-mono text-[9px] uppercase font-bold tracking-[0.15em] transition-all rounded-xl flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.15)]"
+                              >
+                                <span>Proceed to Specs</span>
+                                <ChevronRight size={12} className="text-purple-400 group-hover:translate-x-0.5 transition-transform" />
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* STEP 2: HARDWARE SPECIFICATION PICKER */}
+                        {aptStep === 2 && (
+                          <motion.div 
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="space-y-4"
+                          >
+                            <div className="bg-neutral-950/40 p-4 border border-neutral-900 rounded-2xl space-y-4">
+                              <span className="text-[9px] font-mono font-black text-purple-400 uppercase tracking-widest block mb-1">
+                                // SECTION 02: HARDWARE SPECIFICATION TELEMETRY
+                              </span>
+
+                              {/* Matrix configuration choices */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Brand Toggles */}
+                                <div>
+                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                                    Processor Brand Family
+                                  </label>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAptCpuBrand('Intel');
+                                        setAptCpu('Intel Core i7-13700K');
+                                      }}
+                                      className={`py-2 px-3 text-[9.5px] font-mono font-black rounded-xl transition-all border text-center ${
+                                        aptCpuBrand === 'Intel'
+                                          ? 'bg-blue-950/30 border-blue-500/70 text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.15)]'
+                                          : 'bg-neutral-950 text-neutral-500 border-neutral-900 hover:border-neutral-850 hover:text-neutral-400'
+                                      }`}
+                                    >
+                                      INTEL CORE CPU
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAptCpuBrand('AMD');
+                                        setAptCpu('AMD Ryzen 7 7800X3D');
+                                      }}
+                                      className={`py-2 px-3 text-[9.5px] font-mono font-black rounded-xl transition-all border text-center ${
+                                        aptCpuBrand === 'AMD'
+                                          ? 'bg-amber-950/30 border-amber-500/70 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+                                          : 'bg-neutral-950 text-neutral-500 border-neutral-900 hover:border-neutral-850 hover:text-neutral-400'
+                                      }`}
+                                    >
+                                      AMD RYZEN CPU
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Model choose lists */}
+                                <div>
+                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                                    Processor Model Choice
+                                  </label>
+                                  <select
+                                    value={aptCpu}
+                                    onChange={(e) => setAptCpu(e.target.value)}
+                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
+                                  >
+                                    {aptCpuBrand === 'Intel' ? (
+                                      <>
+                                        <option value="Intel Core i9-14900K">Intel Core i9-14900K (24-Core Rocket Flagship)</option>
+                                        <option value="Intel Core i7-13700K">Intel Core i7-13700K (16-Core Raptor Performance)</option>
+                                        <option value="Intel Core i5-13600K">Intel Core i5-13600K (Budget Enthusiast Choice)</option>
+                                        <option value="Intel Core i9-12900K">Intel Core i9-12900K (Alder Lake Architecture)</option>
+                                        <option value="Intel Xeon W-Series">Intel Xeon W-Series (Professional Workstation CPU)</option>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <option value="AMD Ryzen 9 7950X3D">AMD Ryzen 9 7950X3D (Zen 4 16-Core Extreme V-Cache)</option>
+                                        <option value="AMD Ryzen 7 7800X3D">AMD Ryzen 7 7800X3D (World-Best Gaming Silicon)</option>
+                                        <option value="AMD Ryzen 9 5950X">AMD Ryzen 9 5950X (Zen 3 16-Core Masterpiece)</option>
+                                        <option value="AMD Ryzen 7 5800X3D">AMD Ryzen 7 5800X3D (DDR4 Ultimate Gaming upgrade)</option>
+                                        <option value="AMD Ryzen 5 7600X">AMD Ryzen 5 7600X (Standard 6-Core Sweetspot)</option>
+                                      </>
+                                    )}
+                                  </select>
+                                </div>
+
+                                {/* Motherboard selects */}
+                                <div>
+                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                                    Motherboard Platform Option
+                                  </label>
+                                  <select
+                                    value={aptMobo}
+                                    onChange={(e) => setAptMobo(e.target.value)}
+                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
+                                  >
+                                    <option value="ASUS ROG Strix / Maximus">ASUS ROG Strix / Maximus Series [PREMIUM]</option>
+                                    <option value="MSI MAG / MPG / PRO">MSI MAG / MPG Series [MILITARY STABILITY]</option>
+                                    <option value="Gigabyte AORUS Elite">Gigabyte AORUS Elite Series [STURDY THERMALS]</option>
+                                    <option value="ASRock Steel Legend">ASRock Steel Legend [OUTSTANDING VALVE]</option>
+                                    <option value="NZXT N7 Series">NZXT N7 Minimalist Series [MATTE DESIGN]</option>
+                                    <option value="Custom OEM Motherboard">Custom OEM / Retro board</option>
+                                  </select>
+                                </div>
+
+                                {/* GPU selects */}
+                                <div>
+                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                                    Graphics Processing Unit (GPU Option)
+                                  </label>
+                                  <select
+                                    value={aptGpu}
+                                    onChange={(e) => setAptGpu(e.target.value)}
+                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
+                                  >
+                                    <option value="NVIDIA GeForce RTX 4090">NVIDIA GeForce RTX 4090 (24GB Ultimate Rig)</option>
+                                    <option value="NVIDIA GeForce RTX 4080 / 4070 Ti">NVIDIA GeForce RTX 4080 / 4070 Ti (16GB/12GB AD104)</option>
+                                    <option value="NVIDIA GeForce RTX 4060 / 30 Series">NVIDIA GeForce RTX 4060 / 30 Series (Popular standard)</option>
+                                    <option value="AMD Radeon RX 7900 XTX">AMD Radeon RX 7900 XTX (24GB extreme raw power)</option>
+                                    <option value="AMD Radeon RX 7800 XT / 6700">AMD Radeon RX 7800 XT / 6700 XT (Valued gaming setup)</option>
+                                    <option value="Intel Arc A770 / A750">Intel Arc A770 / A750 Series (Modern AV1 codec)</option>
+                                    <option value="Integrated core graphics">Integrated Core Graphics (No dedicated GPU Acceleration)</option>
+                                  </select>
+                                </div>
+
+                                {/* RAM Select */}
+                                <div className="md:col-span-2">
+                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                                    System RAM Specification
+                                  </label>
+                                  <select
+                                    value={aptRam}
+                                    onChange={(e) => setAptRam(e.target.value)}
+                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
+                                  >
+                                    <option value="16GB DDR5 High-Speed">16GB DDR5 High-Speed (2x8GB Dual Sync)</option>
+                                    <option value="32GB DDR5 Dual Channel">32GB DDR5 Large Capacity (2x16GB Gamer choice)</option>
+                                    <option value="64GB DDR5 Workstation">64GB DDR5 Professional Workstation (2x32GB Sync)</option>
+                                    <option value="128GB DDR5 Quad Sync">128GB DDR5 Rendering Machine (4x32GB Quad Drive)</option>
+                                    <option value="16GB DDR4 Legacy Sync">16GB DDR4 Legacy Standard (2x8GB Reliable)</option>
+                                    <option value="32GB DDR4 Large Buffer">32GB DDR4 High Buffer Capacity (2x16GB Legacy Power)</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              {/* Preview Banner of compiled spec */}
+                              <div className="p-3 bg-neutral-900/65 border border-neutral-850 rounded-xl space-y-1">
+                                <span className="text-[7.5px] font-mono tracking-widest text-neutral-500 uppercase block font-black">
+                                  ⚡ Telemetry Pipeline Generated Specifications
+                                </span>
+                                <div className="text-[10px] font-mono text-purple-300 font-extrabold flex flex-wrap items-center gap-1.5 leading-snug">
+                                  <span>{aptCpu}</span>
+                                  <span className="text-neutral-700">//</span>
+                                  <span>{aptMobo}</span>
+                                  <span className="text-neutral-700">//</span>
+                                  <span>{aptGpu}</span>
+                                  <span className="text-neutral-700">//</span>
+                                  <span>{aptRam}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {appointmentValidationError && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -2 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-2.5 bg-red-955/35 border border-red-500/35 text-red-200 text-[9.5px] font-sans rounded-xl flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+                              >
+                                <span className="text-xs">⚠️</span>
+                                <span>{appointmentValidationError}</span>
+                              </motion.div>
+                            )}
+
+                            {/* Nav controls */}
+                            <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-2">
+                              <button
+                                type="button"
+                                onClick={() => setAptStep(1)}
+                                className="px-4 py-2 bg-neutral-950 border border-neutral-850 text-neutral-400 hover:text-neutral-200 font-mono text-[9px] uppercase font-bold tracking-widest transition-all rounded-xl cursor-pointer"
+                              >
+                                &lt; Back to Comms
+                              </button>
+                              
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  // Compile specs automatically
+                                  const compiledSpecsString = `CPU: ${aptCpu} | GPU: ${aptGpu} | MOBO: ${aptMobo} | RAM: ${aptRam}`;
+                                  setAptSpecs(compiledSpecsString);
+                                  setAppointmentValidationError(null);
+                                  setAptStep(3);
+                                }}
+                                className="px-5 py-2.5 bg-neutral-900 border border-purple-500/60 text-purple-300 hover:text-purple-200 hover:bg-neutral-855 font-mono text-[9px] uppercase font-bold tracking-[0.15em] transition-all rounded-xl flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.15)]"
+                              >
+                                <span>Proceed to Issue</span>
+                                <ChevronRight size={12} className="text-purple-400" />
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* STEP 3: PROBLEM CATEGORY & CHAT EXPLAIN BOX */}
+                        {aptStep === 3 && (
+                          <motion.div 
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="space-y-4"
+                          >
+                            <div className="bg-neutral-950/40 p-4 border border-neutral-900 rounded-2xl space-y-4">
+                              <span className="text-[9px] font-mono font-black text-purple-400 uppercase tracking-widest block mb-1">
+                                // SECTION 03: TELEMETRY CONTEXT & DIAGNOSIS LOGS
+                              </span>
+
+                              <div>
+                                <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                                  PC Problem Category
+                                </label>
+                                <select
+                                  value={aptProblem}
+                                  onChange={(e) => setAptProblem(e.target.value)}
+                                  className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
+                                >
+                                  <option value="Slow Performance & Freezing">Slow Performance & Freezing // DRIVER LAG</option>
+                                  <option value="Windows / OS Boot Failure">Windows / OS Boot Failure // BIOS BRICK</option>
+                                  <option value="Overheating & Loud Noises">Overheating & Loud Noises // THERMAL THROTTLE</option>
+                                  <option value="Virus / Malware Discovered">Virus / Malware Discovered // SEGMENT CORRUPTION</option>
+                                  <option value="WiFi / Ethernet Connection Dropping">WiFi / Ethernet Connection Dropping // PACKET DROP</option>
+                                  <option value="Blue Screen of Death (BSOD)">Blue Screen of Death (BSOD) // KERNEL PANIC</option>
+                                  <option value="Other / Unidentified Critical Issue">Other / Unidentified Critical Issue // GENERAL ERROR</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                                  Explain further (Diagnostics Chat Box)
+                                </label>
+                                <textarea
+                                  value={aptExplain}
+                                  onChange={(e) => {
+                                    setAptExplain(e.target.value);
+                                    if (appointmentValidationError) setAppointmentValidationError(null);
+                                  }}
+                                  placeholder="Describe what happened, any error messages, or steps that led to this error in detail..."
+                                  rows={4}
+                                  required
+                                  className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px] resize-none"
+                                />
+                              </div>
+                            </div>
+
+                            {appointmentValidationError && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -2 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-2.5 bg-red-955/35 border border-red-500/35 text-red-200 text-[9.5px] font-sans rounded-xl flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+                              >
+                                <span className="text-xs">⚠️</span>
+                                <span>{appointmentValidationError}</span>
+                              </motion.div>
+                            )}
+
+                            {/* Nav controls */}
+                            <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-2">
+                              <button
+                                type="button"
+                                onClick={() => setAptStep(2)}
+                                className="px-4 py-2 bg-neutral-950 border border-neutral-850 text-neutral-400 hover:text-neutral-200 font-mono text-[9px] uppercase font-bold tracking-widest transition-all rounded-xl cursor-pointer"
+                              >
+                                &lt; Back to Specs
+                              </button>
+                              
+                              <button
+                                type="submit"
+                                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-mono text-[9px] uppercase font-bold tracking-[0.15em] transition-all rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-lg"
+                              >
+                                <Send size={11} className="animate-pulse" />
+                                <span>Submit Report // Dispatch</span>
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </form>
+                    )}
+                  </div>
+                ) : (
+                  /* List of scheduled appointments */
+                  <div className="w-full flex-1 flex flex-col gap-4">
+                    <div>
+                      <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold mb-1">
+                        Active Diagnostic Tickets
+                      </h4>
+                      <p className="text-[8px] uppercase tracking-wider text-neutral-500 leading-normal">
+                        Verify active problems mapped in direct support logs. All records here are strictly stored locally.
+                      </p>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-1 space-y-3 max-h-[45vh] scrollbar-thin scrollbar-thumb-purple-500/20 hover:scrollbar-thumb-purple-500/40">
+                      {appointments.length === 0 ? (
+                        <div className="h-40 flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-900 rounded-2xl bg-neutral-950/40">
+                          <span className="text-xl mb-1 text-neutral-600 animate-pulse">🕰️</span>
+                          <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
+                            NO SECURE ACTIVE RESOURCING TICKENS LOADED
+                          </span>
+                        </div>
+                      ) : (
+                        appointments.map((apt) => (
+                          <div 
+                            key={apt.id}
+                            className="bg-neutral-950/90 border border-neutral-900 rounded-2xl p-4 relative overflow-hidden text-left flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                          >
+                            <div className="space-y-2">
+                              {/* Headers and secure token badge */}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[10px] font-black text-white">{apt.name}</span>
+                                <span className="px-1.5 py-0.5 bg-neutral-900 border border-neutral-800 text-neutral-400 text-[7px] font-bold tracking-widest uppercase rounded">
+                                  ID: {apt.id.substring(0, 12).toUpperCase()}
+                                </span>
+                                <span className="px-1.5 py-0.5 bg-yellow-950/40 border border-yellow-500/35 text-amber-400 text-[7px] font-bold tracking-widest uppercase rounded leading-none">
+                                  ● {apt.status}
+                                </span>
+                              </div>
+
+                              <div className="text-[10px] text-neutral-400 space-y-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-neutral-500 text-[8px]">CONTACT INFO:</span>
+                                  <span className="text-neutral-300 font-sans">{apt.contact || 'N/A'}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-neutral-500 text-[8px]">COMPUTER SPECIFICATION:</span>
+                                  <span className="text-neutral-300 font-sans">{apt.specs}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-neutral-500 text-[8px]">TEMPORAL:</span>
+                                  <span className="text-neutral-300">{apt.date}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-neutral-500 text-[8px]">PROBLEM:</span>
+                                  <span className="text-purple-400 tracking-wide font-black uppercase text-[8.5px]">{apt.problem}</span>
+                                </div>
+                                <div className="mt-1.5 p-2 bg-neutral-900/60 border border-neutral-850 rounded-lg text-[9px] text-neutral-300 font-sans whitespace-pre-wrap">
+                                  {apt.description}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Actions / cancel button */}
+                            <button
+                              onClick={() => {
+                                const filtered = appointments.filter(item => item.id !== apt.id);
+                                setAppointments(filtered);
+                                localStorage.setItem('shadow_appointments', JSON.stringify(filtered));
+                              }}
+                              className="px-3 py-1.5 md:self-center font-mono text-[8.5px] bg-red-955/25 border border-red-500/35 hover:border-red-500 text-red-400 hover:bg-neutral-900 transition-all uppercase tracking-widest font-extrabold cursor-pointer rounded-lg shrink-0 self-start"
+                            >
+                              Revoke Ticket
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer cancel controls */}
+              <div className="flex items-center justify-center pt-4 border-t border-neutral-900 mt-4 shrink-0">
+                <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500 text-center">
+                  PC DIAGNOSTIC PORTAL GATEWAY // PE PLATFORM
+                </span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Admin Suggestion View Modal */}
       <AnimatePresence>
         {isAdminSuggestionsOpen && (
@@ -2402,16 +4070,9 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
               {/* Footer cancel controls */}
               <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-neutral-900 shrink-0 gap-3 font-mono">
-                <span className="text-[8px] uppercase tracking-[0.12em] text-neutral-500 order-2 sm:order-1">
+                <span className="text-[8px] uppercase tracking-[0.12em] text-neutral-500">
                   SECURE CONTROL PANEL // PERSISTENT STORE SYSTEM
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setIsAdminSuggestionsOpen(false)}
-                  className="w-full sm:w-auto px-5 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white rounded-xl text-[9px] uppercase tracking-widest font-bold transition-all cursor-pointer text-center order-1 sm:order-2"
-                >
-                  DISCONNECT VIEW
-                </button>
               </div>
             </motion.div>
           </div>
@@ -2693,7 +4354,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                           </div>
  
                           {/* Content */}
-                          <div className="flex-1 min-w-0 pr-12 text-left">
+                          <div className="flex-1 min-w-0 pr-24 text-left">
                             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                               <span className="font-sans font-extrabold text-[13px] text-purple-300 tracking-wide">
                                 {shout.name}
@@ -2707,6 +4368,20 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                             </p>
                           </div>
  
+                          {/* Delete action */}
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteShoutId(shout.id);
+                              setShowDeleteShoutPasswordModal(true);
+                            }}
+                            className="absolute right-16 top-1/2 -translate-y-1/2 flex items-center justify-center p-1.5 rounded-lg border border-red-500/25 hover:border-red-500/60 hover:bg-red-950/20 bg-neutral-950 text-red-400 hover:text-red-300 transition-all duration-300 cursor-pointer"
+                            title="Delete transmission"
+                          >
+                            <Trash2 size={11} className="transition-transform duration-300 hover:scale-110" />
+                          </button>
+
                           {/* Like action */}
                           <button 
                             onClick={() => handleLikeShout(shout.id)}
@@ -2727,7 +4402,50 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
                 {/* Right Panel: Form with ban capability and validation error warnings */}
                 <div className="md:col-span-5 flex flex-col justify-between h-full min-h-[380px]">
-                  {isCommentingBanned ? (
+                  {shoutSuccessCountdown !== null ? (
+                    <motion.div 
+                      key="shout-success-view"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="h-full flex flex-col items-center justify-center p-6 border-2 border-purple-500/20 bg-purple-950/10 text-center rounded-2xl space-y-5 my-auto"
+                    >
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl animate-pulse" />
+                        <div className="w-16 h-16 bg-purple-900/40 rounded-full border border-purple-500/30 flex items-center justify-center relative z-10 animate-bounce">
+                          <CheckCircle className="text-purple-400 w-9 h-9" />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h4 className="text-purple-400 font-mono font-black text-xs tracking-[0.2em] uppercase mb-2">
+                          DISPATCH CONFIRMED
+                        </h4>
+                        <p className="text-xs text-neutral-300 font-sans leading-relaxed px-1">
+                          Your secret message has successfully bypassed security intercepts and been logged to the shadow database.
+                        </p>
+                      </div>
+
+                      <div className="w-full bg-neutral-950 border border-neutral-900 p-3 rounded-xl flex flex-col items-center justify-center font-mono text-[10px] space-y-1.5">
+                        <span className="text-purple-500 font-extrabold uppercase tracking-widest animate-pulse">
+                          Auto-Closing Interface
+                        </span>
+                        <div className="flex items-center gap-1.5 text-neutral-400">
+                          <span>Returning to system hub in</span>
+                          <span className="text-purple-400 font-black text-xs px-1.5 py-0.5 bg-purple-950/50 border border-purple-500/10 rounded leading-none">
+                            {shoutSuccessCountdown}s
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsShoutBoxOpen(false)}
+                        className="px-5 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white rounded-xl text-[9px] uppercase tracking-widest font-bold transition-all cursor-pointer text-center font-mono active:scale-95"
+                      >
+                        CLOSE NOW
+                      </button>
+                    </motion.div>
+                  ) : isCommentingBanned ? (
                     <div className="h-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-red-500/35 bg-red-950/20 text-center rounded-2xl space-y-4 my-auto">
                       <div className="w-14 h-14 bg-red-950/40 rounded-full border border-red-500/30 flex items-center justify-center mb-1 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse">
                         <span className="text-2xl">☠️</span>
@@ -2786,15 +4504,58 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                         )}
 
                         {/* Submit Button & Footer message (Now below the textarea/chatbox) */}
-                        <div className="mb-4">
-                          <button
-                            type="submit"
-                            disabled={!shoutMessage.trim()}
-                            className="w-full py-2.5 bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 hover:brightness-110 active:scale-[0.98] shadow-[0_0_10px_rgba(168,85,247,0.35)] text-white font-mono text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer"
-                          >
-                            <span>🔮</span>
-                            <span>Send to shadows</span>
-                          </button>
+                        <div className="mb-4 flex flex-col items-center w-full">
+                          {isPostingShout ? (
+                            <div className="flex items-center gap-3 py-1 font-mono">
+                              {/* Circular Progress Loader */}
+                              <div className="relative flex items-center justify-center w-10 h-10">
+                                {/* Outer rotating ring */}
+                                <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/20 animate-spin [animation-duration:10s]" />
+                                
+                                {/* Inner SVG Circular Progress */}
+                                <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 80 80">
+                                  {/* Background Track */}
+                                  <circle
+                                    cx="40"
+                                    cy="40"
+                                    r="34"
+                                    className="stroke-neutral-900"
+                                    strokeWidth="5"
+                                    fill="transparent"
+                                  />
+                                  {/* Foreground Progress */}
+                                  <circle
+                                    cx="40"
+                                    cy="40"
+                                    r="34"
+                                    className="stroke-purple-500 transition-all duration-100 ease-out"
+                                    strokeWidth="5"
+                                    fill="transparent"
+                                    strokeDasharray="213.6"
+                                    strokeDashoffset={213.6 * (1 - postingShoutProgress / 100)}
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                                
+                                {/* Center text showing percentage */}
+                                <div className="absolute flex flex-col items-center justify-center font-mono">
+                                  <span className="text-[7.5px] font-black text-purple-400 leading-none">
+                                    {postingShoutProgress}%
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="text-[8px] uppercase tracking-[0.15em] text-purple-400 font-bold animate-pulse">DISPATCHING TRANSMISSION...</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="submit"
+                              disabled={!shoutMessage.trim()}
+                              className="w-full py-2.5 bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 hover:brightness-110 active:scale-[0.98] shadow-[0_0_10px_rgba(168,85,247,0.35)] text-white font-mono text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer"
+                            >
+                              <span>🔮</span>
+                              <span>Send to shadows</span>
+                            </button>
+                          )}
  
                           <div className="mt-1.5 text-[9px] text-neutral-500 uppercase tracking-widest text-center font-mono">
                             Stay disguised in the deep shadows. 💜
@@ -2953,40 +4714,138 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                 </p>
               </motion.div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <motion.button 
-                  initial={skip ? { opacity: 1 } : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={skip ? { duration: 0 } : { 
-                    duration: 5.0, 
-                    ease: "easeInOut", 
-                    delay: 3.0 
-                  }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={onEnter}
-                  className="group flex items-center justify-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs hover:bg-neutral-200 transition-all duration-200 cursor-pointer"
-                >
-                  Enter Archive
-                  <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500" />
-                </motion.button>
+              <div className="flex flex-col sm:flex-row items-center gap-4 flex-wrap">
+                {/* Enter Archive Action Container */}
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <motion.button 
+                    initial={skip ? { opacity: 1 } : { opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={skip ? { duration: 0 } : { 
+                      duration: 5.0, 
+                      ease: "easeInOut", 
+                      delay: 3.0 
+                    }}
+                    whileHover={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 1.02 }}
+                    whileTap={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 0.98 }}
+                    onClick={() => {
+                      setIsEnteringArchive(true);
+                      setEnteringArchiveProgress(1);
+                    }}
+                    disabled={isEnteringArchive || isAccessingTutorials}
+                    className={`group flex items-center justify-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs transition-all duration-200 cursor-pointer w-full sm:w-auto ${
+                      (isEnteringArchive || isAccessingTutorials) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-neutral-200'
+                    }`}
+                  >
+                    Enter Archive
+                    <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500" />
+                  </motion.button>
+
+                  {isEnteringArchive && (
+                    <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                      {/* Outer rotating dashed purple ring */}
+                      <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/30 animate-spin [animation-duration:12s]" />
+                      
+                      {/* Inner SVG Circular Progress */}
+                      <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 80 80">
+                        {/* Background Track */}
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="34"
+                          className="stroke-neutral-950/85"
+                          strokeWidth="6"
+                          fill="transparent"
+                        />
+                        {/* Foreground Progress */}
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="34"
+                          className="stroke-purple-500 transition-all duration-100 ease-out"
+                          strokeWidth="6"
+                          fill="transparent"
+                          strokeDasharray="213.6"
+                          strokeDashoffset={213.6 * (1 - enteringArchiveProgress / 100)}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      
+                      {/* Center text showing percentage and TX label */}
+                      <div className="absolute flex flex-col items-center justify-center font-mono">
+                        <span className="text-[10px] font-black text-purple-400 leading-none">
+                          {enteringArchiveProgress}%
+                        </span>
+                        <span className="text-[5px] font-black text-purple-500/60 tracking-wider uppercase leading-none mt-0.5">TX</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 
-                <motion.button 
-                  initial={skip ? { opacity: 1 } : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={skip ? { duration: 0 } : { 
-                    duration: 5.0, 
-                    ease: "easeInOut", 
-                    delay: 3.2 
-                  }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={onShowShadowLore}
-                  className="group flex items-center justify-center gap-4 px-8 py-3 bg-purple-950/40 border border-purple-500/40 text-purple-300 font-black uppercase tracking-widest text-xs hover:bg-purple-900/60 hover:border-purple-400 transition-all duration-200 shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer"
-                >
-                  Access Shadow Master Tutorials
-                  <Sparkles size={16} className="text-purple-400 group-hover:rotate-12 transition-transform duration-300 animate-pulse" />
-                </motion.button>
+                {/* Access Tutorials Action Container */}
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <motion.button 
+                    initial={skip ? { opacity: 1 } : { opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={skip ? { duration: 0 } : { 
+                      duration: 5.0, 
+                      ease: "easeInOut", 
+                      delay: 3.2 
+                    }}
+                    whileHover={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 1.02 }}
+                    whileTap={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 0.98 }}
+                    onClick={() => {
+                      setIsAccessingTutorials(true);
+                      setAccessingTutorialsProgress(1);
+                    }}
+                    disabled={isEnteringArchive || isAccessingTutorials}
+                    className={`group flex items-center justify-center gap-4 px-8 py-3 bg-purple-950/40 border border-purple-500/40 text-purple-300 font-black uppercase tracking-widest text-xs transition-all duration-200 shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer w-full sm:w-auto ${
+                      (isEnteringArchive || isAccessingTutorials) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-purple-900/60 hover:border-purple-400'
+                    }`}
+                  >
+                    Access Shadow Master Tutorials
+                    <Sparkles size={16} className="text-purple-400 group-hover:rotate-12 transition-transform duration-300 animate-pulse" />
+                  </motion.button>
+
+                  {isAccessingTutorials && (
+                    <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                      {/* Outer rotating dashed purple ring */}
+                      <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/30 animate-spin [animation-duration:12s]" />
+                      
+                      {/* Inner SVG Circular Progress */}
+                      <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 80 80">
+                        {/* Background Track */}
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="34"
+                          className="stroke-neutral-950/85"
+                          strokeWidth="6"
+                          fill="transparent"
+                        />
+                        {/* Foreground Progress */}
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="34"
+                          className="stroke-purple-500 transition-all duration-100 ease-out"
+                          strokeWidth="6"
+                          fill="transparent"
+                          strokeDasharray="213.6"
+                          strokeDashoffset={213.6 * (1 - accessingTutorialsProgress / 100)}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      
+                      {/* Center text showing percentage and TX label */}
+                      <div className="absolute flex flex-col items-center justify-center font-mono">
+                        <span className="text-[10px] font-black text-purple-400 leading-none">
+                          {accessingTutorialsProgress}%
+                        </span>
+                        <span className="text-[5px] font-black text-purple-500/60 tracking-wider uppercase leading-none mt-0.5">TX</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -3029,92 +4888,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
             </div>
           </div>
 
-          {/* Dynamic Interactive Hardware Optimization Block */}
-          <div className="bg-neutral-900/30 border border-neutral-900 rounded-2xl p-6 relative overflow-hidden backdrop-blur-sm text-left">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Cpu className="w-4 h-4 text-purple-400" />
-                  <h3 className="font-mono text-xs uppercase font-black tracking-widest text-neutral-200">
-                    Infrastructure Gateway Status
-                  </h3>
-                </div>
-                <p className="text-[11px] font-sans text-neutral-400">
-                  Adjust support impact configuration to target bottleneck thresholds.
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-3 bg-neutral-950/90 border border-neutral-800 rounded-lg px-3 py-1.5 shrink-0 self-start md:self-auto">
-                <span className="text-[10px] font-mono font-bold text-neutral-400">CORE_CAPACITY:</span>
-                <span className={`text-xs font-mono font-black ${hardwareBoostLanding === 100 ? 'text-emerald-400' : hardwareBoostLanding >= 90 ? 'text-purple-400' : 'text-amber-500'}`}>
-                  {hardwareBoostLanding === 100 ? '100% (ATOMIC_LIMIT)' : `${hardwareBoostLanding}% THROTTLED`}
-                </span>
-              </div>
-            </div>
 
-            <div className="space-y-4">
-              {/* Interactive sliders for support levels */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {[
-                  {
-                    id: 'tier-1',
-                    title: 'COOLING & CORE BOOST',
-                    cost: '$10 - $25',
-                    benefit: 'Upgrades cooling vents & CPU clock stability thresholds.',
-                    simValue: 85,
-                    glow: 'shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.3)]',
-                    border: 'border-purple-500/20 hover:border-purple-500/50',
-                  },
-                  {
-                    id: 'tier-2',
-                    title: 'COGNITIVE ARRAY UPGRADE',
-                    cost: '$50 - $100',
-                    benefit: 'Expands hyperparameter limits & parallel high-speed memory modules.',
-                    simValue: 95,
-                    glow: 'shadow-[0_0_15px_rgba(139,92,246,0.2)] hover:shadow-[0_0_25px_rgba(139,92,246,0.45)]',
-                    border: 'border-violet-500/20 hover:border-violet-500/50',
-                  },
-                  {
-                    id: 'tier-3',
-                    title: 'SHADOW ARCHITECTURE GATEWAY',
-                    cost: '$200+',
-                    benefit: 'Sustains remote access deployment grids & shadow protection pipelines.',
-                    simValue: 100,
-                    glow: 'shadow-[0_0_20px_rgba(99,102,241,0.25)] hover:shadow-[0_0_30px_rgba(99,102,241,0.55)]',
-                    border: 'border-indigo-500/20 hover:border-indigo-500/50',
-                  }
-                ].map((tier) => (
-                  <button
-                    key={tier.id}
-                    onClick={() => setHardwareBoostLanding(tier.simValue)}
-                    className={`p-4 border rounded-xl text-left transition-all duration-300 cursor-pointer flex flex-col justify-between ${tier.glow} ${tier.border} ${
-                      hardwareBoostLanding === tier.simValue 
-                        ? 'bg-purple-950/40 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.25)]' 
-                        : 'bg-neutral-950/50 border-neutral-800 hover:bg-neutral-900/40'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] font-mono font-extrabold tracking-wider text-purple-400">
-                          {tier.title}
-                        </span>
-                        <span className="text-[10px] font-mono font-bold bg-neutral-900 text-neutral-300 border border-neutral-800 px-1.5 py-0.5 rounded">
-                          {tier.cost}
-                        </span>
-                      </div>
-                      <p className="text-xs text-neutral-400 font-sans leading-snug">
-                        {tier.benefit}
-                      </p>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between text-[10px] font-mono pt-2 border-t border-neutral-900/50">
-                      <span className="text-neutral-500">SIMULATE IMPACT:</span>
-                      <span className="text-purple-300 font-bold">+{tier.simValue}% API SPEED</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
 
           {/* Support Shadow Button & GCash Trigger */}
           <div className="flex flex-col items-center justify-center py-4 relative z-10">
@@ -3461,26 +5235,67 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               {/* Custom stream controller */}
               <form onSubmit={handleInjectTrack} className="border-t border-neutral-900/60 pt-2.5 flex flex-col gap-1.5 z-10 shrink-0 text-left">
                 <span className="text-[7.5px] uppercase tracking-[0.15em] text-neutral-500 font-bold">INJECT CUSTOM SOUNDTRACK VIA YT LINK</span>
-                <div className="flex gap-1.5">
+                <div className="flex gap-1.5 items-center justify-between">
                   <input
                     type="text"
                     value={soundtrackInput}
+                    disabled={isInjectingTrack}
                     onChange={(e) => setSoundtrackInput(e.target.value)}
-                    placeholder="Paste YT Link or Video ID"
-                    className="flex-1 bg-neutral-950 text-[9px] font-sans text-neutral-100 placeholder:text-neutral-600 outline-none border border-neutral-900 focus:border-purple-500/30 px-2 py-1.5 transition-all text-left uppercase"
+                    placeholder={isInjectingTrack ? "INJECTING SIGNAL..." : "Paste YT Link or Video ID"}
+                    className={`flex-1 bg-neutral-950 text-[9px] font-sans text-neutral-100 placeholder:text-neutral-600 outline-none border border-neutral-900 focus:border-purple-500/30 px-2 py-1.5 transition-all text-left uppercase ${isInjectingTrack ? 'opacity-40 cursor-not-allowed' : ''}`}
                   />
-                  <button
-                    type="submit"
-                    disabled={!soundtrackInput.trim()}
-                    className={`px-3 flex items-center gap-1 border font-bold uppercase tracking-wider text-[8px] transition-all cursor-pointer ${
-                      soundtrackInput.trim()
-                        ? 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-500/40 text-purple-300'
-                        : 'bg-neutral-900/20 border-neutral-950 text-neutral-600 cursor-not-allowed'
-                    }`}
-                  >
-                    <Plus size={10} />
-                    <span>INJECT</span>
-                  </button>
+                  {isInjectingTrack ? (
+                    <div className="flex items-center gap-1.5 px-2">
+                      {/* Circular Progress Loader */}
+                      <div className="relative flex items-center justify-center w-6 h-6">
+                        {/* Outer rotating ring */}
+                        <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/20 animate-spin [animation-duration:10s]" />
+                        
+                        {/* Inner SVG Circular Progress */}
+                        <svg className="w-5 h-5 transform -rotate-90" viewBox="0 0 80 80">
+                          {/* Background Track */}
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            className="stroke-neutral-900"
+                            strokeWidth="6"
+                            fill="transparent"
+                          />
+                          {/* Foreground Progress */}
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            className="stroke-purple-500 transition-all duration-100 ease-out"
+                            strokeWidth="6"
+                            fill="transparent"
+                            strokeDasharray="213.6"
+                            strokeDashoffset={213.6 * (1 - injectingTrackProgress / 100)}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        
+                        {/* Center text showing percentage */}
+                        <span className="absolute text-[5.5px] font-black text-purple-400 font-mono">
+                          {injectingTrackProgress}%
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={!soundtrackInput.trim()}
+                      className={`px-3 py-1.5 flex items-center gap-1 border font-bold uppercase tracking-wider text-[8px] transition-all cursor-pointer ${
+                        soundtrackInput.trim()
+                          ? 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-500/40 text-purple-300'
+                          : 'bg-neutral-900/20 border-neutral-950 text-neutral-600 cursor-not-allowed'
+                      }`}
+                    >
+                      <Plus size={10} />
+                      <span>INJECT</span>
+                    </button>
+                  )}
                 </div>
               </form>
             </motion.div>

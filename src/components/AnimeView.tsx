@@ -140,7 +140,7 @@ const EPISODES_DATABASE: Episode[] = [
 ];
 
 export default function AnimeView() {
-  const [selectedSeason, setSelectedSeason] = useState<1 | 2 | 'ALL'>('ALL');
+  const [selectedSeason, setSelectedSeason] = useState<1 | 2>(1);
   const [activeEpisode, setActiveEpisode] = useState<Episode | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playProgress, setPlayProgress] = useState(35);
@@ -166,7 +166,6 @@ export default function AnimeView() {
   }, [isPlaying]);
 
   const filteredEpisodes = EPISODES_DATABASE.filter(ep => {
-    if (selectedSeason === 'ALL') return true;
     return ep.season === selectedSeason;
   });
 
@@ -204,16 +203,6 @@ export default function AnimeView() {
 
                 {/* Season switch filter */}
                 <div className="flex bg-neutral-900/60 p-1 border border-neutral-850 rounded-xl shrink-0 self-start md:self-auto">
-                  <button
-                    onClick={() => setSelectedSeason('ALL')}
-                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all ${
-                      selectedSeason === 'ALL'
-                        ? 'bg-purple-950 text-purple-400 border border-purple-500/20'
-                        : 'text-neutral-500 hover:text-neutral-300'
-                    }`}
-                  >
-                    ALL SAGAS
-                  </button>
                   <button
                     onClick={() => setSelectedSeason(1)}
                     className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all ${

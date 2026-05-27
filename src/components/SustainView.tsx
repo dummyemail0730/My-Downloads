@@ -85,64 +85,7 @@ export default function SustainView() {
           </div>
         </div>
 
-        {/* Dynamic Interactive Hardware Optimization Block */}
-        <div className="bg-neutral-900/30 border border-neutral-900 rounded-2xl p-5 relative overflow-hidden backdrop-blur-sm text-left">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Cpu className="w-4 h-4 text-purple-400" />
-                <h3 className="font-mono text-xs uppercase font-black tracking-widest text-neutral-200">
-                  Infrastructure Gateway Status
-                </h3>
-              </div>
-              <p className="text-[10px] font-sans text-neutral-400">
-                Adjust support impact configuration to target bottleneck thresholds.
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-3 bg-neutral-950/90 border border-neutral-800 rounded-lg px-2.5 py-1 shrink-0 self-start md:self-auto">
-              <span className="text-[9px] font-mono font-bold text-neutral-400">CORE_CAPACITY:</span>
-              <span className={`text-[11px] font-mono font-black ${hardwareBoost === 100 ? 'text-emerald-400' : hardwareBoost >= 90 ? 'text-purple-400' : 'text-amber-500'}`}>
-                {hardwareBoost === 100 ? '100% (ATOMIC_LIMIT)' : `${hardwareBoost}% THROTTLED`}
-              </span>
-            </div>
-          </div>
 
-          <div className="space-y-4">
-            {/* Interactive sliders for support levels */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {supportTiers.map((tier) => (
-                <button
-                  key={tier.id}
-                  onClick={() => setHardwareBoost(tier.simValue)}
-                  className={`p-3.5 border rounded-xl text-left transition-all duration-300 cursor-pointer flex flex-col justify-between ${tier.glow} ${tier.border} ${
-                    hardwareBoost === tier.simValue 
-                      ? 'bg-purple-950/40 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.25)]' 
-                      : 'bg-neutral-950/50 border-neutral-800 hover:bg-neutral-900/40'
-                  }`}
-                >
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[9px] font-mono font-extrabold tracking-wider text-purple-400">
-                        {tier.title}
-                      </span>
-                      <span className="text-[9px] font-mono font-bold bg-neutral-900 text-neutral-300 border border-neutral-800 px-1 py-0.5 rounded">
-                        {tier.cost}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-neutral-400 font-sans leading-snug">
-                      {tier.benefit}
-                    </p>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-[9px] font-mono pt-1.5 border-t border-neutral-900/50">
-                    <span className="text-neutral-500">SIMULATE IMPACT:</span>
-                    <span className="text-purple-300 font-bold">+{tier.simValue}% SPEED</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* Support Shadow Button & GCash Trigger */}
         <div className="flex flex-col items-center justify-center py-4 relative z-10">

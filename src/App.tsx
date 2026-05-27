@@ -587,13 +587,17 @@ export default function App() {
     return (
       <div className="min-h-screen w-full bg-neutral-950 overflow-y-auto no-scrollbar relative flex flex-col font-mono text-neutral-300">
         {/* Simple top bar with Back button */}
-        <div className="h-16 border-b border-neutral-900 bg-neutral-950/95 backdrop-blur-md flex items-center justify-between px-6 shrink-0 relative z-50">
+        <div className="h-24 border-b border-neutral-900 bg-neutral-950/95 backdrop-blur-md flex items-center justify-between px-4 md:px-8 shrink-0 relative z-50">
           <button 
             onClick={() => setShowShadowLoreOnly(false)}
-            className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-widest text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center gap-2 md:gap-3 group transition-all duration-300 text-purple-400 hover:text-white"
           >
-            <ChevronLeft size={14} />
-            Back to Gateway
+            <div className="w-16 h-16 rounded-xl bg-purple-950/20 border border-purple-500/40 flex items-center justify-center text-purple-400 group-hover:text-purple-300 group-hover:border-purple-500/80 transition-all shadow-[0_0_15px_rgba(168,85,247,0.25)] group-hover:shadow-[0_0_25px_rgba(168,85,247,0.55)] shrink-0">
+              <ArrowLeft className="w-7 h-7" />
+            </div>
+            <span className="font-mono text-xs md:text-sm lg:text-base font-black uppercase tracking-widest block cursor-pointer text-purple-400/90 group-hover:text-white transition-colors duration-300">
+              return_home
+            </span>
           </button>
           
           <div className="flex items-center gap-1.5 font-mono text-[10px] text-purple-400 font-bold uppercase">
@@ -646,9 +650,9 @@ export default function App() {
             <div className="w-10 h-10 bg-neutral-900 border border-neutral-800 flex items-center justify-center cursor-default hover:bg-neutral-800 transition-colors pointer-events-auto">
               <Folder className="text-purple-400" size={20} strokeWidth={2.5} />
             </div>
-            <div className="hidden xs:block">
-              <h1 className="text-xl font-black uppercase tracking-tighter leading-none text-white">Digital Archive</h1>
-              <p className="text-[10px] uppercase tracking-widest text-neutral-400">Design & Development / 2026 Edition</p>
+            <div>
+              <h1 className="text-xs sm:text-lg md:text-xl font-black uppercase tracking-tighter leading-none text-white">Digital Archive</h1>
+              <p className="text-[8px] sm:text-[10px] uppercase tracking-widest text-neutral-400 leading-none mt-1">Design & Development / 2026 Edition</p>
             </div>
           </div>
           <div className="flex flex-col items-end pointer-events-auto">
