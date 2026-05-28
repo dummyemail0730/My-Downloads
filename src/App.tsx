@@ -609,6 +609,14 @@ export default function App() {
         <div className="flex-1 overflow-y-auto py-8">
           <ShadowLoreView />
         </div>
+
+        {/* Global Redirect Interceptor Loader modal */}
+        <RedirectLoader
+          isOpen={redirectLoaderState.isOpen}
+          targetUrl={redirectLoaderState.targetUrl}
+          itemTitle={redirectLoaderState.itemTitle}
+          onClose={() => setRedirectLoaderState(prev => ({ ...prev, isOpen: false }))}
+        />
       </div>
     );
   }

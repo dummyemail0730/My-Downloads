@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, FolderOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock } from 'lucide-react';
+import { ChevronRight, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
@@ -191,9 +191,28 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   }, [lockoutUntil, currentTime]);
 
   // Tab dynamic state
-  const [activeTab, setActiveTab] = useState<'uplink' | 'linked'>('uplink');
+  const [activeTab, setActiveTab] = useState<'uplink' | 'linked' | 'tutorials'>('uplink');
   const [unlinkTrigger, setUnlinkTrigger] = useState(0);
   const [isAdminSuggestionsOpen, setIsAdminSuggestionsOpen] = useState(false);
+
+  // --- TUTORIALS STATE ---
+  const [tutorials, setTutorials] = useState<Array<{ id: string; title: string; category: string; description: string; url: string; system?: boolean }>>(() => {
+    const saved = localStorage.getItem('shadow_master_tutorials');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  const [newTutorialTitle, setNewTutorialTitle] = useState('');
+  const [newTutorialCategory, setNewTutorialCategory] = useState('CPU/POWER');
+  const [newTutorialDesc, setNewTutorialDesc] = useState('');
+  const [newTutorialUrl, setNewTutorialUrl] = useState('');
+  const [isAddingTutorial, setIsAddingTutorial] = useState(false);
 
   // --- APPOINTMENTS STATE ---
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
@@ -646,6 +665,82 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
             }
 
             localStorage.setItem('custom_projects', JSON.stringify(updatedList));
+          } else if (category === 'ANIME') {
+            const saved = localStorage.getItem('custom_anime');
+            let animeList = [];
+            try {
+              animeList = saved ? JSON.parse(saved) : [];
+            } catch (e) {}
+            
+            const existingIdx = animeList.findIndex((a: any) => a.title.toLowerCase() === trimTitle.toLowerCase());
+            
+            const updatedAnime = {
+              id: existingIdx !== -1 ? animeList[existingIdx].id : String(Date.now()),
+              title: trimTitle,
+              description: description,
+              protocol: linkType,
+              link: gameFile
+            };
+
+            let updatedList;
+            if (existingIdx !== -1) {
+              updatedList = [...animeList];
+              updatedList[existingIdx] = updatedAnime;
+            } else {
+              updatedList = [updatedAnime, ...animeList];
+            }
+
+            localStorage.setItem('custom_anime', JSON.stringify(updatedList));
+          } else if (category === 'GAMES') {
+            const saved = localStorage.getItem('custom_games');
+            let gamesList = [];
+            try {
+              gamesList = saved ? JSON.parse(saved) : [];
+            } catch (e) {}
+            
+            const existingIdx = gamesList.findIndex((g: any) => g.title.toLowerCase() === trimTitle.toLowerCase());
+            
+            const updatedGame = {
+              id: existingIdx !== -1 ? gamesList[existingIdx].id : String(Date.now()),
+              title: trimTitle,
+              description: description,
+              protocol: linkType,
+              link: gameFile
+            };
+
+            let updatedList;
+            if (existingIdx !== -1) {
+              updatedList = [...gamesList];
+              updatedList[existingIdx] = updatedGame;
+            } else {
+              updatedList = [updatedGame, ...gamesList];
+            }
+
+            localStorage.setItem('custom_games', JSON.stringify(updatedList));
+          } else if (category === 'TUTORIALS') {
+            const saved = localStorage.getItem('shadow_master_tutorials');
+            const tutorialsList = saved ? JSON.parse(saved) : [];
+            
+            const existingIdx = tutorialsList.findIndex((t: any) => t.title.toLowerCase() === trimTitle.toLowerCase());
+            
+            const updatedTut = {
+              id: existingIdx !== -1 ? tutorialsList[existingIdx].id : `custom-tut-${Date.now()}`,
+              title: trimTitle.toUpperCase(),
+              category: linkType.toUpperCase() === 'EXT' ? 'MISC GUIDE' : linkType.toUpperCase(),
+              description: description || 'Custom resource linked by user profile.',
+              url: gameFile
+            };
+
+            let updatedList;
+            if (existingIdx !== -1) {
+              updatedList = [...tutorialsList];
+              updatedList[existingIdx] = updatedTut;
+            } else {
+              updatedList = [updatedTut, ...tutorialsList];
+            }
+
+            localStorage.setItem('shadow_master_tutorials', JSON.stringify(updatedList));
+            setTutorials(updatedList);
           } else {
             const saved = localStorage.getItem('custom_tools');
             const toolsList = saved ? JSON.parse(saved) : STATIC_TOOLS;
@@ -1320,6 +1415,8 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
     
     // 2. Clear all custom entries signed up or configured in localStorage
     localStorage.removeItem('custom_projects');
+    localStorage.removeItem('custom_anime');
+    localStorage.removeItem('custom_games');
     localStorage.removeItem('custom_tools');
     localStorage.removeItem('admin_console_link');
     
@@ -1367,6 +1464,24 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
     });
     const linkedTools = mergedTools.filter((t: any) => t.link);
 
+    const savedAnime = localStorage.getItem('custom_anime');
+    let customAnimeList = [];
+    try {
+      customAnimeList = savedAnime ? JSON.parse(savedAnime) : [];
+    } catch (e) {}
+
+    const savedGames = localStorage.getItem('custom_games');
+    let customGamesList = [];
+    try {
+      customGamesList = savedGames ? JSON.parse(savedGames) : [];
+    } catch (e) {}
+
+    const savedTuts = localStorage.getItem('shadow_master_tutorials');
+    let customTuts = [];
+    try {
+      customTuts = savedTuts ? JSON.parse(savedTuts) : [];
+    } catch (e) {}
+
     return [
       ...linkedProjects.map((p: any) => ({
         id: p.id,
@@ -1375,6 +1490,30 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
         description: p.description,
         link: p.link,
         protocol: p.tags?.[0] || 'EXT'
+      })),
+      ...customAnimeList.map((a: any) => ({
+        id: a.id,
+        type: 'ANIME',
+        name: a.title,
+        description: a.description,
+        link: a.link,
+        protocol: a.protocol || 'EXT'
+      })),
+      ...customGamesList.map((g: any) => ({
+        id: g.id,
+        type: 'GAMES',
+        name: g.title,
+        description: g.description,
+        link: g.link,
+        protocol: g.protocol || 'EXT'
+      })),
+      ...customTuts.map((t: any) => ({
+        id: t.id,
+        type: 'TUTORIALS',
+        name: t.title,
+        description: t.description,
+        link: t.url || t.link,
+        protocol: t.category || 'EXT'
       })),
       ...linkedTools.map((t: any) => ({
         id: t.id,
@@ -1510,7 +1649,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
     );
   };
 
-  const handleUnlink = (id: string, type: 'SOFTWARE' | 'TOOL') => {
+  const handleUnlink = (id: string, type: string) => {
     if (type === 'SOFTWARE') {
       const saved = localStorage.getItem('custom_projects');
       if (saved) {
@@ -1527,6 +1666,28 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
           }
           localStorage.setItem('custom_projects', JSON.stringify(updatedList));
         }
+      }
+    } else if (type === 'ANIME') {
+      const saved = localStorage.getItem('custom_anime');
+      if (saved) {
+        const animeList = JSON.parse(saved);
+        const updatedList = animeList.filter((a: any) => a.id !== id);
+        localStorage.setItem('custom_anime', JSON.stringify(updatedList));
+      }
+    } else if (type === 'GAMES') {
+      const saved = localStorage.getItem('custom_games');
+      if (saved) {
+        const gamesList = JSON.parse(saved);
+        const updatedList = gamesList.filter((g: any) => g.id !== id);
+        localStorage.setItem('custom_games', JSON.stringify(updatedList));
+      }
+    } else if (type === 'TUTORIALS') {
+      const saved = localStorage.getItem('shadow_master_tutorials');
+      if (saved) {
+        const tutorialsList = JSON.parse(saved);
+        const updatedList = tutorialsList.filter((t: any) => t.id !== id);
+        localStorage.setItem('shadow_master_tutorials', JSON.stringify(updatedList));
+        setTutorials(updatedList);
       }
     } else {
       const saved = localStorage.getItem('custom_tools');
@@ -1554,8 +1715,8 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   };
 
   const handleSaveLink = (id: string, type: string) => {
-    const targetType = editCategoryValue.trim().toUpperCase(); // 'SOFTWARE' or 'TOOL'
-    const originalType = type.trim().toUpperCase(); // 'SOFTWARE' or 'TOOL'
+    const targetType = editCategoryValue.trim().toUpperCase(); // 'SOFTWARE', 'ANIME', 'GAMES', 'TUTORIALS', or 'TOOL'
+    const originalType = type.trim().toUpperCase(); // 'SOFTWARE', 'ANIME', 'GAMES', 'TUTORIALS', or 'TOOL'
 
     if (targetType === originalType) {
       // Regular save in place
@@ -1582,6 +1743,69 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
           };
           projectsList.push(newProj);
           localStorage.setItem('custom_projects', JSON.stringify(projectsList));
+        }
+      } else if (originalType === 'ANIME') {
+        const saved = localStorage.getItem('custom_anime');
+        let animeList = [];
+        try {
+          animeList = saved ? JSON.parse(saved) : [];
+        } catch (e) {}
+        const existingIdx = animeList.findIndex((a: any) => a.id === id);
+        const itemObj = {
+          id,
+          title: editNameValue.trim(),
+          description: editDescValue.trim(),
+          protocol: editProtocolValue.trim(),
+          link: editLinkValue.trim()
+        };
+        if (existingIdx !== -1) {
+          animeList[existingIdx] = itemObj;
+        } else {
+          animeList.push(itemObj);
+        }
+        localStorage.setItem('custom_anime', JSON.stringify(animeList));
+      } else if (originalType === 'GAMES') {
+        const saved = localStorage.getItem('custom_games');
+        let gamesList = [];
+        try {
+          gamesList = saved ? JSON.parse(saved) : [];
+        } catch (e) {}
+        const existingIdx = gamesList.findIndex((g: any) => g.id === id);
+        const itemObj = {
+          id,
+          title: editNameValue.trim(),
+          description: editDescValue.trim(),
+          protocol: editProtocolValue.trim(),
+          link: editLinkValue.trim()
+        };
+        if (existingIdx !== -1) {
+          gamesList[existingIdx] = itemObj;
+        } else {
+          gamesList.push(itemObj);
+        }
+        localStorage.setItem('custom_games', JSON.stringify(gamesList));
+      } else if (originalType === 'TUTORIALS') {
+        const saved = localStorage.getItem('shadow_master_tutorials');
+        const tutorialsList = saved ? JSON.parse(saved) : [];
+        const existingIdx = tutorialsList.findIndex((t: any) => t.id === id);
+        if (existingIdx !== -1) {
+          tutorialsList[existingIdx].title = editNameValue.trim().toUpperCase();
+          tutorialsList[existingIdx].category = editProtocolValue.trim().toUpperCase();
+          tutorialsList[existingIdx].description = editDescValue.trim();
+          tutorialsList[existingIdx].url = editLinkValue.trim();
+          localStorage.setItem('shadow_master_tutorials', JSON.stringify(tutorialsList));
+          setTutorials(tutorialsList);
+        } else {
+          const newTut = {
+            id,
+            title: editNameValue.trim().toUpperCase(),
+            category: editProtocolValue.trim().toUpperCase(),
+            description: editDescValue.trim(),
+            url: editLinkValue.trim()
+          };
+          tutorialsList.push(newTut);
+          localStorage.setItem('shadow_master_tutorials', JSON.stringify(tutorialsList));
+          setTutorials(tutorialsList);
         }
       } else {
         const saved = localStorage.getItem('custom_tools');
@@ -1628,6 +1852,28 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
             localStorage.setItem('custom_projects', JSON.stringify(updatedList));
           }
         }
+      } else if (originalType === 'ANIME') {
+        const saved = localStorage.getItem('custom_anime');
+        if (saved) {
+          const animeList = JSON.parse(saved);
+          const updatedList = animeList.filter((a: any) => a.id !== id);
+          localStorage.setItem('custom_anime', JSON.stringify(updatedList));
+        }
+      } else if (originalType === 'GAMES') {
+        const saved = localStorage.getItem('custom_games');
+        if (saved) {
+          const gamesList = JSON.parse(saved);
+          const updatedList = gamesList.filter((g: any) => g.id !== id);
+          localStorage.setItem('custom_games', JSON.stringify(updatedList));
+        }
+      } else if (originalType === 'TUTORIALS') {
+        const saved = localStorage.getItem('shadow_master_tutorials');
+        if (saved) {
+          const tutorialsList = JSON.parse(saved);
+          const updatedList = tutorialsList.filter((t: any) => t.id !== id);
+          localStorage.setItem('shadow_master_tutorials', JSON.stringify(updatedList));
+          setTutorials(updatedList);
+        }
       } else {
         const saved = localStorage.getItem('custom_tools');
         if (saved) {
@@ -1670,6 +1916,69 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
           projectsList.push(newProj);
         }
         localStorage.setItem('custom_projects', JSON.stringify(projectsList));
+      } else if (targetType === 'ANIME') {
+        const saved = localStorage.getItem('custom_anime');
+        let animeList = [];
+        try {
+          animeList = saved ? JSON.parse(saved) : [];
+        } catch (e) {}
+        const editName = editNameValue.trim();
+        const existingIdx = animeList.findIndex((a: any) => a.title.toLowerCase().trim() === editName.toLowerCase());
+        const newAnime = {
+          id: existingIdx !== -1 ? animeList[existingIdx].id : String(Date.now()),
+          title: editName,
+          description: editDescValue.trim(),
+          protocol: editProtocolValue.trim(),
+          link: editLinkValue.trim()
+        };
+        if (existingIdx !== -1) {
+          animeList[existingIdx] = newAnime;
+        } else {
+          animeList.push(newAnime);
+        }
+        localStorage.setItem('custom_anime', JSON.stringify(animeList));
+      } else if (targetType === 'GAMES') {
+        const saved = localStorage.getItem('custom_games');
+        let gamesList = [];
+        try {
+          gamesList = saved ? JSON.parse(saved) : [];
+        } catch (e) {}
+        const editName = editNameValue.trim();
+        const existingIdx = gamesList.findIndex((g: any) => g.title.toLowerCase().trim() === editName.toLowerCase());
+        const newGame = {
+          id: existingIdx !== -1 ? gamesList[existingIdx].id : String(Date.now()),
+          title: editName,
+          description: editDescValue.trim(),
+          protocol: editProtocolValue.trim(),
+          link: editLinkValue.trim()
+        };
+        if (existingIdx !== -1) {
+          gamesList[existingIdx] = newGame;
+        } else {
+          gamesList.push(newGame);
+        }
+        localStorage.setItem('custom_games', JSON.stringify(gamesList));
+      } else if (targetType === 'TUTORIALS') {
+        const saved = localStorage.getItem('shadow_master_tutorials');
+        const tutorialsList = saved ? JSON.parse(saved) : [];
+        const editName = editNameValue.trim();
+        const existingIdx = tutorialsList.findIndex((t: any) => t.title.toLowerCase().trim() === editName.toLowerCase());
+
+        const updatedTut = {
+          id: existingIdx !== -1 ? tutorialsList[existingIdx].id : `custom-tut-${Date.now()}`,
+          title: editName.toUpperCase(),
+          category: editProtocolValue.trim().toUpperCase(),
+          description: editDescValue.trim(),
+          url: editLinkValue.trim()
+        };
+
+        if (existingIdx !== -1) {
+          tutorialsList[existingIdx] = updatedTut;
+        } else {
+          tutorialsList.push(updatedTut);
+        }
+        localStorage.setItem('shadow_master_tutorials', JSON.stringify(tutorialsList));
+        setTutorials(tutorialsList);
       } else {
         const saved = localStorage.getItem('custom_tools');
         const toolsList = saved ? JSON.parse(saved) : [...STATIC_TOOLS];
@@ -1777,143 +2086,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
           <span>Appointment</span>
         </button>
 
-        {/* Filed Appointments Reference Button with Interactive Dropdown Container */}
-        <div className="relative">
-          <button
-            onClick={() => {
-              setIsFiledAppointmentsDropdownOpen(!isFiledAppointmentsDropdownOpen);
-            }}
-            className={`flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none ${
-              isFiledAppointmentsDropdownOpen
-                ? 'bg-neutral-800 border-purple-400 text-purple-300'
-                : 'bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400'
-            }`}
-            id="filed-appointments-toggle-btn"
-          >
-            <Clock size={11} className={`text-purple-450 ${isFiledAppointmentsDropdownOpen ? 'rotate-45' : ''} transition-transform`} />
-            <span>Filed ({appointments.length})</span>
-          </button>
 
-          <AnimatePresence>
-            {isFiledAppointmentsDropdownOpen && (
-              <>
-                {/* Backdrop overlay for closing on outside click */}
-                <div 
-                  className="fixed inset-0 z-30 bg-transparent cursor-default" 
-                  onClick={() => setIsFiledAppointmentsDropdownOpen(false)}
-                />
-                
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 mt-2 w-80 md:w-[22rem] bg-neutral-950 border-2 border-neutral-900 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.85)] p-4 z-40 text-left font-mono relative"
-                >
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none opacity-20" />
-                  
-                  {/* Dropdown Header */}
-                  <div className="flex items-center justify-between pb-2.5 border-b border-neutral-900 mb-3 relative z-10">
-                    <span className="text-[9px] font-black text-purple-400 tracking-wider">
-                      // SYSTEM FILED APPOINTMENTS ({appointments.length})
-                    </span>
-                    <button 
-                      type="button"
-                      onClick={() => setIsFiledAppointmentsDropdownOpen(false)}
-                      className="text-neutral-500 hover:text-white transition-colors text-[8px] font-bold"
-                    >
-                      CLOSE
-                    </button>
-                  </div>
-                  
-                  {/* List Container */}
-                  <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1 relative z-10 scrollbar-thin scrollbar-thumb-purple-500/10 hover:scrollbar-thumb-purple-500/30">
-                    {appointments.length === 0 ? (
-                      <div className="py-8 text-center border border-dashed border-neutral-900 rounded-xl bg-neutral-950/20">
-                        <span className="text-lg block mb-1">⏱️</span>
-                        <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest leading-normal">
-                          NO DIAGNOSTIC ORDERS LOADED
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsFiledAppointmentsDropdownOpen(false);
-                            setIsAppointmentModalOpen(true);
-                            setAptStep(1);
-                          }}
-                          className="mt-2.5 text-[7px] text-purple-400 hover:text-purple-300 underline uppercase tracking-wider block mx-auto cursor-pointer"
-                        >
-                          CREATE APPOINTMENT NOW
-                        </button>
-                      </div>
-                    ) : (
-                      appointments.map((apt) => (
-                        <div 
-                          key={apt.id}
-                          className="p-2.5 rounded-xl bg-neutral-900/60 border border-neutral-900 hover:border-neutral-850 transition-all space-y-2"
-                        >
-                          <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                            <span className="text-[9.5px] font-bold text-white tracking-wide truncate max-w-[130px]" title={apt.name}>
-                              {apt.name}
-                            </span>
-                            <span className="px-1.5 py-0.5 bg-yellow-950/20 border border-yellow-500/25 text-[6.5px] text-amber-400 font-extrabold tracking-widest uppercase rounded leading-none">
-                              ● {apt.status}
-                            </span>
-                          </div>
-                          
-                          <div className="text-[8px] space-y-1 text-neutral-400">
-                            <div>
-                              <span className="text-neutral-600 font-black mr-1">ISSUE:</span>
-                              <span className="text-purple-400 font-black tracking-wide uppercase">{apt.problem}</span>
-                            </div>
-                            <div className="truncate text-neutral-300 font-sans" title={apt.specs}>
-                              <span className="text-neutral-600 font-mono font-black mr-1">SPEC:</span>
-                              {apt.specs}
-                            </div>
-                            {apt.description && (
-                              <p className="line-clamp-2 text-neutral-450 font-sans text-[8px] leading-tight bg-neutral-950/50 p-1.5 rounded-lg border border-neutral-950">
-                                "{apt.description}"
-                              </p>
-                            )}
-                            <div className="text-neutral-500 font-black flex justify-between items-center text-[7.5px] pt-1">
-                              <span>ID: {apt.id.substring(3).toUpperCase()}</span>
-                              <span>{apt.date.split('T')[0] || apt.date}</span>
-                            </div>
-                          </div>
-
-                          {/* Action Buttons Bar */}
-                          <div className="flex items-center gap-1.5 pt-1 border-t border-neutral-950 mt-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsAppointmentModalOpen(true);
-                                setAptActiveTab('view');
-                                setIsFiledAppointmentsDropdownOpen(false);
-                              }}
-                              className="flex-grow py-1 px-1.5 bg-neutral-950 hover:bg-neutral-850 border border-neutral-850 text-[8px] font-bold text-neutral-300 rounded hover:text-white transition-all text-center uppercase tracking-widest cursor-pointer"
-                            >
-                              Explore Detail
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const filtered = appointments.filter(item => item.id !== apt.id);
-                                setAppointments(filtered);
-                                localStorage.setItem('shadow_appointments', JSON.stringify(filtered));
-                              }}
-                              className="py-1 px-1.5 bg-red-955/20 border border-red-500/20 hover:border-red-500 text-[6.5px] text-red-400 rounded hover:bg-red-500 hover:text-white transition-all uppercase tracking-widest cursor-pointer"
-                            >
-                              Revoke
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
 
         <button
           onClick={() => {
@@ -2541,37 +2714,53 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               </div>
 
               {/* Tabs Switcher */}
-              <div className="flex border-b border-neutral-900 mb-5 relative z-10 gap-x-1.5 justify-start w-full">
+              <div className="flex border-b border-neutral-900 mb-5 relative z-10 gap-x-1 sm:gap-x-2 justify-start w-full overflow-x-auto scrollbar-none">
                 <button
                   type="button"
                   onClick={() => setActiveTab('uplink')}
-                  className={`pb-2.5 px-3 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.1em] md:tracking-[0.18em] font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                  className={`pb-2.5 px-2.5 font-mono text-[8.5px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.05em] md:tracking-[0.12em] font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'uplink'
                       ? 'border-purple-500 text-purple-400 font-extrabold'
                       : 'border-transparent text-neutral-500 hover:text-neutral-300'
                   }`}
                 >
-                  [01] LINK UPLINK PROTOCOL
+                  [01] UPLINK PROTOCOL
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('linked')}
-                  className={`pb-2.5 px-3 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.1em] md:tracking-[0.18em] font-bold border-b-2 transition-all cursor-pointer relative whitespace-nowrap ${
+                  className={`pb-2.5 px-2.5 font-mono text-[8.5px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.05em] md:tracking-[0.12em] font-bold border-b-2 transition-all cursor-pointer relative whitespace-nowrap ${
                     activeTab === 'linked'
                       ? 'border-purple-500 text-purple-400 font-extrabold'
                       : 'border-transparent text-neutral-500 hover:text-neutral-300'
                   }`}
                 >
-                  [02] VIEW LINKED DIRECTORY
+                  [02] LINKED DIRECTORY
                   {getLinkedItems().length > 0 && (
-                    <span className="ml-1.5 px-1 py-0.5 bg-purple-600 text-white font-black text-[8px] sm:text-[9px] rounded-full font-mono">
+                    <span className="ml-1 px-1 py-0.5 bg-purple-600 text-white font-black text-[7.5px] sm:text-[8.5px] rounded-full font-mono">
                       {getLinkedItems().length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('tutorials')}
+                  className={`pb-2.5 px-2.5 font-mono text-[8.5px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.05em] md:tracking-[0.12em] font-bold border-b-2 transition-all cursor-pointer relative whitespace-nowrap ${
+                    activeTab === 'tutorials'
+                      ? 'border-purple-500 text-purple-400 font-extrabold'
+                      : 'border-transparent text-neutral-500 hover:text-neutral-300'
+                  }`}
+                >
+                  [03] SHADOW TUTORIALS
+                  {tutorials.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-neutral-900 border border-purple-500/30 text-purple-400 font-black text-[7.5px] sm:text-[8.5px] rounded-full font-mono">
+                      {tutorials.length}
                     </span>
                   )}
                 </button>
               </div>
 
-              {activeTab === 'uplink' ? (
+              {activeTab === 'uplink' && (
                 /* Configuration Terminal Form (Single Column Original UI) */
                 <form onSubmit={handleUpdateProtocol} className="space-y-4 relative z-10 w-full text-left">
                   
@@ -2603,7 +2792,10 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                           className="w-full rounded-xl bg-neutral-900 border border-neutral-800 p-3 pr-10 text-white font-mono text-xs focus:border-purple-500 outline-none transition-all appearance-none cursor-pointer hover:bg-neutral-850 text-left"
                         >
                           <option value="SOFTWARE" className="bg-neutral-950 text-white">SOFTWARE DIRECTORY [01]</option>
+                          <option value="ANIME" className="bg-neutral-950 text-white">ANIME DIRECTORY [02]</option>
+                          <option value="TUTORIALS" className="bg-neutral-950 text-white">TUTORIALS DIRECTORY [03]</option>
                           <option value="TOOLS" className="bg-neutral-950 text-white">END-USER UTILITIES [04]</option>
+                          <option value="GAMES" className="bg-neutral-950 text-white">GAMES DIRECTORY [05]</option>
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-purple-400">
                           <ChevronRight size={13} className="rotate-90 text-purple-450" />
@@ -2616,7 +2808,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                         [03] PROTOCOL TYPE
                       </label>
                       <div className="flex bg-neutral-900 border border-neutral-800 rounded-xl p-1 gap-1 h-[42px] items-center">
-                        {['GITHUB', 'FB', 'EXT'].map((opt) => (
+                        {['G: DRIVE', 'FB', 'EXT'].map((opt) => (
                           <button
                             key={opt}
                             type="button"
@@ -2781,7 +2973,9 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   </div>
 
                 </form>
-              ) : (
+              )}
+
+              {activeTab === 'linked' && (
                 /* Linked Directory List */
                 <div className="space-y-4 relative z-10 flex flex-col h-[340px]">
                   <div className="flex-1 overflow-y-auto pr-1 space-y-3 select-none font-mono">
@@ -2804,6 +2998,12 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                               <span className={`text-[8px] font-bold font-mono px-1.5 py-0.5 rounded ${
                                 item.type === 'SOFTWARE' 
                                   ? 'bg-amber-950/20 text-amber-400 border border-amber-900/30' 
+                                  : item.type === 'ANIME'
+                                  ? 'bg-rose-950/20 text-rose-450 border border-rose-900/30'
+                                  : item.type === 'GAMES'
+                                  ? 'bg-sky-950/20 text-sky-400 border border-sky-900/30'
+                                  : item.type === 'TUTORIALS'
+                                  ? 'bg-emerald-950/20 text-emerald-400 border border-emerald-900/30'
                                   : 'bg-purple-950/20 text-purple-400 border border-purple-900/30'
                               }`}>
                                 {item.type}
@@ -2840,8 +3040,11 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                                       onChange={(e) => setEditCategoryValue(e.target.value)}
                                       className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-1.5 py-[5px] text-[10px] uppercase font-bold text-purple-400 outline-none focus:border-purple-500 font-mono cursor-pointer md:py-1"
                                     >
-                                      <option value="SOFTWARE" className="bg-neutral-950 text-white">SOFTWARE DIRECTORY</option>
-                                      <option value="TOOL" className="bg-neutral-950 text-white">END-USER UTILITY</option>
+                                      <option value="SOFTWARE" className="bg-neutral-950 text-white">SOFTWARE DIRECTORY [01]</option>
+                                      <option value="ANIME" className="bg-neutral-950 text-white">ANIME DIRECTORY [02]</option>
+                                      <option value="TUTORIALS" className="bg-neutral-950 text-white">TUTORIALS DIRECTORY [03]</option>
+                                      <option value="TOOL" className="bg-neutral-950 text-white">END-USER UTILITIES [04]</option>
+                                      <option value="GAMES" className="bg-neutral-950 text-white">GAMES DIRECTORY [05]</option>
                                     </select>
                                   </div>
                                   <div>
@@ -2851,7 +3054,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                                       value={editProtocolValue}
                                       onChange={(e) => setEditProtocolValue(e.target.value)}
                                       className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-[10px] uppercase font-bold text-white outline-none focus:border-purple-500 font-mono"
-                                      placeholder="e.g. EXT, GITHUB, FB"
+                                      placeholder="e.g. EXT, G: DRIVE, FB"
                                     />
                                   </div>
                                 </div>
@@ -2953,14 +3156,6 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                     <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
                       <button 
                         type="button"
-                        onClick={() => setIsModalOpen(false)}
-                        className="w-full sm:w-auto px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] text-neutral-300 hover:text-white transition-all cursor-pointer text-center font-bold"
-                      >
-                        DISCONNECT CONSOLE
-                      </button>
-                      
-                      <button 
-                        type="button"
                         onClick={() => setIsAdminSuggestionsOpen(true)}
                         className="w-full sm:w-auto px-4 py-2 bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-950/40 text-purple-400 hover:text-purple-300 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                       >
@@ -2976,6 +3171,196 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                     
                     <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500">
                       SECURE TERMINAL DIRECTORY INDEX
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'tutorials' && (
+                <div className="space-y-4 relative z-10 flex flex-col h-[340px] text-left">
+                  {/* Tutorial Links Header / Add Tutorial Trigger */}
+                  <div className="flex items-center justify-between font-mono pb-2 border-b border-neutral-900 shrink-0">
+                    <span className="text-[9px] uppercase tracking-wider text-purple-400 font-extrabold flex items-center gap-1.5">
+                      <BookOpen size={11} className="text-purple-400 animate-pulse" />
+                      <span>// SYSTEM REFERENCE DIRECTORY</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingTutorial(!isAddingTutorial)}
+                      className="px-2 py-1 bg-purple-950/20 border border-purple-500/20 hover:border-purple-500 hover:bg-purple-950/40 text-[8px] text-purple-400 hover:text-purple-300 rounded font-black tracking-widest uppercase transition-all select-none cursor-pointer flex items-center gap-1"
+                    >
+                      {isAddingTutorial ? 'Cancel' : '+ File Link'}
+                    </button>
+                  </div>
+
+                  {isAddingTutorial ? (
+                    /* Add Tutorial Form */
+                    <form 
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!newTutorialTitle || !newTutorialUrl) return;
+                        const newTut = {
+                          id: `custom-tut-${Date.now()}`,
+                          title: newTutorialTitle.toUpperCase(),
+                          category: newTutorialCategory.toUpperCase(),
+                          description: newTutorialDesc || 'Custom resource linked by user profile.',
+                          url: newTutorialUrl
+                        };
+                        const updated = [...tutorials, newTut];
+                        setTutorials(updated);
+                        
+                        // Save to localStorage (only the non-system ones)
+                        const customOnly = updated.filter(t => !t.system);
+                        localStorage.setItem('shadow_master_tutorials', JSON.stringify(customOnly));
+                        
+                        // Reset forms
+                        setNewTutorialTitle('');
+                        setNewTutorialDesc('');
+                        setNewTutorialUrl('');
+                        setIsAddingTutorial(false);
+                      }}
+                      className="flex-1 overflow-y-auto pr-1 space-y-3.5 font-mono"
+                    >
+                      <div>
+                        <label className="text-[8px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1 block">
+                          [01] TUTORIAL TITLE OR PROTOCOL NAME
+                        </label>
+                        <input
+                          type="text"
+                          value={newTutorialTitle}
+                          onChange={(e) => setNewTutorialTitle(e.target.value)}
+                          placeholder="e.g. ULTIMATE WINDOWS OS LATENCY SLIGHT ENGINE"
+                          className="w-full rounded-xl bg-neutral-950 border border-neutral-850 p-2.5 text-white font-mono text-[10.5px] uppercase tracking-wider focus:border-purple-500 outline-none placeholder:text-neutral-700 font-semibold"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[8px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1 block">
+                            [02] CATEGORY TAG
+                          </label>
+                          <select
+                            value={newTutorialCategory}
+                            onChange={(e) => setNewTutorialCategory(e.target.value)}
+                            className="w-full rounded-xl bg-neutral-950 border border-neutral-850 p-2 text-white font-mono text-[10.5px] focus:border-purple-500 outline-none cursor-pointer font-semibold"
+                          >
+                            <option value="CPU/POWER">CPU/POWER</option>
+                            <option value="RAM OC">RAM OC</option>
+                            <option value="OS OPTIMIZATION">OS OPTIMIZATION</option>
+                            <option value="OS OVERRIDES">OS OVERRIDES</option>
+                            <option value="STORAGE DISKS">STORAGE DISKS</option>
+                            <option value="MISC GUIDE">MISC GUIDE</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[8px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1 block">
+                            [03] RESOURCE DESTINATION URL
+                          </label>
+                          <input
+                            type="url"
+                            value={newTutorialUrl}
+                            onChange={(e) => setNewTutorialUrl(e.target.value)}
+                            placeholder="https://example.com/guide.md"
+                            className="w-full rounded-xl bg-neutral-950 border border-neutral-850 p-2 text-white font-mono text-[10.5px] focus:border-purple-500 outline-none placeholder:text-neutral-700 font-semibold"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[8px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1 block">
+                          [04] SUMMARY OR BRIEF BRIEF
+                        </label>
+                        <textarea
+                          value={newTutorialDesc}
+                          onChange={(e) => setNewTutorialDesc(e.target.value)}
+                          placeholder="Summary of memory addresses, registry paths, or execution bounds..."
+                          rows={2}
+                          className="w-full rounded-xl bg-neutral-950 border border-neutral-850 p-2.5 text-white font-mono text-[10px] focus:border-purple-500 outline-none placeholder:text-neutral-700 resize-none font-medium"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full py-2 bg-purple-600 hover:bg-purple-755 text-white font-black text-[9px] uppercase tracking-widest rounded-xl transition-all font-mono shadow-md cursor-pointer"
+                      >
+                        SUBMIT SHADOW TUTORIAL DATA PACKET
+                      </button>
+                    </form>
+                  ) : (
+                    /* Tutorials List */
+                    <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 font-mono scrollbar-thin scrollbar-thumb-purple-500/10 hover:scrollbar-thumb-purple-500/30">
+                      {tutorials.length === 0 ? (
+                        <div className="py-12 px-4 rounded-2xl bg-neutral-900/10 border border-dashed border-neutral-900 flex flex-col items-center justify-center text-center">
+                          <span className="text-xl mb-1.5 opacity-60">📁</span>
+                          <span className="text-[9px] font-black text-neutral-500 uppercase tracking-widest block mb-0.5">
+                            REFERENCE DIRECTORY EMPTY
+                          </span>
+                          <p className="text-[8px] text-neutral-655 max-w-[280px] leading-normal font-sans text-neutral-500 uppercase font-bold tracking-wide">
+                            No linked manuals found in index. Register custom reference files with '+ FILE LINK'.
+                          </p>
+                        </div>
+                      ) : (
+                        tutorials.map((tut) => (
+                          <div 
+                            key={tut.id}
+                            className="p-3.5 rounded-2xl bg-neutral-900/40 border border-neutral-900/80 hover:border-neutral-800 transition-all flex flex-col font-mono relative group"
+                          >
+                            <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[7px] font-bold tracking-widest px-1.5 py-0.5 bg-purple-950/20 text-purple-400 border border-purple-900/25 rounded uppercase">
+                                  {tut.category}
+                                </span>
+                                {tut.system && (
+                                  <span className="text-[6.5px] font-black tracking-wider px-1 bg-neutral-950/60 text-neutral-500 border border-neutral-900 rounded select-none">
+                                    SYSTEM
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {!tut.system && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const filtered = tutorials.filter(t => t.id !== tut.id);
+                                    setTutorials(filtered);
+                                    const customOnly = filtered.filter(t => !t.system);
+                                    localStorage.setItem('shadow_master_tutorials', JSON.stringify(customOnly));
+                                  }}
+                                  className="text-[7.5px] text-red-500 hover:text-red-400 uppercase tracking-wider font-extrabold cursor-pointer select-none transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                >
+                                  Revoke
+                                </button>
+                              )}
+                            </div>
+
+                            <h4 className="text-[10px] sm:text-[10.5px] font-extrabold tracking-wide text-white mb-1 uppercase">
+                              {tut.title}
+                            </h4>
+                            
+                            <p className="text-[9px] text-neutral-400 leading-normal mb-2 font-sans">
+                              {tut.description}
+                            </p>
+
+                            <a
+                              href={tut.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="self-start text-[8px] font-black text-purple-400 hover:text-purple-300 uppercase tracking-widest inline-flex items-center gap-1 border-b border-dashed border-purple-400/30 hover:border-purple-300/60 pb-0.5 no-underline cursor-pointer"
+                            >
+                              INITIALIZE EDUCATION DECODER <ExternalLink size={9} />
+                            </a>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {/* Tutorials Footer Cancel / Back Indicator */}
+                  <div className="flex items-center justify-end pt-4 border-t border-neutral-900 mt-2 shrink-0 w-full font-mono">
+                    <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500 text-right w-full">
+                      MASTER INSTRUCTION DIRECTIVES
                     </span>
                   </div>
                 </div>
@@ -3606,71 +3991,38 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
                               {/* Matrix configuration choices */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Brand Toggles */}
+                                {/* CPU Model Text Override */}
                                 <div>
                                   <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                                    Processor Brand Family
+                                    Processor Model (CPU Specs)
                                   </label>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setAptCpuBrand('Intel');
-                                        setAptCpu('Intel Core i7-13700K');
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      value={aptCpu}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setAptCpu(val);
+                                        if (val.toLowerCase().includes('amd') || val.toLowerCase().includes('ryzen')) {
+                                          setAptCpuBrand('AMD');
+                                        } else if (val.toLowerCase().includes('intel') || val.toLowerCase().includes('core') || val.toLowerCase().includes('i7') || val.toLowerCase().includes('i9')) {
+                                          setAptCpuBrand('Intel');
+                                        }
                                       }}
-                                      className={`py-2 px-3 text-[9.5px] font-mono font-black rounded-xl transition-all border text-center ${
-                                        aptCpuBrand === 'Intel'
-                                          ? 'bg-blue-950/30 border-blue-500/70 text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.15)]'
-                                          : 'bg-neutral-950 text-neutral-500 border-neutral-900 hover:border-neutral-850 hover:text-neutral-400'
-                                      }`}
-                                    >
-                                      INTEL CORE CPU
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setAptCpuBrand('AMD');
-                                        setAptCpu('AMD Ryzen 7 7800X3D');
-                                      }}
-                                      className={`py-2 px-3 text-[9.5px] font-mono font-black rounded-xl transition-all border text-center ${
-                                        aptCpuBrand === 'AMD'
-                                          ? 'bg-amber-950/30 border-amber-500/70 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
-                                          : 'bg-neutral-950 text-neutral-500 border-neutral-900 hover:border-neutral-850 hover:text-neutral-400'
-                                      }`}
-                                    >
-                                      AMD RYZEN CPU
-                                    </button>
+                                      placeholder="e.g. AMD Ryzen 7 7800X3D"
+                                      className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 font-semibold"
+                                      required
+                                    />
+                                    <div className="absolute right-3.5 top-2.5 flex items-center select-none pointer-events-none">
+                                      <span className={`text-[7px] font-black px-1.5 py-0.5 rounded uppercase border font-mono transition-colors ${
+                                        aptCpu.toLowerCase().includes('amd') || aptCpu.toLowerCase().includes('ryzen')
+                                          ? 'bg-amber-950/40 border-amber-500/50 text-amber-400'
+                                          : 'bg-blue-950/40 border-blue-500/50 text-blue-400'
+                                      }`}>
+                                        {aptCpu.toLowerCase().includes('amd') || aptCpu.toLowerCase().includes('ryzen') ? 'AMD EXPO' : 'INTEL XMP'}
+                                      </span>
+                                    </div>
                                   </div>
-                                </div>
-
-                                {/* Model choose lists */}
-                                <div>
-                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                                    Processor Model Choice
-                                  </label>
-                                  <select
-                                    value={aptCpu}
-                                    onChange={(e) => setAptCpu(e.target.value)}
-                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
-                                  >
-                                    {aptCpuBrand === 'Intel' ? (
-                                      <>
-                                        <option value="Intel Core i9-14900K">Intel Core i9-14900K (24-Core Rocket Flagship)</option>
-                                        <option value="Intel Core i7-13700K">Intel Core i7-13700K (16-Core Raptor Performance)</option>
-                                        <option value="Intel Core i5-13600K">Intel Core i5-13600K (Budget Enthusiast Choice)</option>
-                                        <option value="Intel Core i9-12900K">Intel Core i9-12900K (Alder Lake Architecture)</option>
-                                        <option value="Intel Xeon W-Series">Intel Xeon W-Series (Professional Workstation CPU)</option>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <option value="AMD Ryzen 9 7950X3D">AMD Ryzen 9 7950X3D (Zen 4 16-Core Extreme V-Cache)</option>
-                                        <option value="AMD Ryzen 7 7800X3D">AMD Ryzen 7 7800X3D (World-Best Gaming Silicon)</option>
-                                        <option value="AMD Ryzen 9 5950X">AMD Ryzen 9 5950X (Zen 3 16-Core Masterpiece)</option>
-                                        <option value="AMD Ryzen 7 5800X3D">AMD Ryzen 7 5800X3D (DDR4 Ultimate Gaming upgrade)</option>
-                                        <option value="AMD Ryzen 5 7600X">AMD Ryzen 5 7600X (Standard 6-Core Sweetspot)</option>
-                                      </>
-                                    )}
-                                  </select>
                                 </div>
 
                                 {/* Motherboard selects */}

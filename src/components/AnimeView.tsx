@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Pause, ChevronRight, Shield, Sparkles, BookOpen, Clock, Heart, Radio, Activity, Volume2, Info, ArrowLeft, Tv } from 'lucide-react';
+import { Play, Tv, ExternalLink, Film, HelpCircle, ArrowLeft } from 'lucide-react';
 
 import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
 import shadowAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
@@ -9,467 +9,438 @@ import shadowMoonRain from '../assets/images/shadow_moon_rain_1779250676888.png'
 import shadowElectricity from '../assets/images/shadow_neon_electricity_1779250694461.png';
 import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
 
-interface Episode {
-  id: string;
-  season: 1 | 2;
-  episodeNumber: number;
-  code: string;
-  title: string;
-  jpTitle: string;
-  image: string;
-  duration: string;
-  airDate: string;
-  description: string;
-  quote: string;
-  quoteBy: string;
-  powerLevel: string;
-  keyOperatives: string[];
-  trackTitle: string;
-  trackDuration: string;
+function getEmbedUrl(url: string) {
+  if (!url) return '';
+  
+  // Google Drive url mapping
+  if (url.includes('drive.google.com')) {
+    const fileIdMatch = url.match(/\/file\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+    }
+  }
+  
+  // YouTube normal video mapping
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    let videoId = '';
+    if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1]?.split(/[?#]/)[0] || '';
+    } else if (url.includes('v=')) {
+      videoId = url.split('v=')[1]?.split('&')[0] || '';
+    } else if (url.includes('embed/')) {
+      videoId = url.split('embed/')[1]?.split(/[?#]/)[0] || '';
+    }
+    
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    }
+  }
+
+  return url;
 }
 
-const EPISODES_DATABASE: Episode[] = [
-  {
-    id: 's1e1',
-    season: 1,
-    episodeNumber: 1,
-    code: 'S1 EP01',
-    title: 'The Self-Proclaimed Mob',
-    jpTitle: 'あいつは妄想のモブキャラ？',
-    image: shadowOnRoof,
-    duration: '23:40',
-    airDate: 'October 5, 2022',
-    description: 'In modern-day Japan, a boy aspires to be a shadowy powerhouse who operates behind the scenes. Following a fatal accident, he is reincarnated into a magical world as Cid Kagenou.',
-    quote: "I didn't want to be a hero, nor a villain. I wanted to be the mastermind in the shadows.",
-    quoteBy: 'Cid Kagenou',
-    powerLevel: '8,500 MANA',
-    keyOperatives: ['Cid Kagenou', 'Alpha', 'Beta'],
-    trackTitle: 'The Beginning of Shadow Garden',
-    trackDuration: '02:45'
-  },
-  {
-    id: 's1e2',
-    season: 1,
-    episodeNumber: 2,
-    code: 'S1 EP02',
-    title: 'Shadow Garden is Born',
-    jpTitle: '結成シャドウガーデン',
-    image: shadowAura,
-    duration: '24:05',
-    airDate: 'October 12, 2022',
-    description: 'Cid transforms his childhood friend Alpha into a formidable fighter and invents a story about the "Cult of Diablos" to justify his fantasy. Little does he know, the Cult is terrifyingly real.',
-    quote: "Our name is Shadow Garden. We lurk in the shadows, to hunt the shadows...",
-    quoteBy: 'Shadow',
-    powerLevel: '45,200 MANA',
-    keyOperatives: ['Shadow', 'Alpha', 'Beta', 'Gamma'],
-    trackTitle: 'Shadow Garden Theme (Spooky Waltz)',
-    trackDuration: '03:12'
-  },
-  {
-    id: 's1e5',
-    season: 1,
-    episodeNumber: 5,
-    code: 'S1 EP05',
-    title: 'I Am Atomic',
-    jpTitle: 'アイ・アム・アトミック',
-    image: shadowBlade,
-    duration: '23:55',
-    airDate: 'November 2, 2022',
-    description: 'Faced with the villainous Xenon in the royal sewers, Cid decides to demonstrate the ultimate evolution of magical focus. The absolute pinnacle of offensive power is unleashed.',
-    quote: "If you do not wish to be vaporized by an atomic blast, you must become Atomic itself.",
-    quoteBy: 'Shadow',
-    powerLevel: '999,999 MANA',
-    keyOperatives: ['Shadow', 'Xenon (Cult)', 'Alexia Midgar'],
-    trackTitle: 'I Am Atomic (Orchestral Drop)',
-    trackDuration: '04:20'
-  },
-  {
-    id: 's1e12',
-    season: 1,
-    episodeNumber: 12,
-    code: 'S1 EP12',
-    title: 'Sanctuary Intruder',
-    jpTitle: '記憶の中の真実',
-    image: shadowMoonRain,
-    duration: '24:12',
-    airDate: 'December 21, 2022',
-    description: 'Investigating the mysterious Goddess Trial, Cid is transported into the memories of the Sanctuary, where he meets Aurora, the beautiful Calamity Witch who nearly destroyed the ancient world.',
-    quote: "You have a fascinating soul, boy. It has been a millennium since someone made me laugh.",
-    quoteBy: 'Aurora (Calamity Witch)',
-    powerLevel: '120,000 MANA',
-    keyOperatives: ['Shadow', 'Aurora', 'Delta', 'Epsilon'],
-    trackTitle: 'Sanctuary of Ancient Memories',
-    trackDuration: '03:40'
-  },
-  {
-    id: 's2e1',
-    season: 2,
-    episodeNumber: 1,
-    code: 'S2 EP01',
-    title: 'The Lawless City',
-    jpTitle: '無法都市',
-    image: shadowElectricity,
-    duration: '23:50',
-    airDate: 'October 4, 2023',
-    description: 'Cid enters the notorious Lawless City, an anarchist domain ruled by three vicious monarchs. Inside the Crimson Tower, the ancient Progenitor Vampire Queen is about to awaken.',
-    quote: "The night is deep, and the moon is red. The blood feast of the monarchs begins now.",
-    quoteBy: 'Mary the Ancient Hunter',
-    powerLevel: '180,500 MANA',
-    keyOperatives: ['Shadow', 'Mary', 'Yukime', 'Juggernaut'],
-    trackTitle: 'The Crimson Moon Red Banquet',
-    trackDuration: '03:05'
-  },
-  {
-    id: 's2e12',
-    season: 2,
-    episodeNumber: 12,
-    code: 'S2 EP12',
-    title: 'Higjacking Legend',
-    jpTitle: '世界を乗っ取る最強伝説',
-    image: shadowClockTower,
-    duration: '24:32',
-    airDate: 'December 20, 2023',
-    description: 'The spectacular final duel at the Clock Tower merges financial dominance with world-class theatrical flair. Cid takes on the extreme might of ancient dimensions.',
-    quote: "The legend belongs to whoever rewrites the chronicle. Let us build a kingdom in the twilight.",
-    quoteBy: 'Shadow',
-    powerLevel: '1,500,000 MANA',
-    keyOperatives: ['Shadow', 'Beta', 'Rose Oriana', 'Alpha'],
-    trackTitle: 'Twilight Clock Tower Finale',
-    trackDuration: '05:15'
-  }
-];
+const isDirectVideo = (url: string) => {
+  if (!url) return false;
+  const lower = url.toLowerCase().trim();
+  return lower.endsWith('.mp4') || 
+         lower.endsWith('.mkv') || 
+         lower.endsWith('.webm') || 
+         lower.endsWith('.ogg') || 
+         lower.endsWith('.mov') ||
+         lower.includes('/api/video') ||
+         lower.includes('video');
+};
 
 export default function AnimeView() {
-  const [selectedSeason, setSelectedSeason] = useState<1 | 2>(1);
-  const [activeEpisode, setActiveEpisode] = useState<Episode | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playProgress, setPlayProgress] = useState(35);
-  const [spectrumBars, setSpectrumBars] = useState<number[]>(new Array(25).fill(10));
-  
-  // Audio simulation ticker
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isPlaying) {
-      timer = setInterval(() => {
-        setPlayProgress(prev => {
-          if (prev >= 100) return 0;
-          return prev + 0.5;
-        });
-        setSpectrumBars(() => {
-          return new Array(25).fill(0).map(() => Math.floor(Math.random() * 45) + 5);
-        });
-      }, 150);
-    } else {
-      setSpectrumBars(new Array(25).fill(10));
-    }
-    return () => clearInterval(timer);
-  }, [isPlaying]);
+  const [activeVideo, setActiveVideo] = useState<any | null>(null);
+  const [videoError, setVideoError] = useState<boolean>(false);
+  const [selectedQuality, setSelectedQuality] = useState<'360p' | '480p' | '720p' | '1080p'>('360p');
+  const [isChangingQuality, setIsChangingQuality] = useState<boolean>(false);
 
-  const filteredEpisodes = EPISODES_DATABASE.filter(ep => {
-    return ep.season === selectedSeason;
-  });
-
-  const handleLaunchEpisodeIntel = (ep: Episode) => {
-    setActiveEpisode(ep);
-    setIsPlaying(false);
-    setPlayProgress(15);
+  const changeQuality = (quality: '360p' | '480p' | '720p' | '1080p') => {
+    if (selectedQuality === quality) return;
+    setIsChangingQuality(true);
+    setSelectedQuality(quality);
+    setTimeout(() => {
+      setIsChangingQuality(false);
+    }, 700);
   };
 
+  const [animeList] = useState<any[]>(() => {
+    const saved = localStorage.getItem('custom_anime');
+    let loaded = [];
+    try {
+      loaded = saved ? JSON.parse(saved) : [];
+    } catch (e) {}
+
+    const defaultAnime = [
+      {
+        id: 'default-anime-s1',
+        title: 'Eminence in Shadow Episode 1',
+        season: 'SEASON 1',
+        description: 'Cid Kagenou is reincarnated into a fantasy world as Shadow, the mysterious mastermind of the Shadow Garden secret society.',
+        protocol: 'S1 FULL',
+        link: 'https://crunchyroll.com/series/G79H23X08/the-eminence-in-shadow',
+        image: shadowOnRoof
+      },
+      {
+        id: 'default-anime-s2',
+        title: 'Eminence in Shadow Episode 2',
+        season: 'SEASON 2',
+        description: 'Under the blood red moon, Shadow faces the legendary vampire Queen Elisabeth and commands the corporate skirmishes of Mitsugoshi.',
+        protocol: 'S2 FULL',
+        link: 'https://crunchyroll.com/series/G79H23X08/the-eminence-in-shadow',
+        image: shadowClockTower
+      },
+      {
+        id: 'default-anime-movie',
+        title: 'The Eminence in Shadow: Lost Echoes',
+        season: 'THEATRIC MOVIE',
+        description: 'Upcoming continuation theatrical film declassifying new parallel-world conflicts.',
+        protocol: 'MOVIE TEASER',
+        link: 'https://crunchyroll.com/series/G79H23X08/the-eminence-in-shadow',
+        image: shadowMoonRain
+      }
+    ];
+
+    if (loaded.length === 0) {
+      return defaultAnime;
+    }
+
+    // Map loaded custom anime and fallback images dynamically
+    const customList = loaded.map((item: any, idx: number) => {
+      const fallbackImages = [shadowBlade, shadowAura, shadowElectricity];
+      return {
+        id: item.id || `custom-anime-${idx}`,
+        title: item.title,
+        description: item.description || 'No description provided.',
+        protocol: item.protocol || 'EXT LINK',
+        link: item.link || 'https://crunchyroll.com',
+        image: item.image || fallbackImages[idx % fallbackImages.length],
+        season: item.season || ''
+      };
+    });
+
+    // Merge default list while filtering duplicates by title
+    return [
+      ...customList,
+      ...defaultAnime.filter(def => !customList.some((l: any) => l.title.toLowerCase().trim() === def.title.toLowerCase().trim()))
+    ];
+  });
+
   return (
-    <div className="h-full flex flex-col bg-neutral-950 text-neutral-200 font-sans select-none relative overflow-hidden">
-      <AnimatePresence mode="wait">
-        {!activeEpisode ? (
-          <motion.div
-            key="list"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            className="flex-1 p-6 md:p-8 flex flex-col justify-between max-w-6xl mx-auto w-full overflow-hidden"
-          >
-            {/* Upper Section */}
-            <div className="shrink-0 mb-6">
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-mono tracking-[0.25em] text-purple-400 font-black uppercase mb-1">
-                    // SHADOW OBSIDIAN DECK ARCHIVE
-                  </p>
-                  <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-white">
-                    Eminence in Shadow Chronicle
-                  </h3>
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider mt-1">
-                    Declassified files logs from the primary tactical database of Shadow Garden
-                  </p>
-                </div>
+    <div className="h-full flex flex-col bg-neutral-950">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-full border-b border-neutral-900 bg-neutral-950 flex-1">
+        {animeList.map((anime, idx) => {
+          const hasBgImage = !!anime.image;
+          const Tag = motion.div;
+          const targetLink = anime.link || 'https://crunchyroll.com';
 
-                {/* Season switch filter */}
-                <div className="flex bg-neutral-900/60 p-1 border border-neutral-850 rounded-xl shrink-0 self-start md:self-auto">
-                  <button
-                    onClick={() => setSelectedSeason(1)}
-                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all ${
-                      selectedSeason === 1
-                        ? 'bg-purple-950 text-purple-400 border border-purple-500/20'
-                        : 'text-neutral-500 hover:text-neutral-300'
-                    }`}
-                  >
-                    SEASON 01
-                  </button>
-                  <button
-                    onClick={() => setSelectedSeason(2)}
-                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all ${
-                      selectedSeason === 2
-                        ? 'bg-purple-950 text-purple-400 border border-purple-500/20'
-                        : 'text-neutral-500 hover:text-neutral-300'
-                    }`}
-                  >
-                    SEASON 02
-                  </button>
-                </div>
-              </div>
-            </div>
+          const handleClick = (e: React.MouseEvent) => {
+            e.preventDefault();
+            setVideoError(false);
+            setSelectedQuality('360p');
+            setIsChangingQuality(false);
+            setActiveVideo(anime);
+          };
 
-            {/* Scrollable Episodes Grid Container */}
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredEpisodes.map((ep, idx) => (
-                  <motion.div
-                    key={ep.id}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    whileHover={{ y: -5, borderColor: 'rgba(168, 85, 247, 0.45)' }}
-                    className="border border-neutral-900 bg-neutral-950/40 backdrop-blur-sm rounded-2xl overflow-hidden group flex flex-col justify-between h-[340px] transition-all duration-300 relative shadow-lg"
-                  >
-                    {/* Cover art box */}
-                    <div className="h-36 relative overflow-hidden bg-neutral-900 shrink-0">
-                      <img
-                        src={ep.image}
-                        alt={ep.title}
-                        className="w-full h-full object-cover opacity-45 group-hover:scale-105 transition-transform duration-500"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 to-transparent" />
-                      
-                      {/* Tags */}
-                      <span className="absolute top-4 left-4 bg-purple-950/90 border border-purple-500/30 px-2 py-0.5 rounded text-[8px] font-mono font-black tracking-widest text-purple-400 uppercase">
-                        {ep.code}
-                      </span>
-                      <span className="absolute top-4 right-4 flex items-center gap-1 bg-black/70 border border-neutral-800 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold text-neutral-400 uppercase">
-                        <Clock size={8} /> {ep.duration}
-                      </span>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-5 flex-1 flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <h4 className="text-base font-black uppercase tracking-tight text-white group-hover:text-purple-400 transition-colors line-clamp-1">
-                          {ep.title}
-                        </h4>
-                        <p className="text-[9px] font-bold text-neutral-500 tracking-wider font-mono italic">
-                          {ep.jpTitle}
-                        </p>
-                        <p className="text-[11px] text-neutral-400 font-semibold leading-relaxed line-clamp-3 uppercase tracking-wide">
-                          {ep.description}
-                        </p>
-                      </div>
-
-                      {/* Launch Intel Trigger */}
-                      <div className="pt-4 border-t border-neutral-900/40 flex items-center justify-between text-[9px] font-mono">
-                        <span className="text-purple-500 font-extrabold tracking-widest">
-                          {ep.powerLevel}
-                        </span>
-                        <button
-                          onClick={() => handleLaunchEpisodeIntel(ep)}
-                          className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-neutral-400 group-hover:text-white transition-colors cursor-pointer"
-                        >
-                          DECLASSIFY INTEL <ChevronRight size={12} className="text-purple-450 group-hover:translate-x-0.5 transition-transform" />
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-
-          </motion.div>
-        ) : (
-          <motion.div
-            key="details"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1 flex flex-col lg:flex-row bg-neutral-950 h-full overflow-y-auto lg:overflow-hidden"
-          >
-            {/* Left Side: Detail & Story Intel */}
-            <div className="flex-1 p-6 md:p-8 overflow-y-auto no-scrollbar flex flex-col justify-between">
-              <div>
-                {/* Back Link */}
-                <button
-                  onClick={() => setActiveEpisode(null)}
-                  className="flex items-center gap-2 group transition-opacity opacity-75 hover:opacity-100 text-neutral-400 hover:text-white mb-6 cursor-pointer"
-                >
-                  <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-                  <span className="font-mono text-[9px] font-black uppercase tracking-widest">
-                    RETURN_TO_ARCHIVE_DECK
-                  </span>
-                </button>
-
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="bg-purple-950 border border-purple-500/30 text-purple-405 text-purple-400 px-2.5 py-0.5 text-[9px] font-bold tracking-widest font-mono rounded-full uppercase">
-                    {activeEpisode.code}
-                  </span>
-                  <span className="text-neutral-500 font-mono text-[9px] font-bold uppercase">
-                    LAUNCH: {activeEpisode.airDate}
-                  </span>
-                </div>
-
-                <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white leading-none mb-1">
-                  {activeEpisode.title}
-                </h2>
-                <p className="text-[10px] font-extrabold text-neutral-500 tracking-wider font-mono italic mb-6">
-                  {activeEpisode.jpTitle}
-                </p>
-
-                {/* Cover art mockup in details */}
-                <div className="relative border border-neutral-900 rounded-2xl overflow-hidden h-52 sm:h-64 mb-6 bg-neutral-900 shadow-2xl">
-                  <img
-                    src={activeEpisode.image}
-                    alt={activeEpisode.title}
-                    className="w-full h-full object-cover filter brightness-[1.1] contrast-[1.05]"
+          return (
+            <Tag
+              key={anime.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: idx * 0.05 }}
+              onClick={handleClick}
+              className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-pointer ${
+                hasBgImage 
+                  ? 'bg-neutral-950 text-white' 
+                  : 'bg-neutral-900/35 hover:bg-neutral-900/80 text-white'
+              }`}
+            >
+              {anime.image && (
+                <div className="absolute inset-0 z-0 overflow-hidden">
+                  <img 
+                    src={anime.image} 
+                    alt="" 
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-[0.7] group-hover:brightness-[0.8]"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-                    <div>
-                      <span className="text-[7.5px] text-purple-400 font-extrabold tracking-widest block uppercase mb-1">RECORD DEPLOYER</span>
-                      <p className="text-xs font-black text-white uppercase tracking-wider">Cid Kagenou Sovereign Account</p>
-                    </div>
-                    <span className="text-[8px] bg-emerald-950 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-black uppercase tracking-widest">
-                      SYSTEM OK
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/35 group-hover:from-black/100 group-hover:via-black/70 group-hover:to-black/45 transition-all duration-300" />
+                </div>
+              )}
+
+              <div className="relative z-10 flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <div className={`w-8 h-1 transition-colors ${
+                      hasBgImage ? 'bg-rose-500 group-hover:bg-rose-450' : 'bg-purple-500 group-hover:bg-purple-400'
+                    }`}></div>
+                    {anime.protocol && (
+                      <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-950/40 text-rose-405 border border-rose-900/30">
+                        {anime.protocol}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col gap-1 mb-2">
+                    <span className="text-[9px] font-mono font-extrabold text-rose-400/90 tracking-[0.16em] uppercase">
+                      {(() => {
+                        if (anime.season) return anime.season.toUpperCase();
+                        const lowerTitle = anime.title.toLowerCase();
+                        const lowerProtocol = (anime.protocol || '').toLowerCase();
+                        if (lowerTitle.includes('season 1') || lowerTitle.includes('s1') || lowerProtocol.includes('s1') || lowerTitle.includes('episode 1')) {
+                          return 'SEASON 1';
+                        }
+                        if (lowerTitle.includes('season 2') || lowerTitle.includes('s2') || lowerProtocol.includes('s2') || lowerTitle.includes('episode 2')) {
+                          return 'SEASON 2';
+                        }
+                        if (lowerTitle.includes('movie') || lowerProtocol.includes('movie') || lowerTitle.includes('echoes')) {
+                          return 'THEATRIC MOVIE';
+                        }
+                        return 'SEASON 1';
+                      })()}
                     </span>
+                    <div className="flex justify-between items-start gap-4">
+                      <h3 className={`text-lg sm:text-xl font-black uppercase tracking-tighter leading-tight transition-colors break-words line-clamp-3 ${
+                        hasBgImage ? 'text-white' : 'text-neutral-100 group-hover:text-rose-300'
+                      }`}>
+                        {anime.title}
+                      </h3>
+                      <Tv size={16} className={`transition-opacity shrink-0 mt-1 ${
+                        hasBgImage ? 'opacity-70 group-hover:opacity-100 text-white' : 'opacity-40 group-hover:opacity-100 text-neutral-400 group-hover:text-rose-300'
+                      }`} />
+                    </div>
                   </div>
                 </div>
+                
+                <div className="pt-6 flex justify-between items-end mt-auto">
+                  <span className="text-[8px] font-mono font-black text-rose-400 hover:text-white uppercase tracking-[0.16em] bg-rose-950/10 border border-rose-955/20 px-2 py-0.5 rounded">
+                    // STREAM
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClick(e);
+                    }}
+                    className={`h-10 w-10 shrink-0 flex items-center justify-center border transition-all duration-300 cursor-pointer shadow-md rounded-none ${
+                      hasBgImage
+                        ? 'bg-rose-950/40 hover:bg-rose-900/60 border-rose-500/40 text-rose-300 hover:text-white shadow-[0_0_15px_rgba(244,63,94,0.12)] hover:shadow-[0_0_20px_rgba(244,63,94,0.35)] hover:border-rose-400'
+                        : 'bg-purple-950/40 hover:bg-purple-900/60 border-purple-500/40 text-purple-300 hover:text-white shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400'
+                    }`}
+                  >
+                    <Play size={14} fill="currentColor" className="shrink-0 ml-0.5" />
+                  </button>
+                </div>
+              </div>
+            </Tag>
+          );
+        })}
+        {/* Empty filler block to maintain grid integrity */}
+        {(animeList.length % 3 !== 0) && Array.from({ length: 3 - (animeList.length % 3) }).map((_, i) => (
+          <div key={`filler-${i}`} className="border-b border-neutral-900 p-5 hidden lg:block bg-neutral-900/10 last:border-r border-r border-neutral-900"></div>
+        ))}
+      </div>
 
-                {/* Overview */}
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-[8px] text-neutral-500 font-black tracking-widest uppercase block mb-1">DECLASSIFIED PLOT LOG</span>
-                    <p className="text-neutral-300 text-xs uppercase leading-relaxed font-semibold tracking-wide bg-neutral-900/40 p-3 rounded-lg border border-neutral-900/80">
-                      {activeEpisode.description}
+      {/* Dynamic In-App Video Player Overlay Modal (Rose-themed for Anime View) */}
+      <AnimatePresence>
+        {activeVideo && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 md:p-10">
+            {/* Backdrop with motion fade */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setActiveVideo(null)}
+              className="absolute inset-0 bg-neutral-950/95 backdrop-blur-md cursor-pointer"
+            />
+
+            {/* Tactical Decrypted Frame container */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              transition={{ type: "spring", duration: 0.5, bounce: 0.15 }}
+              style={{
+                boxShadow: `0 0 50px rgba(244, 63, 94, 0.25)`
+              }}
+              className="relative w-full max-w-4xl bg-neutral-900/90 rounded-2xl border border-neutral-800 flex flex-col overflow-hidden z-10 animate-fade-in"
+            >
+              {/* Header bar */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-950/50 backdrop-blur font-mono text-[9px] tracking-wide">
+                <div className="flex items-center gap-3">
+                  <span className="text-rose-400 font-black tracking-widest uppercase bg-rose-950/40 px-2 py-0.5 rounded border border-rose-500/10">
+                    {activeVideo.protocol || 'ANIME MODULE'}
+                  </span>
+                  <span className="hidden sm:inline text-neutral-700">|</span>
+                  <span className="text-neutral-200 font-sans font-bold truncate max-w-xs sm:max-w-md">
+                    {activeVideo.title}
+                  </span>
+                </div>
+                
+                <button
+                  onClick={() => setActiveVideo(null)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-500/30 text-rose-300 hover:text-white rounded-xl text-[9px] font-extrabold uppercase transition-all tracking-wider cursor-pointer group"
+                >
+                  <ArrowLeft size={11} className="group-hover:-translate-x-0.5 transition-transform" />
+                  <span>BACK</span>
+                </button>
+              </div>
+
+              {/* Responsive Video Frame */}
+              <div className="relative w-full aspect-video bg-black flex items-center justify-center">
+                {isChangingQuality && (
+                  <div className="absolute inset-0 bg-neutral-950/95 z-20 flex flex-col items-center justify-center space-y-3 font-mono">
+                    <div className="flex gap-1.5 justify-center items-center">
+                      <div className="w-1.5 h-6 bg-rose-500 rounded-none animate-[bounce_0.6s_infinite_100ms]" />
+                      <div className="w-1.5 h-6 bg-rose-500 rounded-none animate-[bounce_0.6s_infinite_200ms]" />
+                      <div className="w-1.5 h-6 bg-rose-500 rounded-none animate-[bounce_0.6s_infinite_300ms]" />
+                    </div>
+                    <div className="text-[10px] text-rose-400 font-black uppercase tracking-[0.2em] animate-pulse">
+                      MUTATING DENSITY RESOLUTION PROTOCOLS TO {selectedQuality}...
+                    </div>
+                  </div>
+                )}
+
+                {activeVideo.link ? (
+                  isDirectVideo(activeVideo.link) ? (
+                    <video
+                      src={activeVideo.link}
+                      controls
+                      autoPlay
+                      onError={() => setVideoError(true)}
+                      className="w-full h-full object-contain"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <iframe
+                      src={getEmbedUrl(activeVideo.link)}
+                      title={activeVideo.title}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      referrerPolicy="no-referrer"
+                    />
+                  )
+                ) : (
+                  <div className="text-center p-6 space-y-4 font-mono">
+                    <div className="text-rose-400 font-bold">SOURCE TRANSMISSION ENCRYPTED / OFFLINE</div>
+                    <div className="text-xs text-neutral-500">Provide an active external or file link to initiate streams.</div>
+                  </div>
+                )}
+
+                {/* Direct video player fallback error banner */}
+                {videoError && (
+                  <div className="absolute inset-0 bg-neutral-950/90 flex flex-col items-center justify-center p-6 space-y-4 text-center font-mono">
+                    <HelpCircle className="w-12 h-12 text-rose-500 animate-pulse" />
+                    <div className="text-rose-400 font-bold text-sm uppercase">NATIVE RENDER DIRECTORY CONFLICT</div>
+                    <p className="text-[10px] text-neutral-400 max-w-md leading-relaxed">
+                      Your browser has bypassed native MKV/raw video render filters inside this web frame. Try launching the stream in a bypass browser tab.
                     </p>
+                    <a
+                      href={activeVideo.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-rose-950 border border-rose-800/50 hover:border-rose-500 text-rose-300 rounded-lg text-[9px] font-bold uppercase transition-all tracking-wider"
+                    >
+                      Bypass Render Frame ↗
+                    </a>
                   </div>
-
-                  {/* Character Operatives */}
-                  <div>
-                    <span className="text-[8px] text-neutral-500 font-black tracking-widest uppercase block mb-2">OPERATIVES ENGAGED IN COMBAT</span>
-                    <div className="flex flex-wrap gap-2">
-                      {activeEpisode.keyOperatives.map((op, i) => (
-                        <span key={i} className="flex items-center gap-1 text-[9px] font-bold bg-neutral-900/80 border border-neutral-800 px-2.5 py-1 text-zinc-300 uppercase tracking-tight rounded-md">
-                          <Shield size={10} className="text-purple-400" />
-                          {op}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
 
-              {/* Status block info */}
-              <div className="mt-8 pt-4 border-t border-neutral-900/60 text-[9px] font-mono text-neutral-600 uppercase tracking-widest">
-                // ACTIVE CRON LOG: {activeEpisode.powerLevel} FORCE INTENSITY DETECTED
-              </div>
-            </div>
-
-            {/* Right Side: Tactical Immersive Sound Deck Player */}
-            <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-neutral-900 p-6 md:p-8 bg-neutral-950/65 backdrop-blur-sm flex flex-col justify-between shrink-0">
-              <div>
-                <p className="text-[9px] font-mono tracking-[0.2em] text-purple-400 font-black uppercase mb-3">
-                  // COGNITIVE MANA COIL
-                </p>
-                <h3 className="text-base font-black uppercase tracking-tight text-white mb-6">
-                  Anime Audio Stream
-                </h3>
-
-                {/* Wave Visualizer Box */}
-                <div className="bg-neutral-950 border border-neutral-900 rounded-2xl p-5 mb-6 relative overflow-hidden flex flex-col justify-end h-44 shadow-inner">
-                  {/* Neon Glow bg */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full bg-purple-500/5 filter blur-[45px] pointer-events-none" />
-
-                  {/* Micro grid indicators */}
-                  <div className="absolute top-4 inset-x-4 flex justify-between font-mono text-[7px] text-neutral-600 uppercase font-bold">
-                    <span>STATUS: {isPlaying ? 'STREAMING ACTIVE' : 'LOCKED'}</span>
-                    <span>COIL_VOLTAGE: {isPlaying ? '780V' : '15V'}</span>
-                  </div>
-
-                  <div className="flex items-end justify-center gap-1.5 h-20 mb-2 relative z-10 w-full">
-                    {spectrumBars.map((val, i) => (
-                      <motion.div
-                        key={i}
-                        animate={{ height: `${val}%` }}
-                        transition={{ type: 'spring', damping: 15 }}
-                        className="w-1.5 rounded-full bg-gradient-to-t from-purple-950 via-purple-500 to-violet-300"
-                      />
-                    ))}
-                  </div>
-
-                  <div className="border-t border-neutral-900/80 pt-2 flex items-center justify-between font-mono text-[8px] text-neutral-500 uppercase">
-                    <span>9.41 KB/S</span>
-                    <span className="flex items-center gap-1">
-                      <Radio size={8} className="text-purple-400 animate-pulse" /> DECRYPTION MODULE ACTIVE
+              {/* Resolution / Decryption Bandwidth Terminal selector */}
+              <div className="px-4 py-3 bg-neutral-950/80 border-t border-b border-neutral-800/80 flex flex-col gap-2.5 font-mono">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-[ping_1.5s_infinite]" />
+                    <span className="text-[9px] font-black tracking-widest text-neutral-400 uppercase">
+                      DECRYPTION LEVEL (FEED DENSITY):
                     </span>
                   </div>
-                </div>
-
-                {/* Track details metadata */}
-                <div className="mb-8 space-y-1 bg-neutral-900/45 border border-neutral-900/80 p-4 rounded-xl">
-                  <span className="text-[7.5px] font-black tracking-widest text-purple-4.. text-purple-400 uppercase block mb-1">EPISODE THEME SCORE</span>
-                  <div className="text-xs font-bold text-white uppercase tracking-wide truncate">{activeEpisode.trackTitle}</div>
-                  <div className="flex items-center justify-between text-[9px] text-neutral-500 font-mono pt-1">
-                    <span>COMPOSER: SHADOW GARDEN CHRONICLE</span>
-                    <span>{activeEpisode.trackDuration}</span>
+                  
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {(['360p', '480p', '720p', '1080p'] as const).map((q) => {
+                      const qLabels = {
+                        '360p': { label: '360P', detail: 'SD NET' },
+                        '480p': { label: '480P', detail: 'HQ STREAM' },
+                        '720p': { label: '720P', detail: 'HD PRO' },
+                        '1080p': { label: '1080P', detail: 'U-CORE HD' }
+                      };
+                      const isActive = selectedQuality === q;
+                      
+                      return (
+                        <button
+                          key={q}
+                          onClick={() => changeQuality(q)}
+                          className={`px-3 py-1.5 text-[9px] font-extrabold rounded-lg uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 border cursor-pointer ${
+                            isActive
+                              ? 'bg-rose-950/80 border-rose-500/80 text-white shadow-[0_0_12px_rgba(244,63,94,0.35)]'
+                              : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-white'
+                          }`}
+                        >
+                          <span className={`${isActive ? 'text-rose-400 scale-125' : 'text-neutral-600'} transition-transform`}>●</span>
+                          <span>{qLabels[q].label}</span>
+                          <span className="text-[7.5px] opacity-50 font-medium">({qLabels[q].detail})</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Interactive Player Controls */}
-                <div className="space-y-4">
-                  {/* Time progress bar */}
-                  <div className="space-y-1.5">
-                    <div className="h-1 bg-neutral-900 rounded-full overflow-hidden relative cursor-pointer group">
-                      <div 
-                        style={{ width: `${playProgress}%` }}
-                        className="absolute h-full left-0 top-0 bg-purple-500 transition-all duration-300 group-hover:bg-purple-400" 
-                      />
+                {/* Simulated resolution instruction banner to explain sandboxed frame limitation */}
+                {selectedQuality !== '360p' && (
+                  <div className="bg-rose-950/20 border border-rose-500/10 rounded-xl p-3 text-[10px] text-rose-300 tracking-wide leading-relaxed animate-fade-in flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                    <div className="space-y-1">
+                      <span className="font-extrabold text-white uppercase block tracking-wider text-[9px]">
+                        ⚠️ STABILITY WARP: GOOGLE {selectedQuality} THROTTLE FILTERED
+                      </span>
+                      <span>
+                        Inside integrated iframe boxes, standard Drive network protocols enforce a 360p limitation to save rendering threads. Click the Bypass launcher to bypass sandboxes and force native {selectedQuality} playback!
+                      </span>
                     </div>
-                    <div className="flex justify-between text-[8px] text-neutral-500 font-semibold font-mono uppercase">
-                      <span>00:34</span>
-                      <span>{activeEpisode.trackDuration}</span>
-                    </div>
-                  </div>
-
-                  {/* Row buttons */}
-                  <div className="flex items-center justify-center gap-4">
-                    <button
-                      onClick={() => setIsPlaying(!isPlaying)}
-                      className="w-14 h-14 bg-purple-950/60 hover:bg-purple-900/60 border border-purple-500/40 text-purple-400 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 cursor-pointer shadow-lg transition-transform"
+                    <a
+                      href={activeVideo.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-1.5 bg-rose-950 hover:bg-rose-900 border border-rose-500/30 text-white rounded-lg text-[9px] font-bold uppercase transition-all tracking-wider shrink-0 text-center inline-flex items-center gap-1.5 w-full md:w-auto justify-center"
                     >
-                      {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} className="ml-1" fill="currentColor" />}
-                    </button>
+                      <span>FORCE {selectedQuality} STREAM ↗</span>
+                    </a>
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* Interactive Quote section inside visual controls */}
-              <div className="border-t border-neutral-900/60 pt-6 mt-8 space-y-2">
-                <span className="text-[7.5px] text-neutral-500 font-black tracking-widest uppercase block">// ANCIENT MEMEX TRANSCRIPT</span>
-                <p className="text-[10px] text-neutral-400 leading-relaxed uppercase tracking-wider italic">
-                  "{activeEpisode.quote}"
-                </p>
-                <div className="text-[8px] font-semibold text-purple-400 text-right uppercase tracking-widest block font-mono">
-                  — {activeEpisode.quoteBy}
+              {/* Bottom details / specifications block */}
+              <div className="p-4 bg-neutral-950/70 border-t border-neutral-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left font-sans">
+                <div className="space-y-1 max-w-xl">
+                  <h4 className="text-xs font-black text-white uppercase font-mono tracking-tight sm:hidden">
+                    {activeVideo.title}
+                  </h4>
+                  <p className="text-[10px] sm:text-xs text-neutral-400 leading-relaxed font-semibold">
+                    {activeVideo.description}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto font-mono text-[9px] uppercase tracking-wider shrink-0 mt-1 sm:mt-0">
+                  <a
+                    href={activeVideo.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto text-center px-3 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 hover:text-white text-rose-450 rounded-xl transition-all cursor-pointer font-bold"
+                  >
+                    Bypass Player ↗
+                  </a>
+                  <button
+                    onClick={() => setActiveVideo(null)}
+                    className="w-full sm:w-auto text-center px-4 py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 group/btn"
+                  >
+                    <ArrowLeft size={11} className="group-hover/btn:-translate-x-0.5 transition-transform" strokeWidth={3} />
+                    <span>BACK TO DIRECTORY</span>
+                  </button>
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

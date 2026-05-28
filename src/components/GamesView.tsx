@@ -11,138 +11,166 @@ type SelectedGame = 'CLICKER' | 'MEMORY' | 'DODGER' | null;
 export default function GamesView() {
   const [selectedGame, setSelectedGame] = useState<SelectedGame>(null);
 
+  const [gamesList] = useState<any[]>(() => {
+    const saved = localStorage.getItem('custom_games');
+    let loaded = [];
+    try {
+      loaded = saved ? JSON.parse(saved) : [];
+    } catch (e) {}
+
+    const defaultGames = [
+      {
+        id: 'default-game-clicker',
+        title: 'Mana Overdrive',
+        description: 'Unleash Cid’s magical density. Tap the localized mana core to transmute ultimate power.',
+        protocol: 'CLICKER',
+        link: '',
+        image: shadowElectricity
+      },
+      {
+        id: 'default-game-memory',
+        title: 'Recon Matrix',
+        description: 'Identify and pair the elite operatives of Shadow Garden. Sharpness and rapid extraction required.',
+        protocol: 'MEMORY',
+        link: '',
+        image: shadowAura
+      },
+      {
+        id: 'default-game-dodger',
+        title: 'Blade Deflector',
+        description: "Pilot Cid's legendary dark strike vector. Deflect toxic shards and capture active energy nuclei.",
+        protocol: 'DODGER',
+        link: '',
+        image: shadowBlade
+      }
+    ];
+
+    if (loaded.length === 0) {
+      return defaultGames;
+    }
+
+    const customList = loaded.map((item: any, idx: number) => {
+      const fallbackImages = [shadowBlade, shadowAura, shadowElectricity];
+      return {
+        id: item.id || `custom-game-${idx}`,
+        title: item.title,
+        description: item.description || 'No description provided.',
+        protocol: item.protocol || 'EXT ACTION',
+        link: item.link || '',
+        image: item.image || fallbackImages[idx % fallbackImages.length]
+      };
+    });
+
+    return [
+      ...customList,
+      ...defaultGames.filter(def => !customList.some((l: any) => l.title.toLowerCase().trim() === def.title.toLowerCase().trim()))
+    ];
+  });
+
   return (
     <div className="h-full flex flex-col bg-neutral-950 text-neutral-200 font-sans select-none relative overflow-hidden">
       <AnimatePresence mode="wait">
         {selectedGame === null ? (
-          <motion.div
-            key="selection"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            className="flex-1 p-6 md:p-8 flex flex-col justify-between max-w-6xl mx-auto w-full"
-          >
-            <div>
-              <p className="text-[10px] font-mono tracking-[0.25em] text-purple-400 font-black uppercase mb-2">
-                // ACTIVE SIMULATOR MODULE
-              </p>
-              <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-white mb-6">
-                Shadow Garden Arcade Deck
-              </h3>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-full border-b border-neutral-900 bg-neutral-950">
+            {gamesList.map((game, idx) => {
+              const hasBgImage = !!game.image;
+              const Tag = motion.div;
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-auto">
-              {/* Game Card 1: Clicker */}
-              <motion.div
-                whileHover={{ y: -6, borderColor: 'rgba(168, 85, 247, 0.4)' }}
-                onClick={() => setSelectedGame('CLICKER')}
-                className="border border-neutral-900 bg-neutral-950/40 backdrop-blur-sm rounded-xl overflow-hidden cursor-pointer group transition-all duration-300 flex flex-col h-[320px] relative"
-              >
-                <div className="h-32 relative overflow-hidden bg-neutral-900">
-                  <img
-                    src={shadowElectricity}
-                    alt="Mana Core"
-                    className="w-full h-full object-cover opacity-35 group-hover:scale-105 transition-transform duration-500"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 to-transparent" />
-                  <div className="absolute top-4 left-4 bg-purple-950/80 border border-purple-500/30 px-2 py-0.5 rounded text-[8px] font-mono font-bold tracking-widest text-purple-400 uppercase">
-                    ACTIVE STATS SYSTEM
-                  </div>
-                </div>
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-lg font-black uppercase tracking-tight text-white flex items-center gap-2 group-hover:text-purple-400 transition-colors">
-                      <Zap className="w-4 h-4 text-purple-400" />
-                      Mana Overdrive
-                    </h4>
-                    <p className="text-[11px] text-neutral-400 font-semibold leading-relaxed mt-2 uppercase tracking-wide">
-                      Unleash Cid’s magical density. Tap the localized mana core to transmute ultimate power.
-                    </p>
-                  </div>
-                  <div className="text-[9px] font-mono uppercase font-black text-purple-500 tracking-wider flex items-center justify-between">
-                    <span>TYPE: CLICKER GENERATOR</span>
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">LAUNCH ►</span>
-                  </div>
-                </div>
-              </motion.div>
+              const handleClick = (e: React.MouseEvent) => {
+                e.preventDefault();
+                const cleanProtocol = game.protocol?.toUpperCase().trim();
+                if (cleanProtocol === 'CLICKER' || game.id === 'default-game-clicker') {
+                  setSelectedGame('CLICKER');
+                } else if (cleanProtocol === 'MEMORY' || game.id === 'default-game-memory') {
+                  setSelectedGame('MEMORY');
+                } else if (cleanProtocol === 'DODGER' || game.id === 'default-game-dodger') {
+                  setSelectedGame('DODGER');
+                } else if (game.link) {
+                  if (typeof window !== 'undefined' && (window as any).triggerRedirectLoader) {
+                    (window as any).triggerRedirectLoader(game.link, game.title);
+                  } else {
+                    window.open(game.link, '_blank', 'noopener,noreferrer');
+                  }
+                }
+              };
 
-              {/* Game Card 2: Memory */}
-              <motion.div
-                whileHover={{ y: -6, borderColor: 'rgba(168, 85, 247, 0.4)' }}
-                onClick={() => setSelectedGame('MEMORY')}
-                className="border border-neutral-900 bg-neutral-950/40 backdrop-blur-sm rounded-xl overflow-hidden cursor-pointer group transition-all duration-300 flex flex-col h-[320px] relative"
-              >
-                <div className="h-32 relative overflow-hidden bg-neutral-900">
-                  <img
-                    src={shadowAura}
-                    alt="Garden Recon"
-                    className="w-full h-full object-cover opacity-35 group-hover:scale-105 transition-transform duration-500"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 to-transparent" />
-                  <div className="absolute top-4 left-4 bg-purple-950/80 border border-purple-500/30 px-2 py-0.5 rounded text-[8px] font-mono font-bold tracking-widest text-purple-400 uppercase">
-                    TACTICAL TRAINING
-                  </div>
-                </div>
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-lg font-black uppercase tracking-tight text-white flex items-center gap-2 group-hover:text-purple-400 transition-colors">
-                      <Shield className="w-4 h-4 text-purple-400" />
-                      Recon Matrix
-                    </h4>
-                    <p className="text-[11px] text-neutral-400 font-semibold leading-relaxed mt-2 uppercase tracking-wide">
-                      Identify and pair the elite operatives of Shadow Garden. Sharpness and rapid extraction required.
-                    </p>
-                  </div>
-                  <div className="text-[9px] font-mono uppercase font-black text-purple-500 tracking-wider flex items-center justify-between">
-                    <span>TYPE: RETRO MATCHING</span>
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">LAUNCH ►</span>
-                  </div>
-                </div>
-              </motion.div>
+              return (
+                <Tag
+                  key={game.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: idx * 0.05 }}
+                  onClick={handleClick}
+                  className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-pointer ${
+                    hasBgImage 
+                      ? 'bg-neutral-950 text-white' 
+                      : 'bg-neutral-900/35 hover:bg-neutral-900/80 text-white'
+                  }`}
+                >
+                  {game.image && (
+                    <div className="absolute inset-0 z-0 overflow-hidden">
+                      <img 
+                        src={game.image} 
+                        alt="" 
+                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-[0.7] group-hover:brightness-[0.8]"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/35 group-hover:from-black/100 group-hover:via-black/70 group-hover:to-black/45 transition-all duration-300" />
+                    </div>
+                  )}
 
-              {/* Game Card 3: Dodger */}
-              <motion.div
-                whileHover={{ y: -6, borderColor: 'rgba(168, 85, 247, 0.4)' }}
-                onClick={() => setSelectedGame('DODGER')}
-                className="border border-neutral-900 bg-neutral-950/40 backdrop-blur-sm rounded-xl overflow-hidden cursor-pointer group transition-all duration-300 flex flex-col h-[320px] relative"
-              >
-                <div className="h-32 relative overflow-hidden bg-neutral-900">
-                  <img
-                    src={shadowBlade}
-                    alt="Blade Deflector"
-                    className="w-full h-full object-cover opacity-35 group-hover:scale-105 transition-transform duration-500"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 to-transparent" />
-                  <div className="absolute top-4 left-4 bg-purple-950/80 border border-purple-500/30 px-2 py-0.5 rounded text-[8px] font-mono font-bold tracking-widest text-purple-400 uppercase">
-                    REFLEX CRUCIBLE
+                  <div className="relative z-10 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-center mb-4">
+                        <div className={`w-8 h-1 transition-colors ${
+                          hasBgImage ? 'bg-sky-500 group-hover:bg-sky-450' : 'bg-purple-500 group-hover:bg-purple-400'
+                        }`}></div>
+                        {game.protocol && (
+                          <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-sky-950/40 text-sky-400 border border-sky-900/30">
+                            {game.protocol}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className={`text-xl font-black uppercase tracking-tighter leading-tight transition-colors ${
+                          hasBgImage ? 'text-white' : 'text-neutral-100 group-hover:text-sky-300'
+                        }`}>
+                          {game.title}
+                        </h3>
+                        <Gamepad2 size={16} className={`transition-opacity ${
+                          hasBgImage ? 'opacity-70 group-hover:opacity-100 text-white' : 'opacity-40 group-hover:opacity-100 text-neutral-400 group-hover:text-sky-300'
+                        }`} />
+                      </div>
+                      <p className="text-[11px] text-neutral-400 font-semibold leading-relaxed uppercase tracking-wide">
+                        {game.description}
+                      </p>
+                    </div>
+                    
+                    <div className="pt-6">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleClick(e);
+                        }}
+                        className={`inline-flex items-center gap-2 px-4 py-2.5 text-[9px] font-mono font-black uppercase tracking-[0.16em] border rounded-lg transition-all duration-300 cursor-pointer w-full justify-center ${
+                          hasBgImage
+                            ? 'bg-sky-950/40 hover:bg-sky-900/60 border-sky-500/40 text-sky-300 hover:text-white shadow-[0_0_15px_rgba(56,189,248,0.12)] hover:shadow-[0_0_20px_rgba(56,189,248,0.35)] hover:border-sky-400'
+                            : 'bg-purple-950/40 hover:bg-purple-900/60 border-purple-500/40 text-purple-300 hover:text-white shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400'
+                        }`}
+                      >
+                        <Gamepad2 size={12} className="shrink-0 animate-[pulse_2s_infinite]" />
+                        <span>{game.link ? 'LAUNCH APPLICATION' : 'PLAY SIMULATION'}</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-lg font-black uppercase tracking-tight text-white flex items-center gap-2 group-hover:text-purple-400 transition-colors">
-                      <Gamepad2 className="w-4 h-4 text-purple-400" />
-                      Blade Deflector
-                    </h4>
-                    <p className="text-[11px] text-neutral-400 font-semibold leading-relaxed mt-2 uppercase tracking-wide">
-                      Pilot Cid's legendary dark strike vector. Deflect toxic shards & capture active energy nuclei.
-                    </p>
-                  </div>
-                  <div className="text-[9px] font-mono uppercase font-black text-purple-500 tracking-wider flex items-center justify-between">
-                    <span>TYPE: PHYSICS ACTIONS</span>
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">LAUNCH ►</span>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-
-            <div className="border-t border-neutral-900/60 pt-4 flex justify-between text-[9px] font-mono uppercase tracking-[0.1em] text-neutral-500">
-              <span>● MULTI-SECTOR TERMINAL ARCHIVE</span>
-              <span>GEOMETRIC SHADOW v4.0</span>
-            </div>
-          </motion.div>
+                </Tag>
+              );
+            })}
+            {/* Empty filler block to maintain grid integrity */}
+            {(gamesList.length % 3 !== 0) && Array.from({ length: 3 - (gamesList.length % 3) }).map((_, i) => (
+              <div key={`filler-${i}`} className="border-b border-neutral-900 p-5 hidden lg:block bg-neutral-900/10 last:border-r border-r border-neutral-900"></div>
+            ))}
+          </div>
         ) : (
           <motion.div
             key="game-room"
