@@ -15,7 +15,7 @@ const SKILLS = [
     category: "System Recovery and Deployment",
     icon: <Binary className="w-5 h-5" />,
     items: ["BIOS Update", "Full-System Imaging & Deployment", "MBR to GPT Conversion", "Disk Image Creation", "File Restoration", "Boot Repair", "Password Reset"],
-    backgroundImage: shadowDarkBlade
+    backgroundImage: shadowMysteriousAura
   }
 ];
 

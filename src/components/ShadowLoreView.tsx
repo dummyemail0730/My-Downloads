@@ -407,7 +407,7 @@ export default function ShadowLoreView() {
               style={{
                 boxShadow: `0 0 50px ${activeVideo.glow || 'rgba(168,85,247,0.15)'}`
               }}
-              className="relative w-full max-w-4xl bg-neutral-900/90 rounded-2xl border border-neutral-800 flex flex-col overflow-hidden z-10 animate-fade-in"
+              className="relative w-full max-w-4xl max-h-[92vh] bg-neutral-900/90 rounded-2xl border border-neutral-800 flex flex-col overflow-y-auto z-10 animate-fade-in"
             >
               {/* Header bar */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-950/50 backdrop-blur font-mono text-[9px] tracking-wide">
@@ -539,14 +539,6 @@ export default function ShadowLoreView() {
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto font-mono text-[9px] uppercase tracking-wider shrink-0 mt-1 sm:mt-0">
-                  <a
-                    href={activeVideo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full sm:w-auto text-center px-3 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 hover:text-white text-neutral-400 rounded-xl transition-all cursor-pointer font-bold"
-                  >
-                    Bypass Player ↗
-                  </a>
                   <button
                     onClick={() => setActiveVideo(null)}
                     className="w-full sm:w-auto text-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 group/btn"
