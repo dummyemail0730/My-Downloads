@@ -202,7 +202,7 @@ export default function App() {
   }, []);
 
   const [appLoading, setAppLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('EXPERTISE');
+  const [activeTab, setActiveTab] = useState('SOFTWARE');
   const [showArchive, setShowArchive] = useState(false);
   const [showShadowLoreOnly, setShowShadowLoreOnly] = useState(false);
   const [introPlayed, setIntroPlayed] = useState(false);
@@ -686,7 +686,6 @@ export default function App() {
             setActiveTab={setActiveTab} 
             tabs={TABS} 
             onHomeClick={() => setShowArchive(false)}
-            onExpertiseClick={() => setActiveTab('EXPERTISE')}
             onShowOwnerClick={() => setShowOwnerDetails(true)}
           />
  

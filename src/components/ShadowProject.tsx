@@ -7,6 +7,7 @@ import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.
 import shadowGardenLogo from '../assets/images/shadow_garden_logo_1779199904393.png';
 import shadowMysteriousAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
 import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
+import shadowTechMagic from '../assets/images/shadow_tech_magic_1780090755590.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
 export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, isAudioAllowed = false, onLogout }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void; isAudioAllowed?: boolean; onLogout?: () => void }) {
@@ -5233,7 +5234,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
             >
               <div 
                 className="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-luminosity group-hover:opacity-45 transition-opacity duration-700" 
-                style={{ backgroundImage: `url(${shadowDarkBlade})` }}
+                style={{ backgroundImage: `url(${shadowTechMagic})` }}
               />
               
               <div className="relative z-10">

@@ -51,6 +51,13 @@ const isDirectVideo = (url: string) => {
          lower.includes('video');
 };
 
+const isEmbeddable = (url: string) => {
+  if (!url) return false;
+  return url.includes('youtube.com') || 
+         url.includes('youtu.be') || 
+         url.includes('drive.google.com');
+};
+
 export default function AnimeView() {
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
   const [videoError, setVideoError] = useState<boolean>(false);
@@ -311,7 +318,7 @@ export default function AnimeView() {
                       className="w-full h-full object-contain"
                       referrerPolicy="no-referrer"
                     />
-                  ) : (
+                  ) : isEmbeddable(activeVideo.link) ? (
                     <iframe
                       src={getEmbedUrl(activeVideo.link)}
                       title={activeVideo.title}
@@ -320,6 +327,52 @@ export default function AnimeView() {
                       allowFullScreen
                       referrerPolicy="no-referrer"
                     />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden bg-neutral-950">
+                      {activeVideo.image && (
+                        <div className="absolute inset-0 z-0 select-none pointer-events-none">
+                          <img 
+                            src={activeVideo.image} 
+                            alt="" 
+                            className="w-full h-full object-cover filter brightness-[0.12] blur-[6px]"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute inset-0 bg-neutral-950/85" />
+                        </div>
+                      )}
+                      <div className="relative z-10 max-w-md space-y-4 flex flex-col items-center">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-950/40 border border-rose-500/25 rounded text-[9px] text-rose-400 font-black tracking-widest uppercase mb-1">
+                          <ExternalLink size={10} />
+                          <span>SECURE EXTERNAL PORTAL</span>
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-sm md:text-base font-black uppercase text-white tracking-tight">
+                            OFFICIAL STREAM PORTAL REQUIRED
+                          </h4>
+                          <p className="text-[10px] md:text-xs text-neutral-400 font-semibold leading-relaxed">
+                            Due to iframe boundary restrictions imposed by official anime channels, this stream must be opened in its safe native player tab.
+                          </p>
+                        </div>
+                        <a
+                          href={activeVideo.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white rounded-xl font-mono text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:shadow-[0_0_30px_rgba(244,63,94,0.5)] border border-rose-500/30 active:scale-95 cursor-pointer font-bold"
+                        >
+                          <span>LAUNCH EXTERNAL PLAYER</span>
+                          <ExternalLink size={13} className="text-white" />
+                        </a>
+                        <span className="text-[8px] font-mono text-neutral-600 uppercase tracking-widest block pt-1">
+                          // HOST: {(() => {
+                            try {
+                              return new URL(activeVideo.link).hostname.toUpperCase();
+                            } catch (e) {
+                              return 'EXTERNAL';
+                            }
+                          })()}
+                        </span>
+                      </div>
+                    </div>
                   )
                 ) : (
                   <div className="text-center p-6 space-y-4 font-mono">

@@ -11,11 +11,10 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   tabs: Tab[];
   onHomeClick: () => void;
-  onExpertiseClick: () => void;
   onShowOwnerClick: () => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, onExpertiseClick, onShowOwnerClick }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, onShowOwnerClick }: SidebarProps) {
   return (
     <nav className="w-28 md:w-72 border-r border-neutral-900 flex flex-col bg-bg-sidebar shrink-0">
       <div className="p-3 md:p-6 border-b border-neutral-900">
@@ -82,27 +81,6 @@ export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, on
             <span className="font-mono text-[9px] md:text-[10px] font-extrabold uppercase tracking-wider leading-[1.15] text-center md:text-left block cursor-pointer">
               <span className="md:hidden">SUSTAIN<br/>SHADOWS</span>
               <span className="hidden md:inline">Sustain the Shadows</span>
-            </span>
-          </button>
-
-          <button 
-            onClick={onExpertiseClick}
-            className={`w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 pb-1 md:pb-0 group transition-all duration-300 ${
-              activeTab === 'EXPERTISE' 
-                ? 'text-white' 
-                : 'text-neutral-400 hover:text-white'
-            }`}
-          >
-            <div className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all shrink-0 ${
-              activeTab === 'EXPERTISE'
-                ? 'bg-purple-950/40 border-purple-500 text-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.35)]'
-                : 'bg-neutral-900/50 border-purple-500/25 text-neutral-400 group-hover:text-purple-400 group-hover:border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.15)] group-hover:shadow-[0_0_12px_rgba(168,85,247,0.35)]'
-            }`}>
-              <Target className="w-4 h-4" />
-            </div>
-            <span className="font-mono text-[9px] md:text-[10px] font-extrabold uppercase tracking-wider leading-[1.15] text-center md:text-left block cursor-pointer">
-              <span className="md:hidden">AREAS<br/>OF EXP</span>
-              <span className="hidden md:inline">Areas_of_Expertise</span>
             </span>
           </button>
 
