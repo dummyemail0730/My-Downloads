@@ -6,8 +6,10 @@ function getEmbedUrl(url: string) {
   if (!url) return '';
   
   // Google Drive url mapping
-  if (url.includes('drive.google.com')) {
-    const fileIdMatch = url.match(/\/file\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/);
+  if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+    const fileIdMatch = url.match(/\/file\/d\/([^/]+)/) || 
+                        url.match(/[?&]id=([^&]+)/) || 
+                        url.match(/\/d\/([^/]+)/);
     if (fileIdMatch && fileIdMatch[1]) {
       return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
     }

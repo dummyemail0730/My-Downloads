@@ -567,16 +567,14 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
       const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
       setAppointmentProgress(progress);
 
-      if (progress < 15) {
-        setAppointmentStage('DIAGNOSING SYSTEM LOGS & CONTEXT...');
-      } else if (progress < 40) {
-        setAppointmentStage('ISOLATING DEVICE DRIVER DISCREPANCIES...');
-      } else if (progress < 70) {
-        setAppointmentStage('DETERMINING SYSTEM RESOLUTION PATHWAY...');
-      } else if (progress < 90) {
-        setAppointmentStage('SUBMITTING SUPPORT TICKET TO HQ ARCHIVES...');
+      if (progress < 25) {
+        setAppointmentStage('Checking calendar availability...');
+      } else if (progress < 50) {
+        setAppointmentStage('Reserving preferred time slot...');
+      } else if (progress < 75) {
+        setAppointmentStage('Creating secure appointment record...');
       } else {
-        setAppointmentStage('TICKET SECURED // ACTION DISPATCH ACTIVE!');
+        setAppointmentStage('Appointment successfully confirmed!');
       }
 
       if (elapsed >= duration) {
@@ -3674,12 +3672,12 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       <CheckCircle className="text-purple-500 w-20 h-20 animate-bounce relative z-10" />
                     </div>
                     <div>
-                      <h4 className="text-purple-400 font-mono font-black uppercase text-base tracking-[0.3em] mb-2">DIAGNOSTIC TICKET LOGGED</h4>
+                      <h4 className="text-purple-400 font-mono font-black uppercase text-base tracking-[0.3em] mb-2">APPOINTMENT BOOKED</h4>
                       <p className="text-neutral-200 font-sans text-xs max-w-sm mx-auto leading-relaxed">
-                        Your PC problem has been reported successfully. Dispatch officers have allocated cognitive bandwidth for resolution!
+                        Your appointment has been successfully booked. We will review your details and reach out to you shortly!
                       </p>
                       <p className="text-neutral-500 font-mono text-[9px] uppercase tracking-widest mt-3">
-                        DIAGNOSIS INITIATED // TICKETS DATABASE SYNCHRONIZED
+                        RESERVATION COMPLETED // APPOINTMENT SECURED
                       </p>
                     </div>
                     <button
@@ -3689,7 +3687,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       }}
                       className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 border border-purple-500/30 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:brightness-110 transition-all cursor-pointer active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.15)] mt-2"
                     >
-                      Acknowledge Ticket
+                      Acknowledge
                     </button>
                   </motion.div>
                 )}
@@ -3703,10 +3701,10 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   </div>
                   <div>
                     <h3 className="text-sm md:text-base font-extrabold uppercase tracking-[0.2em] text-white">
-                      PC Diagnostics Console
+                      Appointment Console
                     </h3>
                     <p className="text-[9px] uppercase tracking-wider text-purple-400 font-bold mt-0.5">
-                      // DIRECT TROUBLESHOOTING TELEMETRY SECURED
+                      Schedule a session with Shadow Garden support
                     </p>
                   </div>
                 </div>
@@ -3738,7 +3736,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       : 'bg-neutral-950/50 border-neutral-900 text-neutral-400 hover:text-neutral-200'
                   }`}
                 >
-                  Log Ticket
+                  Book Appointment
                 </button>
                 <button
                   onClick={() => setAptActiveTab('view')}
@@ -3749,7 +3747,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       : 'bg-neutral-950/50 border-neutral-900 text-neutral-400 hover:text-neutral-200'
                   }`}
                 >
-                  <span>Active Tickets</span>
+                  <span>Active Appointments</span>
                   <span className="px-1.5 py-0.5 bg-neutral-900 border border-neutral-850 text-neutral-500 text-[8px] rounded font-bold leading-normal">
                     {appointments.length}
                   </span>
@@ -3763,10 +3761,10 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   <div className="w-full flex flex-col gap-5">
                     <div>
                       <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold mb-1">
-                        Submit Diagnostic Report
+                        New Appointment
                       </h4>
                       <p className="text-[8px] uppercase tracking-wider text-neutral-500 leading-normal">
-                        Submit your hardware or software issue details to dispatch immediate troubleshooting.
+                        Please fill in your details below to schedule an appointment.
                       </p>
                     </div>
 
@@ -3808,7 +3806,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                             {appointmentStage}
                           </span>
                           <span className="text-[8px] tracking-widest text-purple-300/60 uppercase font-black block">
-                            TRANSMITTING DIAGNOSTICS TELEMETRY SOCKETS
+                            Processing scheduling database updates
                           </span>
                         </div>
                       </div>
@@ -3820,33 +3818,22 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
                           const name = aptName.trim();
                           const contact = aptContact.trim();
-                          
-                          // Compile specifications string from dropdown selections
-                          const specs = `CPU: ${aptCpu} | GPU: ${aptGpu} | MOBO: ${aptMobo} | RAM: ${aptRam}`;
-                          const problem = aptProblem;
-                          const description = aptExplain.trim();
+                          const specs = aptSpecs.trim(); // Preferred Date & Time
+                          const problem = aptProblem; // Topic / Purpose
+                          const description = aptExplain.trim(); // Additional Notes
 
                           if (!name) {
-                            setAppointmentValidationError('VALIDATION ERROR: Name / Alias is required.');
-                            setAptStep(1);
+                            setAppointmentValidationError('Validation error: Your Name / Alias is required to proceed.');
                             return;
                           }
 
                           if (!contact) {
-                            setAppointmentValidationError('VALIDATION ERROR: Contact Information (email, discord, phone) is required.');
-                            setAptStep(1);
+                            setAppointmentValidationError('Validation error: Contact details (email, discord, or phone) are required.');
                             return;
                           }
 
                           if (!specs) {
-                            setAppointmentValidationError('VALIDATION ERROR: Please select your computer specifications in Step 2.');
-                            setAptStep(2);
-                            return;
-                          }
-
-                          if (!description) {
-                            setAppointmentValidationError('VALIDATION ERROR: Please explain your PC problem in the diagnostics chat box.');
-                            setAptStep(3);
+                            setAppointmentValidationError('Validation error: Preferred appointment date & time slot is required.');
                             return;
                           }
 
@@ -3858,371 +3845,128 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                             contact,
                             specs,
                             problem,
-                            description,
+                            description: description || 'No additional notes provided.',
                             date: todayStr,
                             status: 'PENDING'
                           });
                           setIsSubmittingAppointment(true);
                           setAppointmentProgress(0);
-                          setAppointmentStage('DIAGNOSING SYSTEM LOGS & CONTEXT...');
+                          setAppointmentStage('Checking calendar availability...');
                         }}
-                        className="space-y-4"
+                        className="space-y-4 text-left"
                       >
-                        {/* Progressive Stepper Indicator at the Top */}
-                        <div className="flex items-center justify-between pb-3 border-b border-neutral-900 mb-4 font-mono text-[9px]">
-                          <div className="flex items-center gap-1.5 font-bold">
-                            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] ${
-                              aptStep >= 1 ? 'bg-purple-600 text-white' : 'bg-neutral-900 border border-neutral-800 text-neutral-500'
-                            }`}>1</span>
-                            <span className={aptStep === 1 ? 'text-purple-400 font-extrabold' : 'text-neutral-500'}>COMMS</span>
+                        <div className="space-y-4 bg-neutral-950/40 p-5 border border-neutral-900/60 rounded-2xl">
+                          {/* Name / Alias field */}
+                          <div>
+                            <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                              Your Name / Alias
+                            </label>
+                            <input
+                              type="text"
+                              value={aptName}
+                              onChange={(e) => {
+                                setAptName(e.target.value);
+                                if (appointmentValidationError) setAppointmentValidationError(null);
+                              }}
+                              placeholder="e.g. Sherry Barnett"
+                              required
+                              className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
+                            />
                           </div>
-                          <div className="h-[1px] flex-grow bg-neutral-900 mx-3" />
-                          <div className="flex items-center gap-1.5 font-bold">
-                            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] ${
-                              aptStep >= 2 ? 'bg-purple-600 text-white' : 'bg-neutral-900 border border-neutral-800 text-neutral-500'
-                            }`}>2</span>
-                            <span className={aptStep === 2 ? 'text-purple-400 font-extrabold' : 'text-neutral-500'}>HARDWARE SPECS</span>
+
+                          {/* Contact Info * field */}
+                          <div>
+                            <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                              Contact Information
+                            </label>
+                            <input
+                              type="text"
+                              value={aptContact}
+                              onChange={(e) => {
+                                setAptContact(e.target.value);
+                                if (appointmentValidationError) setAppointmentValidationError(null);
+                              }}
+                              placeholder="e.g. email, discord, or phone"
+                              required
+                              className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
+                            />
                           </div>
-                          <div className="h-[1px] flex-grow bg-neutral-900 mx-3" />
-                          <div className="flex items-center gap-1.5 font-bold">
-                            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] ${
-                              aptStep >= 3 ? 'bg-purple-600 text-white' : 'bg-neutral-900 border border-neutral-800 text-neutral-500'
-                            }`}>3</span>
-                            <span className={aptStep === 3 ? 'text-purple-400 font-extrabold' : 'text-neutral-500'}>DIAGNOSTIC REPORT</span>
+
+                          {/* Preferred Appointment Date & Time Slot */}
+                          <div>
+                            <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                              Preferred Date & Time Slot
+                            </label>
+                            <input
+                              type="text"
+                              value={aptSpecs}
+                              onChange={(e) => {
+                                setAptSpecs(e.target.value);
+                                if (appointmentValidationError) setAppointmentValidationError(null);
+                              }}
+                              placeholder="e.g. June 15 at 2:00 PM (or weekends)"
+                              required
+                              className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
+                            />
+                          </div>
+
+                          {/* Purpose / Service Select */}
+                          <div>
+                            <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                              Topic / Purpose of Session
+                            </label>
+                            <select
+                              value={aptProblem}
+                              onChange={(e) => setAptProblem(e.target.value)}
+                              className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
+                            >
+                              <option value="General Consultation">General Tech Consultation</option>
+                              <option value="Hardware Overhaul & Assembly">Hardware Assembly & Upgrades</option>
+                              <option value="System Diagnostics">Performance Troubleshooting & Diagnostics</option>
+                              <option value="Software Optimization">OS & Software Optimization</option>
+                              <option value="Other Assistance">Other Support Topic</option>
+                            </select>
+                          </div>
+
+                          {/* Additional description notes */}
+                          <div>
+                            <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
+                              Additional Details (Optional)
+                            </label>
+                            <textarea
+                              value={aptExplain}
+                              onChange={(e) => {
+                                setAptExplain(e.target.value);
+                                if (appointmentValidationError) setAppointmentValidationError(null);
+                              }}
+                              placeholder="Any specific questions or issues to discuss?..."
+                              rows={3}
+                              className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px] resize-none"
+                            />
                           </div>
                         </div>
 
-                        {/* STEP 1: COMMS INFO */}
-                        {aptStep === 1 && (
+                        {appointmentValidationError && (
                           <motion.div 
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="space-y-4"
+                            initial={{ opacity: 0, y: -2 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-2.5 bg-red-955/35 border border-red-500/35 text-red-200 text-[9.5px] font-sans rounded-xl flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
                           >
-                            <div className="space-y-4 bg-neutral-950/40 p-5 border border-neutral-900/60 rounded-2xl">
-                              <span className="text-[9px] font-mono font-black text-purple-400 uppercase tracking-widest block mb-1">
-                                // SECTION 01: OPERATOR DIGITAL IDENTITY
-                              </span>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                                    Your Name / Alias
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={aptName}
-                                    onChange={(e) => {
-                                      setAptName(e.target.value);
-                                      if (appointmentValidationError) setAppointmentValidationError(null);
-                                    }}
-                                    placeholder="e.g. Sherry Barnett"
-                                    required
-                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                                    Contact Information
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={aptContact}
-                                    onChange={(e) => {
-                                      setAptContact(e.target.value);
-                                      if (appointmentValidationError) setAppointmentValidationError(null);
-                                    }}
-                                    placeholder="e.g. email, discord, or phone"
-                                    required
-                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Verification state warnings */}
-                            {appointmentValidationError && (
-                              <motion.div 
-                                initial={{ opacity: 0, y: -2 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="p-2.5 bg-red-955/35 border border-red-500/35 text-red-200 text-[9.5px] font-sans rounded-xl flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
-                              >
-                                <span className="text-xs">⚠️</span>
-                                <span>{appointmentValidationError}</span>
-                              </motion.div>
-                            )}
-
-                            {/* Lower navigations */}
-                            <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-2">
-                              <span className="text-[7.5px] font-mono text-neutral-500 tracking-wider">SECURE DIAGNOSTICS SYSTEM // PHASE 1 OF 3</span>
-                              
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (!aptName.trim()) {
-                                    setAppointmentValidationError('VALIDATION ERROR: Your Name / Alias is required to proceed.');
-                                    return;
-                                  }
-                                  if (!aptContact.trim()) {
-                                    setAppointmentValidationError('VALIDATION ERROR: Contact information is required to proceed.');
-                                    return;
-                                  }
-                                  setAppointmentValidationError(null);
-                                  setAptStep(2);
-                                }}
-                                className="px-5 py-2.5 bg-neutral-900 border border-purple-500/60 text-purple-300 hover:text-purple-200 hover:bg-neutral-850 font-mono text-[9px] uppercase font-bold tracking-[0.15em] transition-all rounded-xl flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.15)]"
-                              >
-                                <span>Proceed to Specs</span>
-                                <ChevronRight size={12} className="text-purple-400 group-hover:translate-x-0.5 transition-transform" />
-                              </button>
-                            </div>
+                            <span className="text-xs">⚠️</span>
+                            <span>{appointmentValidationError}</span>
                           </motion.div>
                         )}
 
-                        {/* STEP 2: HARDWARE SPECIFICATION PICKER */}
-                        {aptStep === 2 && (
-                          <motion.div 
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="space-y-4"
+                        {/* Nav buttons */}
+                        <div className="flex items-center justify-end pt-4 border-t border-neutral-900 mt-2">
+                          <button
+                            type="submit"
+                            className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-mono text-[9px] uppercase font-bold tracking-[0.15em] transition-all rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-lg"
                           >
-                            <div className="bg-neutral-950/40 p-4 border border-neutral-900 rounded-2xl space-y-4">
-                              <span className="text-[9px] font-mono font-black text-purple-400 uppercase tracking-widest block mb-1">
-                                // SECTION 02: HARDWARE SPECIFICATION TELEMETRY
-                              </span>
-
-                              {/* Matrix configuration choices */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* CPU Model Text Override */}
-                                <div>
-                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                                    Processor Model (CPU Specs)
-                                  </label>
-                                  <div className="relative">
-                                    <input
-                                      type="text"
-                                      value={aptCpu}
-                                      onChange={(e) => {
-                                        const val = e.target.value;
-                                        setAptCpu(val);
-                                        if (val.toLowerCase().includes('amd') || val.toLowerCase().includes('ryzen')) {
-                                          setAptCpuBrand('AMD');
-                                        } else if (val.toLowerCase().includes('intel') || val.toLowerCase().includes('core') || val.toLowerCase().includes('i7') || val.toLowerCase().includes('i9')) {
-                                          setAptCpuBrand('Intel');
-                                        }
-                                      }}
-                                      placeholder="e.g. AMD Ryzen 7 7800X3D"
-                                      className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 font-semibold"
-                                      required
-                                    />
-                                    <div className="absolute right-3.5 top-2.5 flex items-center select-none pointer-events-none">
-                                      <span className={`text-[7px] font-black px-1.5 py-0.5 rounded uppercase border font-mono transition-colors ${
-                                        aptCpu.toLowerCase().includes('amd') || aptCpu.toLowerCase().includes('ryzen')
-                                          ? 'bg-amber-950/40 border-amber-500/50 text-amber-400'
-                                          : 'bg-blue-950/40 border-blue-500/50 text-blue-400'
-                                      }`}>
-                                        {aptCpu.toLowerCase().includes('amd') || aptCpu.toLowerCase().includes('ryzen') ? 'AMD EXPO' : 'INTEL XMP'}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Motherboard selects */}
-                                <div>
-                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                                    Motherboard Platform Option
-                                  </label>
-                                  <select
-                                    value={aptMobo}
-                                    onChange={(e) => setAptMobo(e.target.value)}
-                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
-                                  >
-                                    <option value="ASUS ROG Strix / Maximus">ASUS ROG Strix / Maximus Series [PREMIUM]</option>
-                                    <option value="MSI MAG / MPG / PRO">MSI MAG / MPG Series [MILITARY STABILITY]</option>
-                                    <option value="Gigabyte AORUS Elite">Gigabyte AORUS Elite Series [STURDY THERMALS]</option>
-                                    <option value="ASRock Steel Legend">ASRock Steel Legend [OUTSTANDING VALVE]</option>
-                                    <option value="NZXT N7 Series">NZXT N7 Minimalist Series [MATTE DESIGN]</option>
-                                    <option value="Custom OEM Motherboard">Custom OEM / Retro board</option>
-                                  </select>
-                                </div>
-
-                                {/* GPU selects */}
-                                <div>
-                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                                    Graphics Processing Unit (GPU Option)
-                                  </label>
-                                  <select
-                                    value={aptGpu}
-                                    onChange={(e) => setAptGpu(e.target.value)}
-                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
-                                  >
-                                    <option value="NVIDIA GeForce RTX 4090">NVIDIA GeForce RTX 4090 (24GB Ultimate Rig)</option>
-                                    <option value="NVIDIA GeForce RTX 4080 / 4070 Ti">NVIDIA GeForce RTX 4080 / 4070 Ti (16GB/12GB AD104)</option>
-                                    <option value="NVIDIA GeForce RTX 4060 / 30 Series">NVIDIA GeForce RTX 4060 / 30 Series (Popular standard)</option>
-                                    <option value="AMD Radeon RX 7900 XTX">AMD Radeon RX 7900 XTX (24GB extreme raw power)</option>
-                                    <option value="AMD Radeon RX 7800 XT / 6700">AMD Radeon RX 7800 XT / 6700 XT (Valued gaming setup)</option>
-                                    <option value="Intel Arc A770 / A750">Intel Arc A770 / A750 Series (Modern AV1 codec)</option>
-                                    <option value="Integrated core graphics">Integrated Core Graphics (No dedicated GPU Acceleration)</option>
-                                  </select>
-                                </div>
-
-                                {/* RAM Select */}
-                                <div className="md:col-span-2">
-                                  <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                                    System RAM Specification
-                                  </label>
-                                  <select
-                                    value={aptRam}
-                                    onChange={(e) => setAptRam(e.target.value)}
-                                    className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
-                                  >
-                                    <option value="16GB DDR5 High-Speed">16GB DDR5 High-Speed (2x8GB Dual Sync)</option>
-                                    <option value="32GB DDR5 Dual Channel">32GB DDR5 Large Capacity (2x16GB Gamer choice)</option>
-                                    <option value="64GB DDR5 Workstation">64GB DDR5 Professional Workstation (2x32GB Sync)</option>
-                                    <option value="128GB DDR5 Quad Sync">128GB DDR5 Rendering Machine (4x32GB Quad Drive)</option>
-                                    <option value="16GB DDR4 Legacy Sync">16GB DDR4 Legacy Standard (2x8GB Reliable)</option>
-                                    <option value="32GB DDR4 Large Buffer">32GB DDR4 High Buffer Capacity (2x16GB Legacy Power)</option>
-                                  </select>
-                                </div>
-                              </div>
-
-                              {/* Preview Banner of compiled spec */}
-                              <div className="p-3 bg-neutral-900/65 border border-neutral-850 rounded-xl space-y-1">
-                                <span className="text-[7.5px] font-mono tracking-widest text-neutral-500 uppercase block font-black">
-                                  ⚡ Telemetry Pipeline Generated Specifications
-                                </span>
-                                <div className="text-[10px] font-mono text-purple-300 font-extrabold flex flex-wrap items-center gap-1.5 leading-snug">
-                                  <span>{aptCpu}</span>
-                                  <span className="text-neutral-700">//</span>
-                                  <span>{aptMobo}</span>
-                                  <span className="text-neutral-700">//</span>
-                                  <span>{aptGpu}</span>
-                                  <span className="text-neutral-700">//</span>
-                                  <span>{aptRam}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {appointmentValidationError && (
-                              <motion.div 
-                                initial={{ opacity: 0, y: -2 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="p-2.5 bg-red-955/35 border border-red-500/35 text-red-200 text-[9.5px] font-sans rounded-xl flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
-                              >
-                                <span className="text-xs">⚠️</span>
-                                <span>{appointmentValidationError}</span>
-                              </motion.div>
-                            )}
-
-                            {/* Nav controls */}
-                            <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-2">
-                              <button
-                                type="button"
-                                onClick={() => setAptStep(1)}
-                                className="px-4 py-2 bg-neutral-950 border border-neutral-850 text-neutral-400 hover:text-neutral-200 font-mono text-[9px] uppercase font-bold tracking-widest transition-all rounded-xl cursor-pointer"
-                              >
-                                &lt; Back to Comms
-                              </button>
-                              
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  // Compile specs automatically
-                                  const compiledSpecsString = `CPU: ${aptCpu} | GPU: ${aptGpu} | MOBO: ${aptMobo} | RAM: ${aptRam}`;
-                                  setAptSpecs(compiledSpecsString);
-                                  setAppointmentValidationError(null);
-                                  setAptStep(3);
-                                }}
-                                className="px-5 py-2.5 bg-neutral-900 border border-purple-500/60 text-purple-300 hover:text-purple-200 hover:bg-neutral-855 font-mono text-[9px] uppercase font-bold tracking-[0.15em] transition-all rounded-xl flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.15)]"
-                              >
-                                <span>Proceed to Issue</span>
-                                <ChevronRight size={12} className="text-purple-400" />
-                              </button>
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {/* STEP 3: PROBLEM CATEGORY & CHAT EXPLAIN BOX */}
-                        {aptStep === 3 && (
-                          <motion.div 
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="space-y-4"
-                          >
-                            <div className="bg-neutral-950/40 p-4 border border-neutral-900 rounded-2xl space-y-4">
-                              <span className="text-[9px] font-mono font-black text-purple-400 uppercase tracking-widest block mb-1">
-                                // SECTION 03: TELEMETRY CONTEXT & DIAGNOSIS LOGS
-                              </span>
-
-                              <div>
-                                <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                                  PC Problem Category
-                                </label>
-                                <select
-                                  value={aptProblem}
-                                  onChange={(e) => setAptProblem(e.target.value)}
-                                  className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
-                                >
-                                  <option value="Slow Performance & Freezing">Slow Performance & Freezing // DRIVER LAG</option>
-                                  <option value="Windows / OS Boot Failure">Windows / OS Boot Failure // BIOS BRICK</option>
-                                  <option value="Overheating & Loud Noises">Overheating & Loud Noises // THERMAL THROTTLE</option>
-                                  <option value="Virus / Malware Discovered">Virus / Malware Discovered // SEGMENT CORRUPTION</option>
-                                  <option value="WiFi / Ethernet Connection Dropping">WiFi / Ethernet Connection Dropping // PACKET DROP</option>
-                                  <option value="Blue Screen of Death (BSOD)">Blue Screen of Death (BSOD) // KERNEL PANIC</option>
-                                  <option value="Other / Unidentified Critical Issue">Other / Unidentified Critical Issue // GENERAL ERROR</option>
-                                </select>
-                              </div>
-
-                              <div>
-                                <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                                  Explain further (Diagnostics Chat Box)
-                                </label>
-                                <textarea
-                                  value={aptExplain}
-                                  onChange={(e) => {
-                                    setAptExplain(e.target.value);
-                                    if (appointmentValidationError) setAppointmentValidationError(null);
-                                  }}
-                                  placeholder="Describe what happened, any error messages, or steps that led to this error in detail..."
-                                  rows={4}
-                                  required
-                                  className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px] resize-none"
-                                />
-                              </div>
-                            </div>
-
-                            {appointmentValidationError && (
-                              <motion.div 
-                                initial={{ opacity: 0, y: -2 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="p-2.5 bg-red-955/35 border border-red-500/35 text-red-200 text-[9.5px] font-sans rounded-xl flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
-                              >
-                                <span className="text-xs">⚠️</span>
-                                <span>{appointmentValidationError}</span>
-                              </motion.div>
-                            )}
-
-                            {/* Nav controls */}
-                            <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-2">
-                              <button
-                                type="button"
-                                onClick={() => setAptStep(2)}
-                                className="px-4 py-2 bg-neutral-950 border border-neutral-850 text-neutral-400 hover:text-neutral-200 font-mono text-[9px] uppercase font-bold tracking-widest transition-all rounded-xl cursor-pointer"
-                              >
-                                &lt; Back to Specs
-                              </button>
-                              
-                              <button
-                                type="submit"
-                                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-mono text-[9px] uppercase font-bold tracking-[0.15em] transition-all rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-lg"
-                              >
-                                <Send size={11} className="animate-pulse" />
-                                <span>Submit Report // Dispatch</span>
-                              </button>
-                            </div>
-                          </motion.div>
-                        )}
+                            <Send size={11} />
+                            <span>Book Appointment Session</span>
+                          </button>
+                        </div>
                       </form>
                     )}
                   </div>
@@ -4231,10 +3975,10 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   <div className="w-full flex-1 flex flex-col gap-4">
                     <div>
                       <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold mb-1">
-                        Active Diagnostic Tickets
+                        Active Appointments
                       </h4>
                       <p className="text-[8px] uppercase tracking-wider text-neutral-500 leading-normal">
-                        Verify active problems mapped in direct support logs. All records here are strictly stored locally.
+                        View scheduled appointments. All records are strictly stored locally on your device.
                       </p>
                     </div>
 
@@ -4243,7 +3987,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                         <div className="h-40 flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-900 rounded-2xl bg-neutral-950/40">
                           <span className="text-xl mb-1 text-neutral-600 animate-pulse">🕰️</span>
                           <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
-                            NO SECURE ACTIVE RESOURCING TICKENS LOADED
+                            NO ACTIVE APPOINTMENTS SCHEDULED
                           </span>
                         </div>
                       ) : (
@@ -4252,12 +3996,12 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                             key={apt.id}
                             className="bg-neutral-950/90 border border-neutral-900 rounded-2xl p-4 relative overflow-hidden text-left flex flex-col md:flex-row md:items-center md:justify-between gap-4"
                           >
-                            <div className="space-y-2">
-                              {/* Headers and secure token badge */}
+                            <div className="space-y-2 flex-grow">
+                              {/* Headers and status badging */}
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-[10px] font-black text-white">{apt.name}</span>
                                 <span className="px-1.5 py-0.5 bg-neutral-900 border border-neutral-800 text-neutral-400 text-[7px] font-bold tracking-widest uppercase rounded">
-                                  ID: {apt.id.substring(0, 12).toUpperCase()}
+                                  REF ID: {apt.id.substring(0, 12).toUpperCase()}
                                 </span>
                                 <span className="px-1.5 py-0.5 bg-yellow-950/40 border border-yellow-500/35 text-amber-400 text-[7px] font-bold tracking-widest uppercase rounded leading-none">
                                   ● {apt.status}
@@ -4266,20 +4010,20 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
 
                               <div className="text-[10px] text-neutral-400 space-y-1">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-neutral-500 text-[8px]">CONTACT INFO:</span>
+                                  <span className="text-neutral-500 text-[8px]">CONTACT DETAILS:</span>
                                   <span className="text-neutral-300 font-sans">{apt.contact || 'N/A'}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-neutral-500 text-[8px]">COMPUTER SPECIFICATION:</span>
+                                  <span className="text-neutral-500 text-[8px]">PREFERRED SLOT:</span>
                                   <span className="text-neutral-300 font-sans">{apt.specs}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-neutral-500 text-[8px]">TEMPORAL:</span>
-                                  <span className="text-neutral-300">{apt.date}</span>
+                                  <span className="text-neutral-500 text-[8px]">TOPIC / PURPOSE:</span>
+                                  <span className="text-purple-400 tracking-wide font-black uppercase text-[8.5px]">{apt.problem}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-neutral-500 text-[8px]">PROBLEM:</span>
-                                  <span className="text-purple-400 tracking-wide font-black uppercase text-[8.5px]">{apt.problem}</span>
+                                  <span className="text-neutral-500 text-[8px]">SUBMITTED ON:</span>
+                                  <span className="text-neutral-300 font-sans">{apt.date}</span>
                                 </div>
                                 <div className="mt-1.5 p-2 bg-neutral-900/60 border border-neutral-850 rounded-lg text-[9px] text-neutral-300 font-sans whitespace-pre-wrap">
                                   {apt.description}
@@ -4294,9 +4038,9 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                                 setAppointments(filtered);
                                 localStorage.setItem('shadow_appointments', JSON.stringify(filtered));
                               }}
-                              className="px-3 py-1.5 md:self-center font-mono text-[8.5px] bg-red-955/25 border border-red-500/35 hover:border-red-500 text-red-400 hover:bg-neutral-900 transition-all uppercase tracking-widest font-extrabold cursor-pointer rounded-lg shrink-0 self-start"
+                              className="px-3 py-1.5 md:self-center font-mono text-[8.5px] bg-red-955/25 border border-red-500/35 hover:border-red-500 text-red-400 hover:bg-neutral-900 transition-all uppercase tracking-widest font-extrabold cursor-pointer rounded-lg shrink-0 self-start text-xs font-semibold"
                             >
-                              Revoke Ticket
+                              Cancel Appointment
                             </button>
                           </div>
                         ))
@@ -4306,10 +4050,10 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                 )}
               </div>
 
-              {/* Footer cancel controls */}
+              {/* Footer text */}
               <div className="flex items-center justify-center pt-4 border-t border-neutral-900 mt-4 shrink-0">
                 <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500 text-center">
-                  PC DIAGNOSTIC PORTAL GATEWAY // PE PLATFORM
+                  Appointment Scheduling Portal // Offline Support System
                 </span>
               </div>
             </motion.div>

@@ -13,8 +13,10 @@ function getEmbedUrl(url: string, title?: string) {
   if (!url) return '';
   
   // Google Drive url mapping
-  if (url.includes('drive.google.com')) {
-    const fileIdMatch = url.match(/\/file\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/);
+  if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+    const fileIdMatch = url.match(/\/file\/d\/([^/]+)/) || 
+                        url.match(/[?&]id=([^&]+)/) || 
+                        url.match(/\/d\/([^/]+)/);
     if (fileIdMatch && fileIdMatch[1]) {
       return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
     }
@@ -52,6 +54,9 @@ function getEmbedUrl(url: string, title?: string) {
 const isDirectVideo = (url: string) => {
   if (!url) return false;
   const lower = url.toLowerCase().trim();
+  if (lower.includes('drive.google.com') || lower.includes('docs.google.com')) {
+    return false; // Google Drive is always treated as an iframe embed preview page
+  }
   return lower.endsWith('.mp4') || 
          lower.endsWith('.mkv') || 
          lower.endsWith('.webm') || 
