@@ -70,6 +70,12 @@ const isEmbeddable = (url: string) => {
   return true; // Everything is map-playable now to completely bypass security blocks in the browser
 };
 
+const isGoogleDriveUrl = (url: string) => {
+  if (!url) return false;
+  const lower = url.toLowerCase().trim();
+  return lower.includes('drive.google.com') || lower.includes('docs.google.com');
+};
+
 export default function AnimeView() {
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
   const [videoError, setVideoError] = useState<boolean>(false);
@@ -341,14 +347,48 @@ export default function AnimeView() {
                       referrerPolicy="no-referrer"
                     />
                   ) : isEmbeddable(activeVideo.link) ? (
-                    <iframe
-                      src={getEmbedUrl(activeVideo.link, activeVideo.title)}
-                      title={activeVideo.title}
-                      className="w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      referrerPolicy="no-referrer-when-downgrade"
-                    />
+                    <div className="relative w-full h-full">
+                      <iframe
+                        src={getEmbedUrl(activeVideo.link, activeVideo.title)}
+                        title={activeVideo.title}
+                        className="w-full h-full border-0 animate-fade-in"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                      {isGoogleDriveUrl(activeVideo.link) && (
+                        <div className="absolute top-2 left-2 z-30 max-w-sm sm:max-w-md bg-neutral-950/90 border border-amber-500/30 backdrop-blur-md rounded-xl p-2 md:p-3 text-left space-y-2 pointer-events-auto shadow-2xl">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-[pulse_1s_infinite]" />
+                            <span className="text-[9px] font-black tracking-widest text-[#f59e0b] uppercase font-mono">
+                              Chrome Embed notice
+                            </span>
+                          </div>
+                          <p className="text-[9px] text-neutral-300 font-sans tracking-wide leading-relaxed font-semibold">
+                            Google Chrome restricts embedded Drive videos outside of AI Studio's trusted frame due to <strong>Third-Party Cookie rules</strong>. If you see "Video unavailable" below, bypass the restriction by playing directly card-native or in a separate tab:
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={activeVideo.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-lg text-[9px] font-extrabold uppercase font-mono tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>Play in G-Drive Tab ↗</span>
+                            </a>
+                            <button
+                              onClick={() => {
+                                // open direct link
+                                window.open(activeVideo.link, '_blank');
+                              }}
+                              className="px-2.5 py-1 bg-neutral-800 hover:bg-neutral-750 text-neutral-200 border border-neutral-700 hover:border-neutral-600 rounded-lg text-[9px] font-bold uppercase font-mono tracking-wider transition-all cursor-pointer"
+                            >
+                              Direct Open
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden bg-neutral-950">
                       {activeVideo.image && (
