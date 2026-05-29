@@ -10,7 +10,7 @@ import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.pn
 import shadowTechMagic from '../assets/images/shadow_tech_magic_1780090755590.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
-export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, isAudioAllowed = false, onLogout }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void; isAudioAllowed?: boolean; onLogout?: () => void }) {
+export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, isAudioAllowed = false, onLogout, onSupportClick }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void; isAudioAllowed?: boolean; onLogout?: () => void; onSupportClick?: () => void }) {
   const skip = hasPlayed;
   
   // Custom Google Drive / File link state
@@ -5291,6 +5291,20 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               </div>
             </motion.div>
 
+          </div>
+
+          {/* Support Shadow Garden Button */}
+          <div className="flex justify-center pt-8 pb-4 relative z-10">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onSupportClick}
+              className="group relative px-6 md:px-8 py-3 bg-gradient-to-r from-purple-900 via-indigo-950 to-purple-950 hover:from-purple-800 hover:to-indigo-900 border border-purple-500/30 hover:border-purple-400 text-white rounded-xl font-mono text-[10px] md:text-[11px] font-black uppercase tracking-[0.25em] transition-all duration-300 shadow-[0_0_20px_rgba(168,85,247,0.25)] hover:shadow-[0_0_35px_rgba(168,85,247,0.55)] cursor-pointer flex items-center gap-2"
+            >
+              <Heart className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+              <span>Support shadow Garden</span>
+              <Heart className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+            </motion.button>
           </div>
 
           {/* Bottom Watermark */}

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Cpu, Binary } from 'lucide-react';
+import { Cpu, Binary, Heart } from 'lucide-react';
 
 import shadowMysteriousAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
 import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
@@ -19,7 +19,7 @@ const SKILLS = [
   }
 ];
 
-export default function ExpertiseView({ onBack }: { onBack?: () => void }) {
+export default function ExpertiseView({ onBack, onSupportClick }: { onBack?: () => void; onSupportClick?: () => void }) {
   return (
     <div className="p-3 md:p-4 lg:p-5 h-full flex flex-col justify-between overflow-hidden bg-neutral-950">
       <div>
@@ -75,6 +75,20 @@ export default function ExpertiseView({ onBack }: { onBack?: () => void }) {
             </motion.div>
           ))}
         </div>
+      </div>
+
+      {/* Support Shadow Garden Button */}
+      <div className="flex justify-center py-4 relative z-10">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onSupportClick}
+          className="group relative px-6 md:px-8 py-3 bg-gradient-to-r from-purple-900 via-indigo-950 to-purple-950 hover:from-purple-800 hover:to-indigo-900 border border-purple-500/30 hover:border-purple-400 text-white rounded-xl font-mono text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] md:tracking-[0.25em] transition-all duration-300 shadow-[0_0_20px_rgba(168,85,247,0.25)] hover:shadow-[0_0_35px_rgba(168,85,247,0.55)] cursor-pointer flex items-center gap-2"
+        >
+          <Heart className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+          <span>Support shadow Garden</span>
+          <Heart className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+        </motion.button>
       </div>
  
       <motion.div 

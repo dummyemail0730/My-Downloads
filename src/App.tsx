@@ -7,7 +7,7 @@ import AnimeView from './components/AnimeView';
 import GamesView from './components/GamesView';
 import ToolsView from './components/ToolsView';
 import ExpertiseView from './components/ExpertiseView';
-import SustainView from './components/SustainView';
+import SupportView from './components/SupportView';
 import ShadowProject from './components/ShadowProject';
 import LoadingScreen from './components/LoadingScreen';
 import ShadowLoreView from './components/ShadowLoreView';
@@ -209,6 +209,7 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [showOwnerDetails, setShowOwnerDetails] = useState(false);
   const [copiedText, setCopiedText] = useState<'EMAIL' | 'KEY' | 'PHONE' | null>(null);
+  const [showSupportPage, setShowSupportPage] = useState(false);
 
   const [redirectLoaderState, setRedirectLoaderState] = useState<{ isOpen: boolean; targetUrl: string; itemTitle: string }>({
     isOpen: false,
@@ -253,10 +254,8 @@ export default function App() {
         return <GamesView />;
       case 'TOOLS':
         return <ToolsView />;
-      case 'SUSTAIN':
-        return <SustainView />;
       case 'EXPERTISE':
-        return <ExpertiseView onBack={() => setShowArchive(false)} />;
+        return <ExpertiseView onBack={() => setShowArchive(false)} onSupportClick={() => setShowSupportPage(true)} />;
       default:
         return <SoftwareView />;
     }
@@ -621,6 +620,10 @@ export default function App() {
     );
   }
 
+  if (showSupportPage) {
+    return <SupportView onBack={() => setShowSupportPage(false)} />;
+  }
+
   if (!showArchive) {
     return (
       <div className="min-h-screen w-full bg-black overflow-y-auto no-scrollbar flex items-start justify-center p-0 relative">
@@ -633,6 +636,9 @@ export default function App() {
             }}
             isAudioAllowed={audioApproved === true}
             onLogout={() => setIsAuthorized(false)}
+            onSupportClick={() => {
+              setShowSupportPage(true);
+            }}
           />
         </div>
       </div>
@@ -687,6 +693,7 @@ export default function App() {
             tabs={TABS} 
             onHomeClick={() => setShowArchive(false)}
             onShowOwnerClick={() => setShowOwnerDetails(true)}
+            onSupportClick={() => setShowSupportPage(true)}
           />
  
           {/* Content Area */}

@@ -1,105 +1,110 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Cpu, Heart, Copy, Check, X, Smartphone, QrCode, ShieldCheck } from 'lucide-react';
-import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
-import shadowGardenLogo from '../assets/images/shadow_garden_logo_1779199904393.png';
+import { Heart, Copy, Check, ArrowLeft, Smartphone, QrCode, ShieldCheck, X } from 'lucide-react';
+import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
 
-export default function SustainView() {
-  const [hardwareBoost, setHardwareBoost] = useState<number>(74); // Mock hardware optimization slider tracker
+interface SupportViewProps {
+  onBack: () => void;
+}
+
+export default function SupportView({ onBack }: SupportViewProps) {
   const [isGcashModalOpen, setIsGcashModalOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const supportTiers = [
-    {
-      id: 'tier-1',
-      title: 'COOLING & CORE BOOST',
-      cost: '$10 - $25',
-      benefit: 'Upgrades cooling vents & CPU clock stability thresholds.',
-      simValue: 85,
-      glow: 'shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.3)]',
-      border: 'border-purple-500/20 hover:border-purple-500/50',
-    },
-    {
-      id: 'tier-2',
-      title: 'COGNITIVE ARRAY UPGRADE',
-      cost: '$50 - $100',
-      benefit: 'Expands hyperparameter limits & parallel high-speed memory modules.',
-      simValue: 95,
-      glow: 'shadow-[0_0_15px_rgba(139,92,246,0.2)] hover:shadow-[0_0_25px_rgba(139,92,246,0.45)]',
-      border: 'border-violet-500/20 hover:border-violet-500/50',
-    },
-    {
-      id: 'tier-3',
-      title: 'SHADOW ARCHITECTURE GATEWAY',
-      cost: '$200+',
-      benefit: 'Sustains remote access deployment grids & shadow protection pipelines.',
-      simValue: 100,
-      glow: 'shadow-[0_0_20px_rgba(99,102,241,0.25)] hover:shadow-[0_0_30px_rgba(99,102,241,0.55)]',
-      border: 'border-indigo-500/20 hover:border-indigo-500/50',
-    }
-  ];
-
   return (
-    <div className="p-4 md:p-6 lg:p-8 min-h-full flex flex-col justify-between overflow-x-hidden bg-neutral-950 text-white relative">
+    <div className="fixed inset-0 z-40 bg-neutral-950 text-white flex flex-col justify-between overflow-x-hidden p-4 md:p-8 select-none">
       
-      {/* Background Graphic Blend with Clock Tower */}
-      <div className="absolute inset-0 z-0 overflow-hidden opacity-10 pointer-events-none select-none">
+      {/* Immersive background using shadowDarkBlade (image 2) */}
+      <div className="absolute inset-0 z-0 pointer-events-none select-none">
+        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/80 to-neutral-950 z-10" />
         <img 
-          src={shadowClockTower} 
+          src={shadowDarkBlade} 
           alt="" 
-          className="w-full h-full object-cover filter grayscale brightness-50"
+          className="w-full h-full object-cover filter brightness-[0.22] contrast-125 select-none"
           referrerPolicy="no-referrer"
         />
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto w-full space-y-6 md:space-y-8">
-        
-        {/* Header Ribbon */}
-        <div className="flex flex-col items-center text-center space-y-2 pb-4 border-b border-neutral-900">
+      {/* Floating Sparkles or Cyber Highlights */}
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,rgba(168,85,247,0.12),transparent_60%)] pointer-events-none" />
+
+      {/* Header with Return Home Action */}
+      <div className="relative z-10 flex items-center justify-between border-b border-purple-500/15 pb-4 md:pb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-purple-950/40 border border-purple-500/30 flex items-center justify-center">
+            <Heart className="w-4 h-4 text-purple-400 fill-purple-400/20" />
+          </div>
           <div>
-            <span className="text-[9px] font-mono tracking-[0.3em] uppercase text-purple-400 font-extrabold">// SYSTEM_SUSTENANCE</span>
-            <h1 className="text-xl md:text-3xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-neutral-100 via-white to-purple-300">
-              WHY SUSTAIN THE SHADOWS?
+            <span className="text-[8px] font-mono tracking-[0.3em] uppercase text-purple-400 font-extrabold block">// STANDALONE_NODE_GATEWAY</span>
+            <h1 className="text-sm md:text-base font-black uppercase tracking-widest text-neutral-100">
+              SHADOW GARDEN SUPPORT
             </h1>
           </div>
         </div>
 
-        {/* Core Manifesto Text (Fulfill user prompt text requirement perfectly, compressed ~30%) */}
-        <div className="bg-neutral-950/80 border border-neutral-900/50 backdrop-blur-md rounded-2xl p-5 md:p-6 space-y-4 text-neutral-300 leading-relaxed font-sans text-sm md:text-base relative overflow-hidden shadow-inner">
-          <div className="absolute top-0 right-0 p-3 select-none pointer-events-none opacity-5 font-mono text-[70px] font-black leading-none uppercase text-purple-500">
-            SHDW
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onBack}
+          className="flex items-center gap-2 group transition-all duration-300 text-purple-400 hover:text-white bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/50 px-4 py-2 rounded-xl text-xs font-mono font-black uppercase tracking-wider cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4 text-purple-400 group-hover:text-white transition-colors" />
+          <span>Return</span>
+        </motion.button>
+      </div>
+
+      {/* Core Body Container */}
+      <div className="relative z-10 max-w-3xl mx-auto w-full my-auto py-8 space-y-6 md:space-y-8">
+        
+        {/* Core Manifesto Card with Image 2 overlay */}
+        <div className="relative bg-neutral-950/90 border border-purple-500/25 backdrop-blur-md rounded-2xl p-6 md:p-8 space-y-5 text-neutral-300 leading-relaxed font-sans overflow-hidden shadow-[0_0_35px_rgba(168,85,247,0.2)]">
+          {/* Card internal wallpaper */}
+          <div className="absolute inset-0 z-0 opacity-15 pointer-events-none select-none bg-cover bg-center mix-blend-luminosity" style={{ backgroundImage: `url(${shadowDarkBlade})` }} />
+          
+          <div className="absolute top-0 right-0 p-4 select-none pointer-events-none opacity-[0.03] font-mono text-[100px] font-black leading-none uppercase text-purple-500 z-10">
+            EMINENCE
           </div>
           
-          <div className="space-y-4 text-left">
-            <p className="font-extrabold text-white text-lg md:text-xl border-l-2 border-purple-500 pl-4 tracking-tight leading-snug">
+          <div className="space-y-4 text-left relative z-10">
+            <p className="font-extrabold text-white text-lg md:text-2xl border-l-4 border-purple-500 pl-4 tracking-tight leading-snug">
               True innovation cannot be bound by standard hardware. To construct tomorrow's digital frameworks, mundane tools are no longer sufficient.
             </p>
 
-            <p className="leading-relaxed opacity-90 pl-4 border-l-2 border-transparent">
+            <p className="text-sm md:text-base leading-relaxed opacity-90 pl-4 border-l-4 border-transparent">
               Currently, an optimized, remote-access environment combined with advanced AI creation arrays operates from the shadows to design and deploy elite models with maximum efficiency. Your support directly upgrades our core infrastructure, shattering hardware bottlenecks.
             </p>
 
-            <p className="font-medium text-purple-200 pl-4 border-l-2 border-purple-500/40">
+            <p className="text-sm md:text-base font-medium text-purple-200 pl-4 border-l-4 border-purple-500/40">
               Supporting this page does not merely fund code. It directly sustains a technician operating from the shadows to keep our local community connected, functional, and secure.
             </p>
           </div>
         </div>
 
-
-
-        {/* Support Shadow Button & GCash Trigger */}
-        <div className="flex flex-col items-center justify-center py-4 relative z-10">
-          <button
+        {/* Support Call to Action Area */}
+        <div className="flex flex-col items-center justify-center space-y-3 relative z-10">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setIsGcashModalOpen(true)}
-            className="group relative px-8 py-3.5 bg-gradient-to-r from-purple-800 to-indigo-800 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl border border-purple-500/50 hover:border-purple-400 font-mono text-[10px] sm:text-xs font-black uppercase tracking-[0.25em] transition-all duration-300 shadow-[0_0_25px_rgba(168,85,247,0.3)] hover:shadow-[0_0_35px_rgba(168,85,247,0.55)] cursor-pointer flex items-center gap-2 px-6 active:scale-95 overflow-hidden"
+            className="group relative px-8 py-4 bg-gradient-to-r from-purple-900 via-indigo-950 to-purple-950 hover:from-purple-800 hover:to-indigo-900 text-white rounded-xl border border-purple-500/40 hover:border-purple-400 font-mono text-xs font-black uppercase tracking-[0.25em] transition-all duration-300 shadow-[0_0_25px_rgba(168,85,247,0.35)] hover:shadow-[0_0_40px_rgba(168,85,247,0.6)] cursor-pointer flex items-center gap-3 px-8 active:scale-95 overflow-hidden"
           >
             <Heart className="w-4 h-4 text-purple-300 fill-purple-300 group-hover:scale-120 transition-transform" />
             <span>Click to support Shadow Garden</span>
             <Heart className="w-4 h-4 text-purple-300 fill-purple-300 group-hover:scale-120 transition-transform" />
-          </button>
-          <p className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest mt-2">// DIRECT GCASH CONDUIT SECURE GATEWAY</p>
+          </motion.button>
+          
+          <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-[0.3em] animate-pulse">
+            // DIRECT GCASH CONDUIT SECURE GATEWAY //
+          </span>
         </div>
 
+      </div>
+
+      {/* Footer Branding Status Indicator */}
+      <div className="relative z-10 border-t border-neutral-900 pt-4 text-center">
+        <p className="text-[9px] font-mono text-neutral-500 uppercase tracking-[0.25em] max-w-md mx-auto">
+          COGNITIVE SUITE HARWARE INTERFACE // SECURE SECRECY LEVEL 4
+        </p>
       </div>
 
       {/* GCash Details Popup Modal */}
@@ -112,7 +117,7 @@ export default function SustainView() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsGcashModalOpen(false)}
-              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+              className="absolute inset-0 bg-black/95 backdrop-blur-md"
             />
 
             {/* Modal Card */}
@@ -182,7 +187,7 @@ export default function SustainView() {
                       {copiedField === 'name' ? (
                         <>
                           <Check size={10} className="text-emerald-400" />
-                          <span className="text-emerald-400">COPIED</span>
+                          <span className="text-emerald-400 text-[9px]">COPIED</span>
                         </>
                       ) : (
                         <>
@@ -210,7 +215,7 @@ export default function SustainView() {
                       {copiedField === 'number' ? (
                         <>
                           <Check size={10} className="text-emerald-400" />
-                          <span className="text-emerald-400">COPIED</span>
+                          <span className="text-emerald-400 text-[9px]">COPIED</span>
                         </>
                       ) : (
                         <>
@@ -243,13 +248,6 @@ export default function SustainView() {
           </div>
         )}
       </AnimatePresence>
-
-      {/* Grid footer watermark matching SoftwareView / ToolsView */}
-      <div className="mt-8 text-center relative z-10 border-t border-neutral-900/80 pt-4">
-        <p className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest max-w-sm mx-auto">
-          COGNITIVE SUITE HARWARE INTERFACE // SECURE SECRECY LEVEL 4
-        </p>
-      </div>
 
     </div>
   );
