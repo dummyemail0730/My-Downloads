@@ -122,28 +122,38 @@ export default function AnimeView() {
       }
     ];
 
-    if (loaded.length === 0) {
-      return defaultAnime;
-    }
+    const normalizeTitle = (title: string) => {
+      if (!title) return '';
+      return title
+        .toLowerCase()
+        .trim()
+        .replace(/\.(mp4|mkv|avi|webm|mov|ogg)$/i, '')
+        .replace(/[^a-z0-9]/g, '');
+    };
 
-    // Map loaded custom anime and fallback images dynamically
+    // Map loaded custom anime and fallback images/details dynamically
     const customList = loaded.map((item: any, idx: number) => {
       const fallbackImages = [shadowBlade, shadowAura, shadowElectricity];
+      
+      const matchedDefault = defaultAnime.find(
+        def => normalizeTitle(def.title) === normalizeTitle(item.title)
+      );
+
       return {
         id: item.id || `custom-anime-${idx}`,
-        title: item.title,
-        description: item.description || 'No description provided.',
-        protocol: item.protocol || 'EXT LINK',
+        title: matchedDefault ? matchedDefault.title : item.title,
+        description: item.description || matchedDefault?.description || 'No description provided.',
+        protocol: item.protocol || matchedDefault?.protocol || 'EXT LINK',
         link: item.link || 'https://crunchyroll.com',
-        image: item.image || fallbackImages[idx % fallbackImages.length],
-        season: item.season || ''
+        image: item.image || matchedDefault?.image || fallbackImages[idx % fallbackImages.length],
+        season: item.season || matchedDefault?.season || ''
       };
     });
 
     // Merge default list while filtering duplicates by title
     return [
       ...customList,
-      ...defaultAnime.filter(def => !customList.some((l: any) => l.title.toLowerCase().trim() === def.title.toLowerCase().trim()))
+      ...defaultAnime.filter(def => !customList.some((l: any) => normalizeTitle(l.title) === normalizeTitle(def.title)))
     ];
   });
 
