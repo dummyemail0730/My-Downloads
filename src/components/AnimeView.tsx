@@ -51,12 +51,24 @@ function getEmbedUrl(url: string, title?: string) {
   return 'https://www.youtube.com/embed/5U_Xv3f2_Q8?autoplay=1&rel=0';
 }
 
-const isDirectVideo = (url: string) => {
+const isGoogleDriveUrl = (url: string) => {
   if (!url) return false;
   const lower = url.toLowerCase().trim();
-  if (lower.includes('drive.google.com') || lower.includes('docs.google.com')) {
-    return false; // Google Drive is always treated as an iframe embed preview page
-  }
+  return lower.includes('drive.google.com') || lower.includes('docs.google.com');
+};
+
+const getGoogleDriveId = (url: string) => {
+  if (!url) return '';
+  const fileIdMatch = url.match(/\/file\/d\/([^/]+)/) || 
+                      url.match(/[?&]id=([^&]+)/) || 
+                      url.match(/\/d\/([^/]+)/);
+  return fileIdMatch ? fileIdMatch[1] : '';
+};
+
+const isDirectVideo = (url: string) => {
+  if (!url) return false;
+  if (isGoogleDriveUrl(url)) return true; // Direct play via our seamless server proxy
+  const lower = url.toLowerCase().trim();
   return lower.endsWith('.mp4') || 
          lower.endsWith('.mkv') || 
          lower.endsWith('.webm') || 
@@ -68,12 +80,6 @@ const isDirectVideo = (url: string) => {
 
 const isEmbeddable = (url: string) => {
   return true; // Everything is map-playable now to completely bypass security blocks in the browser
-};
-
-const isGoogleDriveUrl = (url: string) => {
-  if (!url) return false;
-  const lower = url.toLowerCase().trim();
-  return lower.includes('drive.google.com') || lower.includes('docs.google.com');
 };
 
 export default function AnimeView() {
@@ -103,7 +109,7 @@ export default function AnimeView() {
         id: 'default-anime-s1',
         title: 'Xado Episode 1',
         season: 'SEASON 1',
-        description: 'Cid Kagenou is reincarnated into a fantasy world as Shadow, the mysterious mastermind of the Shadow Garden secret society.',
+        description: '',
         protocol: 'S1 FULL',
         link: 'https://crunchyroll.com/series/G79H23X08/the-eminence-in-shadow',
         image: shadowOnRoof
@@ -112,7 +118,7 @@ export default function AnimeView() {
         id: 'default-anime-s2',
         title: 'Xado Episode 2',
         season: 'SEASON 2',
-        description: 'Under the blood red moon, Shadow faces the legendary vampire Queen Elisabeth and commands the corporate skirmishes of Mitsugoshi.',
+        description: '',
         protocol: 'S2 FULL',
         link: 'https://crunchyroll.com/series/G79H23X08/the-eminence-in-shadow',
         image: shadowClockTower
@@ -121,7 +127,7 @@ export default function AnimeView() {
         id: 'default-anime-movie',
         title: 'Xado: Lost Echoes',
         season: 'THEATRIC MOVIE',
-        description: 'Upcoming continuation theatrical film declassifying new parallel-world conflicts.',
+        description: '',
         protocol: 'MOVIE TEASER',
         link: 'https://crunchyroll.com/series/G79H23X08/the-eminence-in-shadow',
         image: shadowMoonRain
@@ -148,7 +154,7 @@ export default function AnimeView() {
       return {
         id: item.id || `custom-anime-${idx}`,
         title: matchedDefault ? matchedDefault.title : item.title,
-        description: item.description || matchedDefault?.description || 'No description provided.',
+        description: '',
         protocol: item.protocol || matchedDefault?.protocol || 'EXT LINK',
         link: item.link || 'https://crunchyroll.com',
         image: item.image || matchedDefault?.image || fallbackImages[idx % fallbackImages.length],
@@ -339,7 +345,7 @@ export default function AnimeView() {
                 {activeVideo.link ? (
                   isDirectVideo(activeVideo.link) ? (
                     <video
-                      src={activeVideo.link}
+                      src={isGoogleDriveUrl(activeVideo.link) ? `/api/video-proxy?id=${getGoogleDriveId(activeVideo.link)}` : activeVideo.link}
                       controls
                       autoPlay
                       onError={() => setVideoError(true)}
@@ -531,9 +537,6 @@ export default function AnimeView() {
                   <h4 className="text-xs font-black text-white uppercase font-mono tracking-tight sm:hidden">
                     {activeVideo.title}
                   </h4>
-                  <p className="text-[10px] sm:text-xs text-neutral-400 leading-relaxed font-semibold">
-                    {activeVideo.description}
-                  </p>
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto font-mono text-[9px] uppercase tracking-wider shrink-0 mt-1 sm:mt-0">

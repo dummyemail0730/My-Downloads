@@ -66,6 +66,71 @@ async function startServer() {
     }
   });
 
+  // API Route - Google Drive Native Video Streaming Proxy
+  app.get("/api/video-proxy", async (req, res) => {
+    const fileId = req.query.id as string;
+    if (!fileId) {
+      return res.status(400).send("File ID is required");
+    }
+
+    try {
+      const initialUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
+      const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+      // 1. Fetch initial head or page to see if there's a virus warning / confirm required
+      let response = await fetch(initialUrl, {
+        headers: { "User-Agent": userAgent }
+      });
+
+      let targetUrl = response.url;
+      const headers: Record<string, string> = {
+        "User-Agent": userAgent
+      };
+
+      const contentType = response.headers.get("content-type") || "";
+
+      // If Google Drive returns an HTML sheet instead of a direct file flow, extract confirmation token code
+      if (contentType.includes("html")) {
+        const htmlText = await response.text();
+        const confirmMatch = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
+        if (confirmMatch && confirmMatch[1]) {
+          const confirmToken = confirmMatch[1];
+          targetUrl = `https://docs.google.com/uc?export=download&id=${fileId}&confirm=${confirmToken}`;
+          headers["Cookie"] = `download_warning_${fileId}=${confirmToken}`;
+        }
+      }
+
+      // 2. Add client's Range header so browsers can seek seamlessly through the video
+      if (req.headers.range) {
+        headers["Range"] = req.headers.range;
+      }
+
+      // 3. Initiate the final redirect stream fetch
+      const streamResponse = await fetch(targetUrl, { headers });
+
+      // Forward headers and status code cleanly to the client
+      res.status(streamResponse.status);
+      const copyHeaders = ["content-type", "content-length", "content-range", "accept-ranges", "cache-control"];
+      for (const h of copyHeaders) {
+        const val = streamResponse.headers.get(h);
+        if (val) {
+          res.setHeader(h, val);
+        }
+      }
+
+      // 4. Transform Web Stream to Node readable stream and pipe directly to our recipient client response
+      if (streamResponse.body) {
+        const { Readable } = await import("stream");
+        Readable.fromWeb(streamResponse.body as any).pipe(res);
+      } else {
+        res.status(404).send("Failed to retrieve file stream");
+      }
+    } catch (err: any) {
+      console.error("Error in video proxy:", err);
+      res.status(500).send("Video proxy error: " + err.message);
+    }
+  });
+
   // Vite middleware for development vs static serve for production
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
