@@ -304,7 +304,7 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
             </span>
           </div>
           <p className="text-[7px] text-purple-400 uppercase tracking-[0.3em] font-black animate-pulse">
-            {isMuted ? 'EMINENCE OF SHADOW BROADCAST // COFFEE BREAK' : 'EMINENCE OF SHADOW BROADCAST // ONLINE'}
+            {isMuted ? 'XADO BROADCAST // COFFEE BREAK' : 'XADO BROADCAST // ONLINE'}
           </p>
         </div>
 

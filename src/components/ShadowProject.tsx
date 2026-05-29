@@ -21,7 +21,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   // Soundtrack Control states
   const STATIC_PLAYLIST = [
     { id: 'ATHTNyLK2TM', name: 'School Life', desc: 'Main soundtrack of this page' },
-    { id: 'T9MLjIsfUOU', name: 'Eminence Theme Orchestral', desc: 'Pre-load soundtrack frequency' },
+    { id: 'T9MLjIsfUOU', name: 'Xado Theme Orchestral', desc: 'Pre-load soundtrack frequency' },
     { id: '9iQVgj4z-I4', name: 'Shadow Garden Lofi Chill', desc: 'Background ambiance of the shadows' }
   ];
 

@@ -95,7 +95,7 @@ export default function AnimeView() {
     const defaultAnime = [
       {
         id: 'default-anime-s1',
-        title: 'Eminence in Shadow Episode 1',
+        title: 'Xado Episode 1',
         season: 'SEASON 1',
         description: 'Cid Kagenou is reincarnated into a fantasy world as Shadow, the mysterious mastermind of the Shadow Garden secret society.',
         protocol: 'S1 FULL',
@@ -104,7 +104,7 @@ export default function AnimeView() {
       },
       {
         id: 'default-anime-s2',
-        title: 'Eminence in Shadow Episode 2',
+        title: 'Xado Episode 2',
         season: 'SEASON 2',
         description: 'Under the blood red moon, Shadow faces the legendary vampire Queen Elisabeth and commands the corporate skirmishes of Mitsugoshi.',
         protocol: 'S2 FULL',
@@ -113,7 +113,7 @@ export default function AnimeView() {
       },
       {
         id: 'default-anime-movie',
-        title: 'The Eminence in Shadow: Lost Echoes',
+        title: 'Xado: Lost Echoes',
         season: 'THEATRIC MOVIE',
         description: 'Upcoming continuation theatrical film declassifying new parallel-world conflicts.',
         protocol: 'MOVIE TEASER',

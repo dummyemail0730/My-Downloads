@@ -320,7 +320,7 @@ function ManaClickerGame() {
     if (mana < 500) return 'BACKGROUND EXTRA';
     if (mana < 1500) return 'SHADOW GARDEN ROOKIE';
     if (mana < 5000) return 'ELITE OPERATIVE';
-    return 'EMINENCE OF SHADOW';
+    return 'XADO';
   };
 
   return (

@@ -62,7 +62,7 @@ export default function SupportView({ onBack }: SupportViewProps) {
           <div className="absolute inset-0 z-0 opacity-15 pointer-events-none select-none bg-cover bg-center mix-blend-luminosity" style={{ backgroundImage: `url(${shadowDarkBlade})` }} />
           
           <div className="absolute top-0 right-0 p-4 select-none pointer-events-none opacity-[0.03] font-mono text-[100px] font-black leading-none uppercase text-purple-500 z-10">
-            EMINENCE
+            XADO
           </div>
           
           <div className="space-y-4 text-left relative z-10">
