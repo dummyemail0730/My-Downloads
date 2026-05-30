@@ -97,6 +97,8 @@ export default function AnimeView() {
       loaded = saved ? JSON.parse(saved) : [];
     } catch (e) {}
 
+    const adminLink = localStorage.getItem('admin_console_link') || 'https://drive.google.com';
+
     const defaultAnime = [
       {
         id: 'default-anime-s1',
@@ -104,7 +106,7 @@ export default function AnimeView() {
         season: 'SEASON 1',
         description: '',
         protocol: 'S1 FULL',
-        link: 'https://crunchyroll.com/series/G79H23X08/the-eminence-in-shadow',
+        link: adminLink,
         image: shadowOnRoof
       },
       {
@@ -113,7 +115,7 @@ export default function AnimeView() {
         season: 'SEASON 2',
         description: '',
         protocol: 'S2 FULL',
-        link: 'https://crunchyroll.com/series/G79H23X08/the-eminence-in-shadow',
+        link: adminLink,
         image: shadowClockTower
       },
       {
@@ -122,7 +124,7 @@ export default function AnimeView() {
         season: 'THEATRIC MOVIE',
         description: '',
         protocol: 'MOVIE TEASER',
-        link: 'https://crunchyroll.com/series/G79H23X08/the-eminence-in-shadow',
+        link: adminLink,
         image: shadowMoonRain
       }
     ];
@@ -149,7 +151,7 @@ export default function AnimeView() {
         title: matchedDefault ? matchedDefault.title : item.title,
         description: '',
         protocol: item.protocol || matchedDefault?.protocol || 'EXT LINK',
-        link: item.link || 'https://crunchyroll.com',
+        link: item.link || adminLink,
         image: item.image || matchedDefault?.image || fallbackImages[idx % fallbackImages.length],
         season: item.season || matchedDefault?.season || ''
       };
@@ -170,8 +172,8 @@ export default function AnimeView() {
         {animeList.map((anime, idx) => {
           const hasBgImage = !!anime.image;
           const Tag = motion.div;
-          const adminLink = localStorage.getItem('admin_console_link');
-          const targetLink = adminLink || anime.link || 'https://crunchyroll.com';
+          const adminLink = localStorage.getItem('admin_console_link') || 'https://drive.google.com';
+          const targetLink = anime.link || adminLink;
 
           const handleClick = (e: React.MouseEvent) => {
             e.preventDefault();
