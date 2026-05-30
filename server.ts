@@ -66,6 +66,45 @@ async function startServer() {
     }
   });
 
+  // Helper to fetch with manual redirects, preserving all custom headers (User-Agent, Cookie, Range)
+  async function fetchWithManualRedirect(
+    url: string,
+    headers: Record<string, string>,
+    maxRedirects = 8
+  ): Promise<{ response: Response; finalUrl: string }> {
+    let currentUrl = url;
+    let currentHeaders = { ...headers };
+    let redirectCount = 0;
+
+    while (redirectCount < maxRedirects) {
+      const res = await fetch(currentUrl, {
+        headers: currentHeaders,
+        redirect: "manual"
+      });
+
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get("location");
+        if (!location) {
+          return { response: res, finalUrl: currentUrl };
+        }
+
+        if (location.startsWith("/")) {
+          const urlObj = new URL(currentUrl);
+          currentUrl = `${urlObj.protocol}//${urlObj.host}${location}`;
+        } else {
+          currentUrl = location;
+        }
+
+        redirectCount++;
+        continue;
+      }
+
+      return { response: res, finalUrl: currentUrl };
+    }
+
+    throw new Error("Max redirects exceeded inside video server proxy");
+  }
+
   // API Route - Google Drive Native Video Streaming Proxy
   app.get("/api/video-proxy", async (req, res) => {
     const fileId = req.query.id as string;
@@ -77,13 +116,13 @@ async function startServer() {
       const initialUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
       const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-      // 1. Fetch initial head or page to see if there's a virus warning / confirm required
-      let response = await fetch(initialUrl, {
-        headers: { "User-Agent": userAgent }
+      // 1. Fetch initial head or page to see if there's a virus warning or confirm is required
+      let { response, finalUrl } = await fetchWithManualRedirect(initialUrl, {
+        "User-Agent": userAgent
       });
 
-      let targetUrl = response.url;
-      const headers: Record<string, string> = {
+      let targetUrl = finalUrl;
+      const headersToSend: Record<string, string> = {
         "User-Agent": userAgent
       };
 
@@ -92,25 +131,38 @@ async function startServer() {
       // If Google Drive returns an HTML sheet instead of a direct file flow, extract confirmation token code
       if (contentType.includes("html")) {
         const htmlText = await response.text();
-        const confirmMatch = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
-        if (confirmMatch && confirmMatch[1]) {
-          const confirmToken = confirmMatch[1];
+        let confirmToken = "";
+        
+        const confirmMatchUrl = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
+        if (confirmMatchUrl && confirmMatchUrl[1]) {
+          confirmToken = confirmMatchUrl[1];
+        } else {
+          const confirmMatchInput = htmlText.match(/name="confirm"\s+value="([a-zA-Z0-9_-]+)"/) ||
+                                    htmlText.match(/value="([a-zA-Z0-9_-]+)"\s+name="confirm"/);
+          if (confirmMatchInput && confirmMatchInput[1]) {
+            confirmToken = confirmMatchInput[1];
+          }
+        }
+
+        if (confirmToken) {
           targetUrl = `https://docs.google.com/uc?export=download&id=${fileId}&confirm=${confirmToken}`;
-          headers["Cookie"] = `download_warning_${fileId}=${confirmToken}`;
+          headersToSend["Cookie"] = `download_warning_${fileId}=${confirmToken}`;
         }
       }
 
       // 2. Add client's Range header so browsers can seek seamlessly through the video
       if (req.headers.range) {
-        headers["Range"] = req.headers.range;
+        headersToSend["Range"] = req.headers.range;
       }
 
       // 3. Initiate the final redirect stream fetch
-      const streamResponse = await fetch(targetUrl, { headers });
+      const { response: streamResponse } = await fetchWithManualRedirect(targetUrl, headersToSend);
 
       // Forward headers and status code cleanly to the client
       res.status(streamResponse.status);
-      const copyHeaders = ["content-type", "content-length", "content-range", "accept-ranges", "cache-control"];
+      res.setHeader("accept-ranges", "bytes");
+
+      const copyHeaders = ["content-type", "content-length", "content-range", "cache-control", "content-disposition"];
       for (const h of copyHeaders) {
         const val = streamResponse.headers.get(h);
         if (val) {

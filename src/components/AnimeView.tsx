@@ -44,11 +44,11 @@ function getEmbedUrl(url: string, title?: string) {
     return 'https://www.youtube.com/embed/fXW96M1Qc9c?autoplay=1&rel=0'; // Movie teaser / trailer
   }
   if (searchString.includes('s2') || searchString.includes('season 2') || searchString.includes('episode 2')) {
-    return 'https://www.youtube.com/embed/r_P3wbeW6kQ?autoplay=1&rel=0'; // Season 2 trailer
+    return 'https://www.youtube.com/embed/A8vGg0vT828?autoplay=1&rel=0'; // Season 2 trailer (internationally friendly)
   }
   
-  // Default to Season 1 official subbed trailer
-  return 'https://www.youtube.com/embed/5U_Xv3f2_Q8?autoplay=1&rel=0';
+  // Default to Season 1 official subbed trailer (internationally friendly upload)
+  return 'https://www.youtube.com/embed/LH0k0EshNEM?autoplay=1&rel=0';
 }
 
 const isGoogleDriveUrl = (url: string) => {
