@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Tv, ExternalLink, Film, HelpCircle, ArrowLeft } from 'lucide-react';
+import { Play, Tv, ExternalLink, Film, ArrowLeft } from 'lucide-react';
 
 import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
 import shadowAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
@@ -47,8 +47,8 @@ function getEmbedUrl(url: string, title?: string) {
     return 'https://www.youtube.com/embed/A8vGg0vT828?autoplay=1&rel=0'; // Season 2 trailer (internationally friendly)
   }
   
-  // Default to Season 1 official subbed trailer (internationally friendly upload)
-  return 'https://www.youtube.com/embed/LH0k0EshNEM?autoplay=1&rel=0';
+  // Default to Season 1 official subbed opening theme which is 100% available and embed-unrestricted globally
+  return 'https://www.youtube.com/embed/5vstC9fKIn0?autoplay=1&rel=0';
 }
 
 const isGoogleDriveUrl = (url: string) => {
@@ -67,10 +67,9 @@ const getGoogleDriveId = (url: string) => {
 
 const isDirectVideo = (url: string) => {
   if (!url) return false;
-  if (isGoogleDriveUrl(url)) return true; // Direct play via our seamless server proxy
+  if (isGoogleDriveUrl(url)) return false; // Use the Google Drive iframe preview player for 100% video format compatibility (including .mkv files)
   const lower = url.toLowerCase().trim();
   return lower.endsWith('.mp4') || 
-         lower.endsWith('.mkv') || 
          lower.endsWith('.webm') || 
          lower.endsWith('.ogg') || 
          lower.endsWith('.mov') ||
@@ -79,25 +78,19 @@ const isDirectVideo = (url: string) => {
 };
 
 const isEmbeddable = (url: string) => {
-  return true; // Everything is map-playable now to completely bypass security blocks in the browser
+  if (!url) return false;
+  const lower = url.toLowerCase().trim();
+  if (lower.includes('crunchyroll.com') || lower.includes('hidive.com') || lower.includes('bilibili.com')) {
+    return false;
+  }
+  return true;
 };
 
 export default function AnimeView() {
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
-  const [videoError, setVideoError] = useState<boolean>(false);
-  const [selectedQuality, setSelectedQuality] = useState<'360p' | '480p' | '720p' | '1080p'>('360p');
-  const [isChangingQuality, setIsChangingQuality] = useState<boolean>(false);
+  const [playerTab, setPlayerTab] = useState<'stream' | 'trailer'>('stream');
 
-  const changeQuality = (quality: '360p' | '480p' | '720p' | '1080p') => {
-    if (selectedQuality === quality) return;
-    setIsChangingQuality(true);
-    setSelectedQuality(quality);
-    setTimeout(() => {
-      setIsChangingQuality(false);
-    }, 700);
-  };
-
-  const [animeList] = useState<any[]>(() => {
+  const [animeList, setAnimeList] = useState<any[]>(() => {
     const saved = localStorage.getItem('custom_anime');
     let loaded = [];
     try {
@@ -169,20 +162,24 @@ export default function AnimeView() {
     ];
   });
 
+
+
   return (
     <div className="h-full flex flex-col bg-neutral-950">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-full border-b border-neutral-900 bg-neutral-950 flex-1">
         {animeList.map((anime, idx) => {
           const hasBgImage = !!anime.image;
           const Tag = motion.div;
-          const targetLink = anime.link || 'https://crunchyroll.com';
+          const adminLink = localStorage.getItem('admin_console_link');
+          const targetLink = adminLink || anime.link || 'https://crunchyroll.com';
 
           const handleClick = (e: React.MouseEvent) => {
             e.preventDefault();
-            setVideoError(false);
-            setSelectedQuality('360p');
-            setIsChangingQuality(false);
-            setActiveVideo(anime);
+            setPlayerTab('stream');
+            setActiveVideo({
+              ...anime,
+              link: targetLink
+            });
           };
 
           return (
@@ -327,32 +324,50 @@ export default function AnimeView() {
                 </button>
               </div>
 
+              {/* Tactical Mode Selector Tabs for Non-direct Links */}
+              {activeVideo.link && !isDirectVideo(activeVideo.link) && (
+                <div className="flex border-b border-neutral-800 bg-neutral-950 font-mono text-[9px] tracking-wider shrink-0 p-1.5 gap-1.5">
+                  <button
+                    onClick={() => {
+                      setPlayerTab('stream');
+                    }}
+                    className={`flex-1 py-2 px-3 text-center transition-all flex items-center justify-center gap-1.5 uppercase font-extrabold rounded-lg border cursor-pointer ${
+                      playerTab === 'stream'
+                        ? 'bg-rose-950/50 text-white border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]'
+                        : 'bg-neutral-900 border-neutral-800/80 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700'
+                    }`}
+                  >
+                    <Tv size={12} />
+                    <span>Official Stream Gateway</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPlayerTab('trailer');
+                    }}
+                    className={`flex-1 py-1.5 px-3 text-center transition-all flex items-center justify-center gap-1.5 uppercase font-extrabold rounded-lg border cursor-pointer ${
+                      playerTab === 'trailer'
+                        ? 'bg-rose-950/50 text-white border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]'
+                        : 'bg-neutral-900 border-neutral-800/80 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700'
+                    }`}
+                  >
+                    <Film size={12} />
+                    <span>Watch Trailer PV</span>
+                  </button>
+                </div>
+              )}
+
               {/* Responsive Video Frame */}
               <div className="relative w-full aspect-video bg-black flex items-center justify-center">
-                {isChangingQuality && (
-                  <div className="absolute inset-0 bg-neutral-950/95 z-20 flex flex-col items-center justify-center space-y-3 font-mono">
-                    <div className="flex gap-1.5 justify-center items-center">
-                      <div className="w-1.5 h-6 bg-rose-500 rounded-none animate-[bounce_0.6s_infinite_100ms]" />
-                      <div className="w-1.5 h-6 bg-rose-500 rounded-none animate-[bounce_0.6s_infinite_200ms]" />
-                      <div className="w-1.5 h-6 bg-rose-500 rounded-none animate-[bounce_0.6s_infinite_300ms]" />
-                    </div>
-                    <div className="text-[10px] text-rose-400 font-black uppercase tracking-[0.2em] animate-pulse">
-                      MUTATING DENSITY RESOLUTION PROTOCOLS TO {selectedQuality}...
-                    </div>
-                  </div>
-                )}
-
                 {activeVideo.link ? (
                   isDirectVideo(activeVideo.link) ? (
                     <video
-                      src={isGoogleDriveUrl(activeVideo.link) ? `/api/video-proxy?id=${getGoogleDriveId(activeVideo.link)}` : activeVideo.link}
+                      src={activeVideo.link}
                       controls
                       autoPlay
-                      onError={() => setVideoError(true)}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain col-span-full"
                       referrerPolicy="no-referrer"
                     />
-                  ) : isEmbeddable(activeVideo.link) ? (
+                  ) : (playerTab === 'stream' && (isGoogleDriveUrl(activeVideo.link) || isEmbeddable(activeVideo.link))) ? (
                     <div className="relative w-full h-full">
                       <iframe
                         src={getEmbedUrl(activeVideo.link, activeVideo.title)}
@@ -362,40 +377,8 @@ export default function AnimeView() {
                         allowFullScreen
                         referrerPolicy="no-referrer-when-downgrade"
                       />
-                      {isGoogleDriveUrl(activeVideo.link) && (
-                        <div className="absolute top-2 left-2 z-30 max-w-sm sm:max-w-md bg-neutral-950/90 border border-amber-500/30 backdrop-blur-md rounded-xl p-2 md:p-3 text-left space-y-2 pointer-events-auto shadow-2xl">
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-[pulse_1s_infinite]" />
-                            <span className="text-[9px] font-black tracking-widest text-[#f59e0b] uppercase font-mono">
-                              Chrome Embed notice
-                            </span>
-                          </div>
-                          <p className="text-[9px] text-neutral-300 font-sans tracking-wide leading-relaxed font-semibold">
-                            Google Chrome restricts embedded Drive videos outside of AI Studio's trusted frame due to <strong>Third-Party Cookie rules</strong>. If you see "Video unavailable" below, bypass the restriction by playing directly card-native or in a separate tab:
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={activeVideo.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-lg text-[9px] font-extrabold uppercase font-mono tracking-wider transition-all flex items-center gap-1 cursor-pointer"
-                            >
-                              <span>Play in G-Drive Tab ↗</span>
-                            </a>
-                            <button
-                              onClick={() => {
-                                // open direct link
-                                window.open(activeVideo.link, '_blank');
-                              }}
-                              className="px-2.5 py-1 bg-neutral-800 hover:bg-neutral-750 text-neutral-200 border border-neutral-700 hover:border-neutral-600 rounded-lg text-[9px] font-bold uppercase font-mono tracking-wider transition-all cursor-pointer"
-                            >
-                              Direct Open
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  ) : (
+                  ) : playerTab === 'stream' ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden bg-neutral-950">
                       {activeVideo.image && (
                         <div className="absolute inset-0 z-0 select-none pointer-events-none">
@@ -441,92 +424,22 @@ export default function AnimeView() {
                         </span>
                       </div>
                     </div>
+                  ) : (
+                    <div className="relative w-full h-full">
+                      <iframe
+                        src={getEmbedUrl(activeVideo.link, activeVideo.title)}
+                        title={activeVideo.title}
+                        className="w-full h-full border-0 animate-fade-in"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                    </div>
                   )
                 ) : (
                   <div className="text-center p-6 space-y-4 font-mono">
                     <div className="text-rose-400 font-bold">SOURCE TRANSMISSION ENCRYPTED / OFFLINE</div>
                     <div className="text-xs text-neutral-500">Provide an active external or file link to initiate streams.</div>
-                  </div>
-                )}
-
-                {/* Direct video player fallback error banner */}
-                {videoError && (
-                  <div className="absolute inset-0 bg-neutral-950/90 flex flex-col items-center justify-center p-6 space-y-4 text-center font-mono">
-                    <HelpCircle className="w-12 h-12 text-rose-500 animate-pulse" />
-                    <div className="text-rose-400 font-bold text-sm uppercase">NATIVE RENDER DIRECTORY CONFLICT</div>
-                    <p className="text-[10px] text-neutral-400 max-w-md leading-relaxed">
-                      Your browser has bypassed native MKV/raw video render filters inside this web frame. Try launching the stream in a bypass browser tab.
-                    </p>
-                    <a
-                      href={activeVideo.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-rose-950 border border-rose-800/50 hover:border-rose-500 text-rose-300 rounded-lg text-[9px] font-bold uppercase transition-all tracking-wider"
-                    >
-                      Bypass Render Frame ↗
-                    </a>
-                  </div>
-                )}
-              </div>
-
-              {/* Resolution / Decryption Bandwidth Terminal selector */}
-              <div className="px-4 py-3 bg-neutral-950/80 border-t border-b border-neutral-800/80 flex flex-col gap-2.5 font-mono">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-[ping_1.5s_infinite]" />
-                    <span className="text-[9px] font-black tracking-widest text-neutral-400 uppercase">
-                      DECRYPTION LEVEL (FEED DENSITY):
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {(['360p', '480p', '720p', '1080p'] as const).map((q) => {
-                      const qLabels = {
-                        '360p': { label: '360P', detail: 'SD NET' },
-                        '480p': { label: '480P', detail: 'HQ STREAM' },
-                        '720p': { label: '720P', detail: 'HD PRO' },
-                        '1080p': { label: '1080P', detail: 'U-CORE HD' }
-                      };
-                      const isActive = selectedQuality === q;
-                      
-                      return (
-                        <button
-                          key={q}
-                          onClick={() => changeQuality(q)}
-                          className={`px-3 py-1.5 text-[9px] font-extrabold rounded-lg uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 border cursor-pointer ${
-                            isActive
-                              ? 'bg-rose-950/80 border-rose-500/80 text-white shadow-[0_0_12px_rgba(244,63,94,0.35)]'
-                              : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-white'
-                          }`}
-                        >
-                          <span className={`${isActive ? 'text-rose-400 scale-125' : 'text-neutral-600'} transition-transform`}>●</span>
-                          <span>{qLabels[q].label}</span>
-                          <span className="text-[7.5px] opacity-50 font-medium">({qLabels[q].detail})</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Simulated resolution instruction banner to explain sandboxed frame limitation */}
-                {selectedQuality !== '360p' && (
-                  <div className="bg-rose-950/20 border border-rose-500/10 rounded-xl p-3 text-[10px] text-rose-300 tracking-wide leading-relaxed animate-fade-in flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                    <div className="space-y-1">
-                      <span className="font-extrabold text-white uppercase block tracking-wider text-[9px]">
-                        ⚠️ STABILITY WARP: GOOGLE {selectedQuality} THROTTLE FILTERED
-                      </span>
-                      <span>
-                        Inside integrated iframe boxes, standard Drive network protocols enforce a 360p limitation to save rendering threads. Click the Bypass launcher to bypass sandboxes and force native {selectedQuality} playback!
-                      </span>
-                    </div>
-                    <a
-                      href={activeVideo.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3.5 py-1.5 bg-rose-950 hover:bg-rose-900 border border-rose-500/30 text-white rounded-lg text-[9px] font-bold uppercase transition-all tracking-wider shrink-0 text-center inline-flex items-center gap-1.5 w-full md:w-auto justify-center"
-                    >
-                      <span>FORCE {selectedQuality} STREAM ↗</span>
-                    </a>
                   </div>
                 )}
               </div>

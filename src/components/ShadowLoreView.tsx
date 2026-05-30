@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, ExternalLink, Wrench, Terminal, Cpu, Database, Network, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Play, ExternalLink, Wrench, Terminal, Cpu, Database, Network, ShieldCheck, ArrowLeft, Link2 } from 'lucide-react';
 
 function getEmbedUrl(url: string) {
   if (!url) return '';
@@ -88,8 +88,19 @@ interface TutorialVideo {
 }
 
 export default function ShadowLoreView() {
+  const [activeVideo, setActiveVideo] = useState<{
+    title: string;
+    url: string;
+    category: string;
+    index: string;
+    difficulty: string;
+    description: string;
+    glow: string;
+  } | null>(null);
+
   const [selectedQuality, setSelectedQuality] = useState<'360p' | '480p' | '720p' | '1080p'>('360p');
   const [isChangingQuality, setIsChangingQuality] = useState<boolean>(false);
+  const [customLinkInput, setCustomLinkInput] = useState<string>('');
 
   const changeQuality = (quality: '360p' | '480p' | '720p' | '1080p') => {
     if (selectedQuality === quality) return;
@@ -100,15 +111,13 @@ export default function ShadowLoreView() {
     }, 700);
   };
 
-  const [activeVideo, setActiveVideo] = useState<{
-    title: string;
-    url: string;
-    category: string;
-    index: string;
-    difficulty: string;
-    description: string;
-    glow: string;
-  } | null>(null);
+  useEffect(() => {
+    if (activeVideo) {
+      setCustomLinkInput(activeVideo.url || '');
+    } else {
+      setCustomLinkInput('');
+    }
+  }, [activeVideo]);
 
   const [tutorials] = useState<TutorialVideo[]>(() => {
     const staticTutorials: TutorialVideo[] = [
@@ -485,14 +494,48 @@ export default function ShadowLoreView() {
                   </div>
                 ) : (
                   <div className="text-center p-6 space-y-4 font-mono">
-                    <div className="text-red-400 font-bold">SOURCE LINK INOPERATIVE</div>
+                    <div className="text-red-450 font-bold text-red-400">SOURCE LINK INOPERATIVE</div>
                     <div className="text-xs text-neutral-500">{activeVideo.url}</div>
                   </div>
                 )}
               </div>
 
+              {/* Signal Intel Override Input field */}
+              <div className="px-4 py-3 bg-neutral-950/90 border-t border-b border-neutral-800/80 flex flex-col gap-2.5 font-mono text-left">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <Link2 size={12} className="text-purple-400" strokeWidth={2.5} />
+                    <span className="text-[9px] font-black tracking-widest text-[#a855f7] uppercase">
+                      SIGNAL INTELLIGENCE (CUSTOM OVERRIDE):
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customLinkInput}
+                      onChange={(e) => setCustomLinkInput(e.target.value)}
+                      placeholder="Paste direct .mp4/.mkv stream, Google Drive file, or YouTube URL..."
+                      className="flex-1 bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-white font-mono text-[9px] placeholder-neutral-600 focus:outline-none focus:border-purple-500/50 transition-colors"
+                    />
+                    <button
+                      onClick={() => {
+                        if (customLinkInput.trim()) {
+                          setActiveVideo((prev: any) => prev ? { ...prev, url: customLinkInput.trim() } : null);
+                        }
+                      }}
+                      className="px-3 py-2 bg-purple-950 hover:bg-purple-900 border border-purple-500/30 text-purple-300 hover:text-white rounded-xl text-[9px] font-black uppercase transition-all shrink-0 cursor-pointer"
+                    >
+                      LOAD STREAM
+                    </button>
+                  </div>
+                  <p className="text-[8px] text-neutral-500 leading-relaxed uppercase tracking-wider font-extrabold">
+                    💡 <em>Pro-tip: Pasting Google Drive files or direct MP4/MKV will play natively inside our high-performance stream proxy!</em>
+                  </p>
+                </div>
+              </div>
+
               {/* Resolution / Decryption Bandwidth Terminal selector */}
-              <div className="px-4 py-3 bg-neutral-950/80 border-t border-b border-neutral-800/80 flex flex-col gap-2.5 font-mono">
+              <div className="px-4 py-3 bg-neutral-950/80 border-b border-neutral-800/80 flex flex-col gap-2.5 font-mono">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-[ping_1.5s_infinite]" />
