@@ -88,7 +88,6 @@ const isEmbeddable = (url: string) => {
 
 export default function AnimeView() {
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
-  const [playerTab, setPlayerTab] = useState<'stream' | 'trailer'>('stream');
 
   const [animeList, setAnimeList] = useState<any[]>(() => {
     const saved = localStorage.getItem('custom_anime');
@@ -177,7 +176,6 @@ export default function AnimeView() {
 
           const handleClick = (e: React.MouseEvent) => {
             e.preventDefault();
-            setPlayerTab('stream');
             setActiveVideo({
               ...anime,
               link: targetLink
@@ -330,30 +328,10 @@ export default function AnimeView() {
               {activeVideo.link && !isDirectVideo(activeVideo.link) && (
                 <div className="flex border-b border-neutral-800 bg-neutral-950 font-mono text-[9px] tracking-wider shrink-0 p-1.5 gap-1.5">
                   <button
-                    onClick={() => {
-                      setPlayerTab('stream');
-                    }}
-                    className={`flex-1 py-2 px-3 text-center transition-all flex items-center justify-center gap-1.5 uppercase font-extrabold rounded-lg border cursor-pointer ${
-                      playerTab === 'stream'
-                        ? 'bg-rose-950/50 text-white border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]'
-                        : 'bg-neutral-900 border-neutral-800/80 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700'
-                    }`}
+                    className="flex-1 py-2 px-3 text-center transition-all flex items-center justify-center gap-1.5 uppercase font-extrabold rounded-lg border bg-rose-950/50 text-white border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)] cursor-default"
                   >
                     <Tv size={12} />
-                    <span>Official Stream Gateway</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setPlayerTab('trailer');
-                    }}
-                    className={`flex-1 py-1.5 px-3 text-center transition-all flex items-center justify-center gap-1.5 uppercase font-extrabold rounded-lg border cursor-pointer ${
-                      playerTab === 'trailer'
-                        ? 'bg-rose-950/50 text-white border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]'
-                        : 'bg-neutral-900 border-neutral-800/80 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700'
-                    }`}
-                  >
-                    <Film size={12} />
-                    <span>Watch Trailer PV</span>
+                    <span>Google Drive Player</span>
                   </button>
                 </div>
               )}
@@ -369,7 +347,7 @@ export default function AnimeView() {
                       className="w-full h-full object-contain col-span-full"
                       referrerPolicy="no-referrer"
                     />
-                  ) : (playerTab === 'stream' && (isGoogleDriveUrl(activeVideo.link) || isEmbeddable(activeVideo.link))) ? (
+                  ) : (isGoogleDriveUrl(activeVideo.link) || isEmbeddable(activeVideo.link)) ? (
                     <div className="relative w-full h-full">
                       <iframe
                         src={getEmbedUrl(activeVideo.link, activeVideo.title)}
@@ -380,7 +358,7 @@ export default function AnimeView() {
                         referrerPolicy="no-referrer-when-downgrade"
                       />
                     </div>
-                  ) : playerTab === 'stream' ? (
+                  ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden bg-neutral-950">
                       {activeVideo.image && (
                         <div className="absolute inset-0 z-0 select-none pointer-events-none">
@@ -425,17 +403,6 @@ export default function AnimeView() {
                           })()}
                         </span>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="relative w-full h-full">
-                      <iframe
-                        src={getEmbedUrl(activeVideo.link, activeVideo.title)}
-                        title={activeVideo.title}
-                        className="w-full h-full border-0 animate-fade-in"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                        referrerPolicy="no-referrer-when-downgrade"
-                      />
                     </div>
                   )
                 ) : (
