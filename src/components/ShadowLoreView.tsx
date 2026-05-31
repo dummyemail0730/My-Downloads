@@ -98,7 +98,7 @@ export default function ShadowLoreView() {
     glow: string;
   } | null>(null);
 
-  const [selectedQuality, setSelectedQuality] = useState<'360p' | '480p' | '720p' | '1080p'>('360p');
+  const [selectedQuality, setSelectedQuality] = useState<'360p' | '480p' | '720p' | '1080p'>('720p');
   const [isChangingQuality, setIsChangingQuality] = useState<boolean>(false);
   const [customLinkInput, setCustomLinkInput] = useState<string>('');
 
@@ -315,7 +315,7 @@ export default function ShadowLoreView() {
 
           const handleClick = (e: React.MouseEvent) => {
             e.preventDefault();
-            setSelectedQuality('360p');
+            setSelectedQuality('720p');
             setIsChangingQuality(false);
             setActiveVideo({
               title: video.title,

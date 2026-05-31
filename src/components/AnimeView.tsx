@@ -100,43 +100,103 @@ const getNormalizedSeason = (anime: any): 'S1' | 'S2' | 'MOVIE' => {
 interface GoogleDrivePlayerProps {
   driveId: string;
   title: string;
+  key?: string;
 }
 
 function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
-  const iframeUrl = `https://drive.google.com/file/d/${driveId}/preview?autoplay=1`;
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [useIframe, setUseIframe] = useState<boolean>(false);
+  const videoUrl = `/api/video-proxy?id=${driveId}`;
+  const iframeUrl = `https://drive.google.com/file/d/${driveId}/preview?autoplay=1&vq=hd720`;
+
+  useEffect(() => {
+    setIsPlaying(false);
+    setUseIframe(false);
+  }, [driveId]);
 
   return (
     <div className="relative w-full h-full bg-black flex flex-col justify-center items-center overflow-hidden">
-      <div className="relative w-full h-full">
-        <iframe
-          src={iframeUrl}
-          title={title}
-          className="w-full h-full border-0 animate-fade-in"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          referrerPolicy="no-referrer-when-downgrade"
-        />
-        
-        <div className="absolute top-3 left-3 z-30 flex items-center gap-1.5 flex-wrap">
-          <span className="px-2 py-0.5 bg-rose-950/85 border border-rose-500/30 rounded text-[9px] text-rose-400 font-mono font-bold tracking-wider uppercase">
-            SECURE EMBEDDED PLAYER
-          </span>
-          <a
-            href={`https://drive.google.com/file/d/${driveId}/view`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-2.5 py-0.5 bg-rose-600 hover:bg-rose-500 rounded text-[9px] text-white font-mono font-bold uppercase transition-all flex items-center gap-1 cursor-pointer hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(244,63,94,0.35)]"
-          >
-            <span>OPEN NATIVE TAB ↗</span>
-          </a>
-        </div>
-
-        <div className="absolute bottom-3 right-3 z-30">
-          <div className="text-[8px] sm:text-[9px] font-mono text-neutral-400 bg-neutral-950/90 border border-neutral-800 rounded px-2.5 py-1 text-center max-w-[280px] leading-tight shadow-md">
-            ⚠️ Browser blocking cookies? Click <span className="text-rose-400 font-bold">OPEN NATIVE TAB</span> to play securely.
+      {!isPlaying ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-radial from-neutral-900 to-neutral-950 p-6 text-center select-none">
+          {/* Subtle themed background overlay */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(244,63,94,0.08)_0%,transparent_70%)] pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col items-center max-w-md">
+            {/* Animated pulsing background behind icon */}
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-rose-500/10 rounded-full blur-xl scale-125 animate-pulse" />
+              <button
+                onClick={() => setIsPlaying(true)}
+                className="relative flex items-center justify-center w-20 h-20 bg-rose-600 hover:bg-rose-500 text-white rounded-full transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(244,63,94,0.4)] border border-rose-400/20 group"
+              >
+                <Play size={32} className="ml-1 fill-white group-hover:scale-110 transition-transform duration-300" />
+              </button>
+            </div>
+            
+            <h3 className="text-sm font-bold tracking-widest text-neutral-200 uppercase mb-2 font-mono">
+              Ready to Stream
+            </h3>
+            <p className="text-xs text-neutral-400 font-sans px-4 mb-5 line-clamp-2 uppercase tracking-wide font-extrabold max-w-sm">
+              {title}
+            </p>
+            <button
+              onClick={() => setIsPlaying(true)}
+              className="text-[10px] font-mono text-rose-400 hover:text-white hover:bg-rose-900/40 hover:border-rose-500/60 transition-all uppercase tracking-widest border border-rose-950/60 bg-rose-950/20 px-4 py-2 rounded-xl cursor-pointer"
+            >
+              INITIALIZE PLAYBACK
+            </button>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="relative w-full h-full flex items-center justify-center">
+          {!useIframe ? (
+            <video
+              src={videoUrl}
+              controls
+              autoPlay
+              onError={() => {
+                console.warn("Direct video streaming failed, falling back to secure iframe player.");
+                setUseIframe(true);
+              }}
+              className="w-full h-full object-contain animate-fade-in"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <iframe
+              src={iframeUrl}
+              title={title}
+              className="w-full h-full border-0 animate-fade-in"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          )}
+          
+          <div className="absolute top-3 left-3 z-35 flex items-center gap-1.5 flex-wrap">
+            <span className="px-2 py-0.5 bg-rose-950/85 border border-rose-500/30 rounded text-[9px] text-rose-400 font-mono font-bold tracking-wider uppercase">
+              {!useIframe ? 'PREMIUM DIRECT STREAM' : 'SECURE EMBEDDED PLAYER'}
+            </span>
+            <a
+              href={`https://drive.google.com/file/d/${driveId}/view`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-0.5 bg-rose-600 hover:bg-rose-500 rounded text-[9px] text-white font-mono font-bold uppercase transition-all flex items-center gap-1 cursor-pointer hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(244,63,94,0.35)]"
+            >
+              <span>OPEN NATIVE TAB ↗</span>
+            </a>
+          </div>
+
+          <div className="absolute bottom-3 right-3 z-30">
+            <div className="text-[8px] sm:text-[9px] font-mono text-neutral-400 bg-neutral-950/90 border border-neutral-800 rounded px-2.5 py-1 text-center max-w-[280px] leading-tight shadow-md">
+              {!useIframe ? (
+                <span>⚡ Hyper-stream protocol active. Zero buffer direct play.</span>
+              ) : (
+                <span>⚠️ Browser blocking cookies? Click <span className="text-rose-400 font-bold">OPEN NATIVE TAB</span> to play securely.</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -243,7 +303,25 @@ export default function AnimeView() {
 
 
   const filteredAnimeList = animeList.filter(anime => {
-    return getNormalizedSeason(anime) === selectedTab;
+    if (getNormalizedSeason(anime) !== selectedTab) return false;
+    
+    const url = (anime.link || '').trim();
+    if (!url) return false;
+    
+    // Check if the URL is just a generic fallback/folder link with no file ID
+    const isGenericDrive = url === 'https://drive.google.com' || 
+                           url === 'https://drive.google.com/' || 
+                           url === 'https://drive.google.com/drive' ||
+                           url === 'https://drive.google.com/drive/my-drive';
+    if (isGenericDrive) {
+      return false;
+    }
+    
+    if (isGoogleDriveUrl(url) && !getGoogleDriveId(url)) {
+      return false;
+    }
+    
+    return true;
   });
 
   return (
@@ -532,6 +610,7 @@ export default function AnimeView() {
                       if (driveId) {
                         return (
                           <GoogleDrivePlayer
+                            key={driveId}
                             driveId={driveId}
                             title={activeVideo.title}
                           />

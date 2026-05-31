@@ -3,6 +3,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
+import shadowChibiSticker from '../assets/images/shadow_chibi_avatar_1779438320279.png';
+import shadowChibiNoText from '../assets/images/shadow_logo_chibi_no_text_1779533339114.png';
+import alphaChibi from '../assets/images/alpha_solo_bg_1780190207110.png';
+import betaChibi from '../assets/images/beta_solo_bg_1780190226477.png';
+import gammaChibi from '../assets/images/gamma_solo_bg_1780190246677.png';
+import deltaChibi from '../assets/images/delta_solo_bg_1780190266500.png';
+import epsilonChibi from '../assets/images/epsilon_solo_bg_1780190286312.png';
+import zetaChibi from '../assets/images/zeta_solo_bg_1780190306077.png';
 import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
 import shadowGardenLogo from '../assets/images/shadow_garden_logo_1779199904393.png';
 import shadowMysteriousAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
@@ -218,6 +226,8 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   const [newTutorialUrl, setNewTutorialUrl] = useState('');
   const [isAddingTutorial, setIsAddingTutorial] = useState(false);
 
+
+
   // --- APPOINTMENTS STATE ---
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [isFiledAppointmentsDropdownOpen, setIsFiledAppointmentsDropdownOpen] = useState(false);
@@ -244,6 +254,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   // --- SUGGESTIONS STATE ---
   const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
   const [isShoutBoxOpen, setIsShoutBoxOpen] = useState(false);
+  const [shoutAssetTab, setShoutAssetTab] = useState<'emojis' | 'stickers'>('emojis');
   const [shoutSuccessCountdown, setShoutSuccessCountdown] = useState<number | null>(null);
   const [isSendingSuggestion, setIsSendingSuggestion] = useState(false);
   const [showSuggestionSuccess, setShowSuggestionSuccess] = useState(false);
@@ -297,78 +308,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
         console.error(e);
       }
     }
-    return [
-      {
-        id: 's1',
-        name: 'Alpha [Seven Shadows]',
-        message: 'All core database nodes are completely secured under Shadow\'s direct command. No Cult of Diablos influence detected. 🔮🖤',
-        time: '2m ago',
-        timestamp: Date.now() - 2 * 60 * 1000,
-        avatar: '👑',
-        avatarBg: 'bg-purple-950/85 border border-purple-500/35 text-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.2)]',
-        likes: 12
-      },
-      {
-        id: 's2',
-        name: 'Beta [Seven Shadows]',
-        message: 'Completed volume 14 of the Shadow Chronicles! Lord Shadow\'s peerless brilliance must be recorded beautifully! 📖✨',
-        time: '5m ago',
-        timestamp: Date.now() - 5 * 60 * 1000,
-        avatar: '✍️',
-        avatarBg: 'bg-amber-950/85 border border-amber-500/35 text-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.2)]',
-        likes: 9
-      },
-      {
-        id: 's3',
-        name: 'Gamma [Seven Shadows]',
-        message: 'Mitsugoshi Company has secured additional golden reserves. The grand supply chain grows silently in the night. 💰🍷',
-        time: '12m ago',
-        timestamp: Date.now() - 12 * 60 * 1000,
-        avatar: '💸',
-        avatarBg: 'bg-pink-950/85 border border-pink-500/35 text-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.2)]',
-        likes: 8
-      },
-      {
-        id: 's4',
-        name: 'Delta [Seven Shadows]',
-        message: 'BUG HATING TIME! Delta crush all weak codes! SMASH SMASH! Master said I did a good job! 🐺⚔️',
-        time: '18m ago',
-        timestamp: Date.now() - 18 * 60 * 1000,
-        avatar: '🐺',
-        avatarBg: 'bg-emerald-950/85 border border-emerald-500/35 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)]',
-        likes: 15
-      },
-      {
-        id: 's5',
-        name: 'Epsilon [Seven Shadows]',
-        message: 'Calibrating our slime-suit compression and magic density to absolute precision. Peak operational performance! 🎻🎶',
-        time: '25m ago',
-        timestamp: Date.now() - 25 * 60 * 1000,
-        avatar: '🎹',
-        avatarBg: 'bg-orange-950/85 border border-orange-500/35 text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]',
-        likes: 7
-      },
-      {
-        id: 's6',
-        name: 'Zeta [Seven Shadows]',
-        message: 'Exploring the outer wild borders. No cult traces found in the east, only quiet ruins waiting for Master\'s word. 🐱✨',
-        time: '35m ago',
-        timestamp: Date.now() - 35 * 60 * 1000,
-        avatar: '🐱',
-        avatarBg: 'bg-teal-950/85 border border-teal-500/35 text-teal-400 shadow-[0_0_8px_rgba(20,184,166,0.2)]',
-        likes: 5
-      },
-      {
-        id: 's7',
-        name: 'Eta [Seven Shadows]',
-        message: 'Master\'s ancient formulas are decrypted. The research lab completed the new cyber defense protocol. 🧪🧠',
-        time: '50m ago',
-        timestamp: Date.now() - 50 * 60 * 1000,
-        avatar: '🧪',
-        avatarBg: 'bg-indigo-950/85 border border-indigo-500/35 text-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.2)]',
-        likes: 11
-      }
-    ];
+    return [];
   });
 
   const [suggestions, setSuggestions] = useState<Array<{ id: string; text: string; date: string; category: string; status: string }>>(() => {
@@ -615,7 +555,6 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
           setAptExplain('');
           setAptFurther('');
           
-          setAppointmentToSubmit(null);
           setIsSubmittingAppointment(false);
           setAppointmentProgress(0);
           setAppointmentStage('');
@@ -1400,6 +1339,67 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
     return `${days}d ago`;
   };
 
+  const renderMessageWithStickers = (message: string) => {
+    if (!message) return null;
+    const pattern = /\[Sticker:\s*([^\]]+)\]/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = pattern.exec(message)) !== null) {
+      const matchIndex = match.index;
+      const stickerName = match[1].trim();
+      
+      if (matchIndex > lastIndex) {
+        parts.push(message.substring(lastIndex, matchIndex));
+      }
+      
+      let stickerImg = null;
+      if (stickerName === 'Cid Chibi') {
+        stickerImg = shadowChibiAvatar;
+      } else if (stickerName === 'Shadow Crossed Arms') {
+        stickerImg = shadowChibiSticker;
+      } else if (stickerName === 'Shadow Mask') {
+        stickerImg = shadowChibiNoText;
+      } else if (stickerName === 'Alpha Chibi') {
+        stickerImg = alphaChibi;
+      } else if (stickerName === 'Beta Chibi') {
+        stickerImg = betaChibi;
+      } else if (stickerName === 'Gamma Chibi') {
+        stickerImg = gammaChibi;
+      } else if (stickerName === 'Delta Chibi') {
+        stickerImg = deltaChibi;
+      } else if (stickerName === 'Epsilon Chibi') {
+        stickerImg = epsilonChibi;
+      } else if (stickerName === 'Zeta Chibi') {
+        stickerImg = zetaChibi;
+      }
+      
+      if (stickerImg) {
+        parts.push(
+          <span key={matchIndex} className="inline-block align-middle my-0.5 mx-1 relative group">
+            <img 
+              src={stickerImg} 
+              alt={stickerName} 
+              className="w-12 h-12 md:w-16 md:h-16 object-cover rounded-xl border border-purple-500/20 bg-[#1e0f3d]/60 filter drop-shadow-[0_0_8px_rgba(168,85,247,0.35)] transition-transform group-hover:scale-110" 
+              referrerPolicy="no-referrer"
+            />
+          </span>
+        );
+      } else {
+        parts.push(match[0]);
+      }
+      
+      lastIndex = pattern.lastIndex;
+    }
+    
+    if (lastIndex < message.length) {
+      parts.push(message.substring(lastIndex));
+    }
+    
+    return parts.length > 0 ? parts : message;
+  };
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -2077,7 +2077,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
         initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={skip ? { duration: 0 } : { delay: 1.0, duration: 0.6, ease: "easeOut" }}
-        className="absolute top-8 right-8 md:top-12 md:right-12 z-30 flex items-center gap-2 flex-wrap justify-end"
+        className="absolute top-8 right-8 md:top-12 md:right-12 z-30 flex items-center gap-2 flex-wrap justify-end max-w-[95vw]"
       >
         <button
           onClick={() => {
@@ -2090,8 +2090,6 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
           <Calendar size={11} className="text-purple-450 animate-pulse" />
           <span>Appointment</span>
         </button>
-
-
 
         <button
           onClick={() => {
@@ -2147,7 +2145,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               setIsAuthenticated(false);
               setIsModalOpen(false);
             }}
-            className="p-2 bg-red-950/20 border border-red-500/20 hover:bg-red-950/40 text-red-400 font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded"
+            className="p-2 bg-red-950/20 border border-red-500/20 hover:bg-red-950/40 text-red-400 font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded transition-colors cursor-pointer"
             title="Lock Console"
           >
             Lock
@@ -3704,9 +3702,9 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       <CheckCircle className="text-purple-500 w-16 h-16 md:w-20 md:h-20 animate-bounce relative z-10" />
                     </div>
                     <div className="shrink-0">
-                      <h4 className="text-purple-400 font-mono font-black uppercase text-sm md:text-base tracking-[0.3em] mb-1">APPOINTMENT BOOKED</h4>
+                      <h4 className="text-purple-400 font-mono font-black uppercase text-sm md:text-base tracking-[0.3em] mb-1">APPOINTMENT SCHEDULED</h4>
                       <p className="text-neutral-200 font-sans text-xs max-w-sm mx-auto leading-relaxed">
-                        Your appointment has been successfully booked. We will review your details and reach out to you shortly!
+                        Your appointment has been successfully scheduled. We will review your details and reach out to you shortly!
                       </p>
                     </div>
 
@@ -3748,11 +3746,56 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       </div>
                     )}
 
-                    <div className="shrink-0 mt-2">
+                    <div className="shrink-0 mt-2 flex items-center justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (appointmentToSubmit) {
+                            // Restore submission values back to form states for editing
+                            setAptName(appointmentToSubmit.name);
+                            setAptContact(appointmentToSubmit.contact);
+                            setAptSpecs(appointmentToSubmit.specs);
+                            setAptProblem(appointmentToSubmit.problem);
+                            setAptExplain(
+                              appointmentToSubmit.description === 'No additional notes provided.' 
+                                ? '' 
+                                : appointmentToSubmit.description
+                            );
+                            setAptFurther(
+                              appointmentToSubmit.furtherDetails === 'No further details provided.' 
+                                ? '' 
+                                : appointmentToSubmit.furtherDetails
+                            );
+
+                            // Safely remove the submitted appointment from the state lists to prevent duplicates
+                            setAppointments(prev => prev.filter(apt => apt.name !== appointmentToSubmit.name || apt.contact !== appointmentToSubmit.contact));
+                            const saved = localStorage.getItem('shadow_appointments');
+                            if (saved) {
+                              try {
+                                const parsed = JSON.parse(saved);
+                                const filtered = parsed.filter((apt: any) => apt.name !== appointmentToSubmit.name || apt.contact !== appointmentToSubmit.contact);
+                                localStorage.setItem('shadow_appointments', JSON.stringify(filtered));
+                              } catch (e) {
+                                console.error(e);
+                              }
+                            }
+                          }
+                          setAptStep(6); // Return the user back to step 6 (the Confirm Registration step)
+                          setShowAppointmentSuccess(false);
+                          setAppointmentToSubmit(null);
+                        }}
+                        className="px-5 py-2.5 bg-neutral-900 border border-purple-500/40 text-purple-400 hover:text-purple-300 font-mono font-black uppercase tracking-wider text-[10px] rounded-xl hover:bg-neutral-850 hover:border-purple-400 transition-all cursor-pointer active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.05)]"
+                      >
+                        Edit Details
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
                           setShowAppointmentSuccess(false);
+                          setAppointmentToSubmit(null);
+                          setIsAppointmentModalOpen(false);
+                          setAptStep(1);
                         }}
                         className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 border border-purple-500/30 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:brightness-110 transition-all cursor-pointer active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
                       >
@@ -3796,8 +3839,8 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               </div>
 
               {/* Main Content Area */}
-              <div className="flex flex-col gap-6 relative z-10 overflow-y-auto no-scrollbar pb-4 flex-1">
-                <div className="w-full flex flex-col gap-5">
+              <div className="flex flex-col gap-4 relative z-10 pb-2 flex-1 min-h-0">
+                <div className="w-full flex flex-col gap-4 flex-1 min-h-0">
                     <div>
                       <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold mb-1">
                         New Appointment
@@ -3851,19 +3894,36 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       </div>
                     ) : (
                       <form 
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+                            e.preventDefault();
+                          }
+                        }}
                         onSubmit={(e) => {
                           e.preventDefault();
                           setAppointmentValidationError(null);
 
                           // Validate the active step before transitioning or submitting
                           if (aptStep === 1) {
-                            if (!aptName.trim()) {
+                            const trimmedName = aptName.trim();
+                            if (!trimmedName) {
                               setAppointmentValidationError('Validation error: Your Name / Alias is required to proceed.');
                               return;
                             }
+                            const nameParts = trimmedName.split(/\s+/).filter(Boolean);
+                            if (nameParts.length < 2) {
+                              setAppointmentValidationError('Validation error: Please enter your complete name (e.g., First Name and Last Name or Alias). A complete name is necessary.');
+                              return;
+                            }
                           } else if (aptStep === 2) {
-                            if (!aptContact.trim()) {
-                              setAppointmentValidationError('Validation error: Contact details (email, discord, or phone) are required.');
+                            const trimmedContact = aptContact.trim();
+                            if (!trimmedContact) {
+                              setAppointmentValidationError('Validation error: Contact details (cellphone or phone number) are required.');
+                              return;
+                            }
+                            const numericCheck = trimmedContact.replace(/[^0-9]/g, '');
+                            if (numericCheck.length < 5) {
+                              setAppointmentValidationError('Validation error: Please enter a valid cellphone or phone number containing numeric digits.');
                               return;
                             }
                           } else if (aptStep === 3) {
@@ -3892,9 +3952,22 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                             return;
                           }
 
+                          const finalNameParts = name.split(/\s+/).filter(Boolean);
+                          if (finalNameParts.length < 2) {
+                            setAptStep(1);
+                            setAppointmentValidationError('Validation error: Please enter your complete name (e.g., First Name and Last Name or Alias). A complete name is necessary.');
+                            return;
+                          }
+
                           if (!contact) {
                             setAptStep(2);
-                            setAppointmentValidationError('Validation error: Contact details are required.');
+                            setAppointmentValidationError('Validation error: Contact details (cellphone or phone number) are required.');
+                            return;
+                          }
+                          const numericCheckFinal = contact.replace(/[^0-9]/g, '');
+                          if (numericCheckFinal.length < 5) {
+                            setAptStep(2);
+                            setAppointmentValidationError('Validation error: Please enter a valid cellphone or phone number containing numeric digits.');
                             return;
                           }
 
@@ -3921,9 +3994,10 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                           setAppointmentProgress(0);
                           setAppointmentStage('Checking calendar availability...');
                         }}
-                        className="space-y-4 text-left"
+                        className="flex flex-col flex-1 min-h-0 gap-4 text-left"
                       >
-                        <div className={`bg-neutral-950/40 p-5 md:p-6 border border-neutral-900/60 rounded-2xl ${aptStep >= 5 ? 'min-h-[320px]' : 'min-h-[220px]'} flex flex-col justify-between relative overflow-hidden transition-all duration-300`}>
+                        <div className="flex-1 overflow-y-auto no-scrollbar pr-0.5 pb-1 flex flex-col min-h-0">
+                          <div className={`bg-neutral-950/40 p-4 md:p-5 border border-neutral-900/60 rounded-2xl ${aptStep >= 5 ? 'min-h-[200px]' : 'min-h-[150px]'} flex flex-col justify-between relative overflow-hidden transition-all duration-300 shrink-0`}>
                           {/* Segmented Step Progress Indicators */}
                           <div className="flex items-center justify-between gap-4 mb-4 border-b border-neutral-900/40 pb-3 shrink-0">
                             <div className="flex gap-1.5">
@@ -3940,8 +4014,12 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                                 />
                               ))}
                             </div>
-                            <span className="font-mono text-[9px] tracking-[0.2em] text-purple-400 font-extrabold">
-                              QUESTION 0{aptStep} OF 06
+                            <span className="font-mono text-[9px] tracking-[0.2em] text-purple-400 font-extrabold flex items-center gap-1.5">
+                              {aptStep === 6 ? (
+                                <span className="text-emerald-400">REVIEW & SUBMIT</span>
+                              ) : (
+                                `QUESTION 0${aptStep} OF 06`
+                              )}
                             </span>
                           </div>
 
@@ -3997,10 +4075,12 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                                       type="text"
                                       value={aptContact}
                                       onChange={(e) => {
-                                        setAptContact(e.target.value);
+                                        // Allow only numbers/digits, spaces, and phone formatting symbols (+, -, (, ))
+                                        const cleanVal = e.target.value.replace(/[^0-9\s+\-()]/g, '');
+                                        setAptContact(cleanVal);
                                         if (appointmentValidationError) setAppointmentValidationError(null);
                                       }}
-                                      placeholder="e.g. email, discord handle, or terminal code"
+                                      placeholder="e.g. cellphone number or phone number (e.g., +1 234 567 8900)"
                                       required
                                       autoFocus
                                       className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3.5 py-3 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
@@ -4086,7 +4166,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                                 >
                                   <div>
                                     <label className="block text-[9px] uppercase tracking-[0.25em] text-purple-400 font-black mb-2">
-                                      Problem Description (Optional):
+                                      Tell us what happened (Optional):
                                     </label>
                                     <textarea
                                       value={aptExplain}
@@ -4112,24 +4192,92 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                                   animate={{ opacity: 1, x: 0 }}
                                   exit={{ opacity: 0, x: -20 }}
                                   transition={{ duration: 0.2 }}
-                                  className="space-y-2.5"
+                                  className="space-y-3"
                                 >
                                   <div>
                                     <label className="block text-[9px] uppercase tracking-[0.25em] text-purple-400 font-black mb-2">
-                                      Explain Further Details:
+                                      Confirm Registration Details:
                                     </label>
-                                    <textarea
-                                      value={aptFurther}
-                                      onChange={(e) => {
-                                        setAptFurther(e.target.value);
-                                        if (appointmentValidationError) setAppointmentValidationError(null);
-                                      }}
-                                      placeholder="Explain further details, specific environments, custom boot configs, or extra expectations..."
-                                      rows={7}
-                                      className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/25 text-white px-3.5 py-3 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px] resize-none"
-                                    />
-                                    <p className="text-[8px] text-neutral-500 uppercase tracking-widest mt-1.5">
-                                      Provide deep-dive technical context, config rules, or expectations.
+                                    <div className="bg-neutral-900/40 rounded-xl p-3 border border-neutral-850/60 font-mono text-[9.5px] text-neutral-300 space-y-2 max-h-[190px] overflow-y-auto custom-scrollbar">
+                                      <div className="border-b border-neutral-900/40 pb-2 flex items-start justify-between gap-2 group hover:bg-neutral-900/20 p-1 rounded-lg transition-all">
+                                        <div>
+                                          <div className="text-neutral-500 font-bold uppercase text-[7.5px] tracking-wider mb-0.5">Your Name / Alias:</div>
+                                          <div className="text-white text-[10px] uppercase font-bold">{aptName}</div>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => setAptStep(1)}
+                                          className="p-1.5 bg-neutral-900 border border-neutral-800 hover:border-purple-500/50 hover:bg-neutral-850 hover:text-purple-400 text-neutral-500 transition-all rounded-lg cursor-pointer flex items-center justify-center shrink-0"
+                                          title="Edit Name"
+                                        >
+                                          <Pencil size={11} />
+                                        </button>
+                                      </div>
+                                      
+                                      <div className="border-b border-neutral-900/40 pb-2 flex items-start justify-between gap-2 group hover:bg-neutral-900/20 p-1 rounded-lg transition-all">
+                                        <div>
+                                          <div className="text-neutral-500 font-bold uppercase text-[7.5px] tracking-wider mb-0.5">Contact Details (Cell/Phone):</div>
+                                          <div className="text-white text-[10px]">{aptContact}</div>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => setAptStep(2)}
+                                          className="p-1.5 bg-neutral-900 border border-neutral-800 hover:border-purple-500/50 hover:bg-neutral-850 hover:text-purple-400 text-neutral-500 transition-all rounded-lg cursor-pointer flex items-center justify-center shrink-0"
+                                          title="Edit Contact"
+                                        >
+                                          <Pencil size={11} />
+                                        </button>
+                                      </div>
+
+                                      <div className="border-b border-neutral-900/40 pb-2 flex items-start justify-between gap-2 group hover:bg-neutral-900/20 p-1 rounded-lg transition-all">
+                                        <div>
+                                          <div className="text-neutral-500 font-bold uppercase text-[7.5px] tracking-wider mb-0.5">Preferred Date & Time:</div>
+                                          <div className="text-white text-[10px]">{aptSpecs}</div>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => setAptStep(3)}
+                                          className="p-1.5 bg-neutral-900 border border-neutral-800 hover:border-purple-500/50 hover:bg-neutral-850 hover:text-purple-400 text-neutral-500 transition-all rounded-lg cursor-pointer flex items-center justify-center shrink-0"
+                                          title="Edit Date/Time"
+                                        >
+                                          <Pencil size={11} />
+                                        </button>
+                                      </div>
+
+                                      <div className="border-b border-neutral-900/40 pb-2 flex items-start justify-between gap-2 group hover:bg-neutral-900/20 p-1 rounded-lg transition-all">
+                                        <div>
+                                          <div className="text-neutral-500 font-bold uppercase text-[7.5px] tracking-wider mb-0.5">Topic/Purpose of Session:</div>
+                                          <div className="text-purple-300 font-bold text-[10px]">{aptProblem}</div>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => setAptStep(4)}
+                                          className="p-1.5 bg-neutral-900 border border-neutral-800 hover:border-purple-500/50 hover:bg-neutral-850 hover:text-purple-400 text-neutral-500 transition-all rounded-lg cursor-pointer flex items-center justify-center shrink-0"
+                                          title="Edit Topic"
+                                        >
+                                          <Pencil size={11} />
+                                        </button>
+                                      </div>
+
+                                      <div className="flex items-start justify-between gap-2 group hover:bg-neutral-900/20 p-1 rounded-lg transition-all">
+                                        <div className="min-w-0 flex-1">
+                                          <div className="text-neutral-500 font-bold uppercase text-[7.5px] tracking-wider mb-0.5">What happened (Optional):</div>
+                                          <div className="text-neutral-300 whitespace-pre-wrap max-h-[60px] overflow-y-auto text-[9.5px]">
+                                            {aptExplain.trim() ? aptExplain.trim() : <span className="italic text-neutral-600">None provided</span>}
+                                          </div>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => setAptStep(5)}
+                                          className="p-1.5 bg-neutral-900 border border-neutral-800 hover:border-purple-500/50 hover:bg-neutral-850 hover:text-purple-400 text-neutral-500 transition-all rounded-lg cursor-pointer flex items-center justify-center shrink-0"
+                                          title="Edit Explanation"
+                                        >
+                                          <Pencil size={11} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <p className="text-[8px] text-neutral-500 uppercase tracking-widest mt-1.5 leading-normal">
+                                      Confirm that all details are accurate. If changes are needed, click the back arrow below.
                                     </p>
                                   </div>
                                 </motion.div>
@@ -4137,20 +4285,21 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                             </AnimatePresence>
                           </div>
                         </div>
+                      </div>
 
-                        {appointmentValidationError && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: -2 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="p-2.5 bg-red-955/35 border border-red-500/35 text-red-200 text-[9.5px] font-sans rounded-xl flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
-                          >
-                            <span className="text-xs">⚠️</span>
-                            <span>{appointmentValidationError}</span>
-                          </motion.div>
-                        )}
+                      {appointmentValidationError && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -2 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="p-2.5 bg-red-955/35 border border-red-500/35 text-red-200 text-[9.5px] font-sans rounded-xl flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.15)] shrink-0"
+                        >
+                          <span className="text-xs">⚠️</span>
+                          <span>{appointmentValidationError}</span>
+                        </motion.div>
+                      )}
 
-                        {/* Navigation / Control Row */}
-                        <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-2">
+                      {/* Navigation / Control Row */}
+                      <div className="flex items-center justify-between pt-3 border-t border-neutral-900 mt-1 shrink-0">
                           <div>
                             {aptStep > 1 && (
                               <button
@@ -4175,13 +4324,25 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                                   setAppointmentValidationError(null);
                                   // Validate active step
                                   if (aptStep === 1) {
-                                    if (!aptName.trim()) {
+                                    const trimmedName = aptName.trim();
+                                    if (!trimmedName) {
                                       setAppointmentValidationError('Validation error: Your Name / Alias is required to proceed.');
                                       return;
                                     }
+                                    const nameParts = trimmedName.split(/\s+/).filter(Boolean);
+                                    if (nameParts.length < 2) {
+                                      setAppointmentValidationError('Validation error: Please enter your complete name (e.g., First Name and Last Name or Alias). A complete name is necessary.');
+                                      return;
+                                    }
                                   } else if (aptStep === 2) {
-                                    if (!aptContact.trim()) {
-                                      setAppointmentValidationError('Validation error: Contact details (email, discord, or phone) are required.');
+                                    const trimmedContact = aptContact.trim();
+                                    if (!trimmedContact) {
+                                      setAppointmentValidationError('Validation error: Contact details (cellphone or phone number) are required.');
+                                      return;
+                                    }
+                                    const numericCheck = trimmedContact.replace(/[^0-9]/g, '');
+                                    if (numericCheck.length < 5) {
+                                      setAppointmentValidationError('Validation error: Please enter a valid cellphone or phone number containing numeric digits.');
                                       return;
                                     }
                                   } else if (aptStep === 3) {
@@ -4482,42 +4643,34 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-[#0b061a] border-2 border-purple-500/30 rounded-2xl p-6 w-full max-w-md shadow-[0_0_40px_rgba(168,85,247,0.25)] text-white relative flex flex-col gap-4 overflow-hidden"
+              className="bg-gradient-to-br from-[#180d38] via-[#3c0e5a] to-[#500c49] border-2 border-amber-400/60 rounded-3xl p-7 w-full max-w-md shadow-[0_0_50px_rgba(245,158,11,0.35)] text-white relative flex flex-col gap-6 overflow-hidden"
             >
-              {/* Corner tech accents */}
-              <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-purple-500/55 pointer-events-none rounded-tl" />
-              <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-purple-500/55 pointer-events-none rounded-tr" />
-              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-purple-500/55 pointer-events-none rounded-bl" />
-              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-purple-500/55 pointer-events-none rounded-br" />
-              
-              {/* Background scanlines grid */}
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none opacity-20" />
+              {/* Jolly magical sparkles */}
+              <div className="absolute top-3 left-4 text-xs opacity-65 animate-bounce">✨</div>
+              <div className="absolute top-4 right-4 text-sm opacity-55 animate-pulse">🌟</div>
+              <div className="absolute bottom-5 left-5 text-sm opacity-45 animate-pulse">⚡</div>
+              <div className="absolute bottom-4 right-5 text-xs opacity-65 animate-bounce">✨</div>
 
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-neutral-900 pb-3 relative z-10">
-                <div className="flex items-center gap-2">
-                  <User size={16} className="text-purple-400 animate-pulse" />
-                  <span className="font-extrabold font-mono text-sm tracking-[0.2em] uppercase text-purple-400">CREATE AN ALIAS / NICKNAME</span>
+              <div className="flex items-center justify-between border-b border-white/5 pb-4 relative z-10">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-lg animate-wiggle">👋</span>
+                  <span className="font-extrabold font-sans text-base tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-400 to-amber-200">
+                    Hello whats your name
+                  </span>
                 </div>
                 <button
                   onClick={() => setIsNamePromptOpen(false)}
-                  className="p-1 hover:bg-neutral-900 text-neutral-500 hover:text-white transition-all rounded cursor-pointer"
+                  className="p-1.5 hover:bg-white/10 text-neutral-400 hover:text-white transition-all rounded-full cursor-pointer"
                 >
-                  <X size={14} />
+                  <X size={15} />
                 </button>
               </div>
 
-              {/* Body message */}
-              <div className="text-left relative z-10 flex flex-col gap-2">
-                <p className="text-xs text-neutral-400 leading-relaxed font-sans">
-                  Please designate an active name or custom code name. This tag will serve as your ID within our encrypted peer shoutbox block.
-                </p>
-
+              {/* Body message & Input section */}
+              <div className="text-left relative z-10 flex flex-col gap-4">
                 {/* Input block */}
-                <div className="mt-2 text-left">
-                  <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-neutral-500 block mb-1">
-                    OPERATIVE ALIAS / ID TAG
-                  </span>
+                <div className="text-left space-y-2">
                   <input
                     type="text"
                     value={tempName}
@@ -4525,8 +4678,8 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       setTempName(e.target.value.substring(0, 30));
                       if (nameValidationError) setNameValidationError(null);
                     }}
-                    placeholder="e.g. Operative No. 104"
-                    className="w-full text-left text-[13px] placeholder:text-neutral-700 text-neutral-100 bg-neutral-950 border border-neutral-900 focus:border-purple-500/40 p-3 rounded-none outline-none transition-all font-sans leading-relaxed tracking-wide"
+                    placeholder="Enter your beautiful name..."
+                    className="w-full text-left text-sm placeholder:text-neutral-500 text-white bg-black/45 border-2 border-purple-500/30 focus:border-amber-400/80 px-4 py-3.5 rounded-2xl outline-none transition-all font-sans font-medium tracking-wide shadow-inner focus:shadow-[0_0_15px_rgba(245,158,11,0.15)]"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -4583,9 +4736,11 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                       }
                     }}
                   />
-                  <div className="mt-1 flex justify-between text-[8px] font-mono text-neutral-600 tracking-wider mb-2">
-                    <span>MAX 30 CHARS</span>
-                    <span>{tempName.length}/30</span>
+                  <div className="flex justify-between text-[10px] font-mono text-neutral-400 font-medium px-1">
+                    <span>Let's hear it state-wide!</span>
+                    <span className={tempName.length >= 25 ? 'text-rose-400' : 'text-amber-400'}>
+                      {tempName.length}/30
+                    </span>
                   </div>
 
                   {/* Name Restriction Warning Error display */}
@@ -4593,7 +4748,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                     <motion.div 
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="mb-3 p-3 bg-red-950/35 border border-red-500/35 text-red-105 text-[11px] font-sans rounded-xl flex items-start gap-2 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+                      className="mb-3 p-3 bg-red-950/45 border border-red-500/45 text-red-200 text-xs font-sans rounded-2xl flex items-start gap-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
                     >
                       <span className="text-sm shrink-0">⚠️</span>
                       <span className="leading-relaxed font-semibold whitespace-pre-line">{nameValidationError}</span>
@@ -4603,13 +4758,13 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
               </div>
 
               {/* Footer CTA */}
-              <div className="flex gap-2 relative z-10 mt-2">
+              <div className="flex gap-3 relative z-10 mt-1">
                 <button
                   type="button"
                   onClick={() => setIsNamePromptOpen(false)}
-                  className="flex-1 py-2 px-3 bg-neutral-950 border border-neutral-900 hover:border-neutral-800 text-neutral-400 hover:text-white font-mono text-[10px] uppercase font-bold tracking-wider transition-all cursor-pointer rounded-none"
+                  className="flex-1 py-3 px-4 bg-neutral-900/60 border border-neutral-700 hover:border-amber-400/40 text-neutral-300 hover:text-white font-sans text-xs uppercase font-extrabold tracking-wider transition-all cursor-pointer rounded-2xl active:scale-95 shadow-md"
                 >
-                  ABORT
+                  Cancel
                 </button>
                 <button
                   type="button"
@@ -4665,9 +4820,9 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                     setIsNamePromptOpen(false);
                     setIsShoutBoxOpen(true);
                   }}
-                  className="flex-1 py-2 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-mono text-[10px] uppercase font-bold tracking-wider shadow-md transition-all cursor-pointer rounded-none"
+                  className="flex-1 py-3 px-4 bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 hover:brightness-110 active:scale-95 text-white font-sans text-xs uppercase font-extrabold tracking-wider shadow-lg shadow-rose-500/20 transition-all cursor-pointer rounded-2xl"
                 >
-                  INITIALIZE UPLINK
+                  Let's Go! 🚀
                 </button>
               </div>
             </motion.div>
@@ -4678,90 +4833,97 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
       {/* Shout Out Box Modal */}
       <AnimatePresence>
         {isShoutBoxOpen && (
-          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto w-full" id="shout-box-modal">
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-2 md:p-4 overflow-y-auto w-full" id="shout-box-modal">
             <motion.div 
               initial={{ opacity: 0, scale: 0.96, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 30 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-[#0b061a] border-2 border-purple-500/25 w-full max-w-4xl rounded-3xl shadow-[0_0_50px_rgba(168,85,247,0.2)] relative z-50 overflow-hidden p-5 md:p-8 text-white font-sans flex flex-col max-h-[92vh]"
+              className="bg-gradient-to-br from-[#180d38] via-[#3c0e5a] to-[#500c49] border-2 border-amber-400/50 w-full max-w-4xl rounded-3xl shadow-[0_0_60px_rgba(245,158,11,0.25)] relative z-50 overflow-hidden p-4 md:p-6 text-white font-sans flex flex-col max-h-[96vh] md:max-h-[85vh]"
             >
+              {/* Jolly magical sparkles */}
+              <div className="absolute top-3 left-4 text-xs opacity-65 animate-bounce">✨</div>
+              <div className="absolute top-1/4 right-3 text-sm opacity-45 animate-pulse">🌟</div>
+              <div className="absolute top-1/2 left-3 text-sm opacity-35 animate-bounce">⚡</div>
+              <div className="absolute bottom-4 right-5 text-xs opacity-65 animate-bounce">✨</div>
+              <div className="absolute bottom-20 left-4 text-sm opacity-55 animate-pulse">🌟</div>
+
               {/* Neon background glows */}
-              <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-25" />
+              <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-20" />
 
               {/* Close Button at top right of modal */}
               <button
                 onClick={() => setIsShoutBoxOpen(false)}
-                className="absolute top-4 right-4 p-1.5 border border-purple-950 bg-neutral-950 hover:border-purple-500/30 hover:bg-purple-950/20 text-neutral-400 hover:text-white rounded-lg transition-all cursor-pointer z-20"
+                className="absolute top-4 right-4 p-1.5 border border-[#49226d] bg-[#1e0f3d] hover:border-amber-400 hover:bg-[#341864] text-neutral-300 hover:text-white rounded-full transition-all cursor-pointer z-20 shadow-[0_0_10px_rgba(245,158,11,0.1)]"
               >
                 <X size={16} />
               </button>
 
               {/* Header Title & Subtitle */}
-              <div className="text-center mb-5 relative z-10 shrink-0">
-                <div className="flex items-center justify-center gap-1.5 mb-1 flex-wrap">
-                  <span className="text-xl filter drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]">🔮</span>
-                  <span className="text-sm text-amber-500 filter drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]">⭐</span>
-                  <h3 className="text-xl md:text-2xl font-black tracking-[0.2em] bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent font-sans uppercase">
+              <div className="text-center mb-4 relative z-10 shrink-0">
+                <div className="flex items-center justify-center gap-2 mb-1 flex-wrap">
+                  <span className="text-lg animate-wiggle">👋</span>
+                  <span className="text-xs text-amber-300 animate-pulse">✨</span>
+                  <h3 className="text-lg md:text-xl font-extrabold tracking-[0.12em] bg-gradient-to-r from-amber-300 via-rose-400 to-amber-200 bg-clip-text text-transparent font-sans uppercase">
                     SHOUT OUT BOX
                   </h3>
-                  <span className="text-xl filter drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]">🖤</span>
-                  <span className="text-xl filter drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]">🍷</span>
+                  <span className="text-xs text-pink-400 animate-pulse">💖</span>
+                  <span className="text-lg">🍷</span>
                 </div>
-                <p className="text-xs md:text-sm text-neutral-400 font-sans tracking-wide">
-                  Whisper secret messages into the abyss. We operate in the dark! 💜
+                <p className="text-[11px] md:text-xs text-amber-250/90 font-sans tracking-wide">
+                  Whispering sweet secrets to the stars above! ✨
                 </p>
               </div>
 
               {/* Grid content */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 relative z-10 overflow-y-auto no-scrollbar pb-3 flex-1 min-h-[300px]">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 relative z-10 overflow-y-auto md:overflow-hidden no-scrollbar pb-1 flex-1">
                 
                 {/* Left Panel: DECRYPTED ARCHIVES */}
-                <div className="md:col-span-7 flex flex-col h-full md:border-r md:border-neutral-900/80 md:pr-4">
-                  <div className="flex items-center gap-2 mb-2 pb-1 border-b border-neutral-900 shrink-0">
-                    <span className="text-[11px] font-mono font-bold tracking-[0.2em] text-neutral-300 uppercase select-none">
+                <div className="md:col-span-7 flex flex-col h-full md:border-r md:border-white/5 md:pr-4 overflow-hidden">
+                  <div className="flex items-center gap-2 mb-2 pb-1 border-b border-white/5 shrink-0">
+                    <span className="text-[10px] font-sans font-black tracking-widest text-[#f5debe] uppercase select-none">
                       DECRYPTED ARCHIVES
                     </span>
-                    <span className="px-1.5 py-0.5 bg-purple-600/25 border border-purple-500/30 text-purple-400 text-[9px] font-bold font-mono rounded-none leading-none shadow-[0_0_8px_rgba(168,85,247,0.2)]">
+                    <span className="px-2 py-0.5 bg-amber-400/15 border border-amber-400/30 text-amber-300 text-[8px] font-extrabold font-sans rounded-full leading-none shadow-[0_0_10px_rgba(245,158,11,0.2)]">
                       {shouts.length} SECURE LOGS
                     </span>
                   </div>
 
                   {/* Scrollable list of archives with a fixed height viewport so scrolling is explicitly guaranteed */}
-                  <div className="h-[290px] md:h-[430px] overflow-y-auto pr-1.5 space-y-2 scrollbar-thin scrollbar-thumb-purple-500/30 hover:scrollbar-thumb-purple-500/50 scrollbar-track-transparent">
+                  <div className="h-[180px] md:h-[300px] overflow-y-auto pr-1.5 space-y-2 scrollbar-thin scrollbar-thumb-amber-400/20 hover:scrollbar-thumb-amber-400/40 scrollbar-track-transparent">
                     {shouts.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-900 rounded-none bg-neutral-950/40">
-                        <span className="text-2xl mb-2 animate-pulse">🌌</span>
-                        <p className="text-xs uppercase font-mono text-neutral-600 tracking-wider">No active transmissions.</p>
+                      <div className="h-full flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-white/5 rounded-2xl bg-black/25">
+                        <span className="text-3xl mb-2.5 animate-pulse">🌌</span>
+                        <p className="text-xs uppercase font-sans font-extrabold text-[#f5debe]/50 tracking-wider">No active transmissions yet.</p>
                       </div>
                     ) : (
                       shouts.map((shout) => (
                         <div 
                           key={shout.id}
-                          className="p-2 px-3 rounded-xl bg-neutral-900/25 hover:bg-neutral-900/40 border border-neutral-950 hover:border-purple-500/10 transition-all duration-300 flex items-start gap-3 group relative"
+                          className="p-3 px-4 rounded-2xl bg-black/30 hover:bg-black/50 border border-white/5 hover:border-amber-400/20 transition-all duration-300 flex items-start gap-3 group relative shadow-md"
                         >
                           {/* Avatar */}
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-base shadow-inner border ${shout.avatarBg}`}>
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-base shadow-inner border ${shout.avatarBg}`}>
                             {shout.avatar}
                           </div>
- 
+  
                           {/* Content */}
                           <div className="flex-1 min-w-0 pr-24 text-left">
                             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                              <span className="font-sans font-extrabold text-[13px] text-purple-300 tracking-wide">
+                              <span className="font-sans font-extrabold text-[13px] text-amber-200 tracking-wide">
                                 {shout.name}
                               </span>
-                              <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest font-bold">
+                              <span className="text-[9px] font-mono text-neutral-400 uppercase tracking-widest font-semibold">
                                 {shout.time === 'now' ? shout.time : getRelativeTime(shout.timestamp)}
                               </span>
                             </div>
-                            <p className="text-[12.5px] leading-relaxed text-neutral-300 whitespace-pre-wrap font-sans">
-                              {shout.message}
+                            <p className="text-[12.5px] leading-relaxed text-neutral-200 whitespace-pre-wrap font-sans flex flex-wrap items-center gap-1">
+                              {renderMessageWithStickers(shout.message)}
                             </p>
                           </div>
- 
+  
                           {/* Delete action */}
                           <button 
                             type="button"
@@ -4770,7 +4932,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                               setDeleteShoutId(shout.id);
                               setShowDeleteShoutPasswordModal(true);
                             }}
-                            className="absolute right-16 top-1/2 -translate-y-1/2 flex items-center justify-center p-1.5 rounded-lg border border-red-500/25 hover:border-red-500/60 hover:bg-red-950/20 bg-neutral-950 text-red-400 hover:text-red-300 transition-all duration-300 cursor-pointer"
+                            className="absolute right-16 top-1/2 -translate-y-1/2 flex items-center justify-center p-1.5 rounded-xl border border-red-500/20 hover:border-red-500/50 hover:bg-red-950/20 bg-black/40 text-red-400 hover:text-red-300 transition-all duration-300 cursor-pointer"
                             title="Delete transmission"
                           >
                             <Trash2 size={11} className="transition-transform duration-300 hover:scale-110" />
@@ -4779,13 +4941,13 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                           {/* Like action */}
                           <button 
                             onClick={() => handleLikeShout(shout.id)}
-                            className={`absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-1 rounded-none border text-[10px] font-mono font-bold transition-all duration-300 cursor-pointer ${
+                            className={`absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2.5 py-1 rounded-xl border text-[10px] font-sans font-bold transition-all duration-300 cursor-pointer ${
                               shout.likedByUser 
-                                ? 'bg-purple-950/95 border-purple-500/40 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.25)] scale-105' 
-                                : 'bg-neutral-950 border-neutral-900 hover:border-neutral-800 text-neutral-400 hover:text-neutral-355'
+                                ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 border-none text-white shadow-[0_0_12px_rgba(245,158,11,0.25)] scale-105' 
+                                : 'bg-black/40 border-white/5 hover:border-[#49226d] text-neutral-300 hover:text-white'
                             }`}
                           >
-                            <span className={`text-[10px] transition-transform duration-300 ${shout.likedByUser ? 'scale-110 filter drop-shadow-[0_0_3px_rgba(168,85,247,0.5)]' : 'group-hover:scale-110'}`}>🖤</span>
+                            <span className={`text-[10px] transition-transform duration-300 ${shout.likedByUser ? 'scale-110 filter drop-shadow-[0_0_3px_rgba(255,255,255,0.5)]' : 'group-hover:scale-110'}`}>🖤</span>
                             <span>{shout.likes}</span>
                           </button>
                         </div>
@@ -4795,232 +4957,299 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                 </div>
 
                 {/* Right Panel: Form with ban capability and validation error warnings */}
-                <div className="md:col-span-5 flex flex-col justify-between h-full min-h-[380px]">
+                <div className="md:col-span-5 flex flex-col h-full overflow-hidden">
                   {shoutSuccessCountdown !== null ? (
                     <motion.div 
                       key="shout-success-view"
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="h-full flex flex-col items-center justify-center p-6 border-2 border-purple-500/20 bg-purple-950/10 text-center rounded-2xl space-y-5 my-auto"
+                      className="h-full flex flex-col items-center justify-center p-4 border border-amber-400/20 bg-black/35 text-center rounded-2xl space-y-4 my-auto shadow-lg"
                     >
                       <div className="relative">
-                        <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl animate-pulse" />
-                        <div className="w-16 h-16 bg-purple-900/40 rounded-full border border-purple-500/30 flex items-center justify-center relative z-10 animate-bounce">
-                          <CheckCircle className="text-purple-400 w-9 h-9" />
+                        <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-xl animate-pulse" />
+                        <div className="w-12 h-12 bg-[#180d38] rounded-full border border-amber-400/30 flex items-center justify-center relative z-10 animate-bounce">
+                          <CheckCircle className="text-amber-400 w-7 h-7" />
                         </div>
                       </div>
                       
                       <div>
-                        <h4 className="text-purple-400 font-mono font-black text-xs tracking-[0.2em] uppercase mb-2">
-                          DISPATCH CONFIRMED
+                        <h4 className="text-amber-300 font-sans font-black text-[11px] tracking-[0.2em] uppercase mb-1">
+                          DISPATCH CONFIRMED 🚀
                         </h4>
-                        <p className="text-xs text-neutral-300 font-sans leading-relaxed px-1">
-                          Your secret message has successfully bypassed security intercepts and been logged to the shadow database.
+                        <p className="text-[11px] text-neutral-200 font-sans leading-relaxed px-1">
+                          Your secret message has been broadcasted successfully!
                         </p>
                       </div>
-
-                      <div className="w-full bg-neutral-950 border border-neutral-900 p-3 rounded-xl flex flex-col items-center justify-center font-mono text-[10px] space-y-1.5">
-                        <span className="text-purple-500 font-extrabold uppercase tracking-widest animate-pulse">
+ 
+                      <div className="w-full bg-black/45 border border-purple-500/20 p-2.5 rounded-xl flex flex-col items-center justify-center font-sans text-[9px] space-y-1 shadow-inner">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-rose-450 font-black uppercase tracking-widest animate-pulse">
                           Auto-Closing Interface
                         </span>
-                        <div className="flex items-center gap-1.5 text-neutral-400">
+                        <div className="flex items-center gap-1 text-neutral-305">
                           <span>Returning to system hub in</span>
-                          <span className="text-purple-400 font-black text-xs px-1.5 py-0.5 bg-purple-950/50 border border-purple-500/10 rounded leading-none">
+                          <span className="text-amber-300 font-black text-[10px] px-1.5 py-0.5 bg-[#180d38] border border-amber-400/20 rounded-lg leading-none">
                             {shoutSuccessCountdown}s
                           </span>
                         </div>
                       </div>
-
+ 
                       <button
                         type="button"
                         onClick={() => setIsShoutBoxOpen(false)}
-                        className="px-5 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-neutral-300 hover:text-white rounded-xl text-[9px] uppercase tracking-widest font-bold transition-all cursor-pointer text-center font-mono active:scale-95"
+                        className="px-4 py-2 bg-neutral-900 border border-neutral-700 hover:border-amber-400 text-neutral-200 hover:text-white rounded-xl text-[9px] uppercase tracking-widest font-black transition-all cursor-pointer text-center font-sans active:scale-95 shadow-md"
                       >
                         CLOSE NOW
                       </button>
                     </motion.div>
                   ) : isCommentingBanned ? (
-                    <div className="h-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-red-500/35 bg-red-950/20 text-center rounded-2xl space-y-4 my-auto">
-                      <div className="w-14 h-14 bg-red-950/40 rounded-full border border-red-500/30 flex items-center justify-center mb-1 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse">
-                        <span className="text-2xl">☠️</span>
+                    <div className="h-full flex flex-col items-center justify-center p-4 border border-dashed border-red-500/35 bg-red-950/20 text-center rounded-2xl space-y-3 my-auto">
+                      <div className="w-12 h-12 bg-red-950/40 rounded-full border border-red-500/30 flex items-center justify-center mb-1 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse">
+                        <span className="text-xl">☠️</span>
                       </div>
-                      <h4 className="text-red-400 font-mono font-black text-xs tracking-[0.15em] uppercase">Commenting privileges suspended.</h4>
-                      <p className="text-xs text-neutral-300 font-sans leading-relaxed px-2 whitespace-pre-line">
+                      <h4 className="text-red-400 font-sans font-black text-[11px] tracking-[0.15em] uppercase">Commenting privileges suspended.</h4>
+                      <p className="text-[11px] text-neutral-200 font-sans leading-relaxed px-1 whitespace-pre-line">
                         Due to repeated violations of our community guidelines regarding profanity and harassment, your ability to post comments has been removed. If you believe this is an error, please contact support.
                       </p>
                     </div>
                   ) : (
-                    <form onSubmit={handlePostShout} className="flex flex-col text-left justify-between h-full">
-                      <div>
-                        <div className="mb-2 pb-1 border-b border-neutral-900 flex justify-between items-center shrink-0">
-                          <span className="text-[11px] font-mono font-bold tracking-[0.2em] text-neutral-300 uppercase">
-                            INITIALIZE CIPHER
-                          </span>
-                          <span className="text-[9px] font-mono text-purple-400 font-bold uppercase tracking-wider">
-                            LIMIT: MAX 3 SENTENCES
-                          </span>
-                        </div>
- 
-                        {/* Textarea */}
-                        <div className="relative mb-3">
-                          <textarea
-                            value={shoutMessage}
-                            onChange={(e) => {
-                              setShoutMessage(e.target.value.substring(0, 300));
-                              if (shoutValidationError) setShoutValidationError(null);
-                            }}
-                            placeholder="Whisper your coded transmission here... (Maximum 3 sentences only, negative comments & profanity are restricted)"
-                            maxLength={300}
-                            className="w-full h-40 text-left text-[14px] placeholder:text-neutral-600 text-neutral-100 bg-neutral-950 border border-neutral-900 focus:border-purple-500/35 p-3 pr-8 rounded-none outline-none transition-all no-scrollbar resize-none font-sans leading-relaxed"
-                          />
-                          
-                          {/* Character Counter */}
-                          <div className="absolute bottom-2.5 right-3 font-mono text-[9px] text-neutral-600 tracking-wider">
-                            {shoutMessage.length}/300
+                    <form onSubmit={handlePostShout} className="flex flex-col text-left justify-between h-full overflow-hidden">
+                      <div className="flex flex-col h-full justify-between">
+                        <div>
+                          <div className="mb-1.5 pb-1 border-b border-white/5 flex justify-between items-center shrink-0">
+                            <span className="text-[10px] font-sans font-black tracking-widest text-[#f5debe] uppercase">
+                              INITIALIZE CIPHER
+                            </span>
+                            <span className="text-[8px] font-sans text-amber-300 font-bold uppercase tracking-wider">
+                              LIMIT: MAX 3 SENTENCES
+                            </span>
                           </div>
- 
-                          {/* Left smiley icon decoration */}
-                          <div className="absolute bottom-2.5 left-3 text-neutral-600">
-                            <Smile size={13} className="opacity-50" />
+    
+                          {/* Textarea */}
+                          <div className="relative mb-2">
+                            <textarea
+                              value={shoutMessage}
+                              onChange={(e) => {
+                                setShoutMessage(e.target.value.substring(0, 300));
+                                if (shoutValidationError) setShoutValidationError(null);
+                              }}
+                              placeholder="Whisper your coded transmission here... (Maximum 3 sentences only, negative comments & profanity are restricted)"
+                              maxLength={300}
+                              className="w-full h-24 md:h-[105px] text-left text-[13px] placeholder:text-neutral-500 text-white bg-black/45 border-2 border-purple-500/25 focus:border-amber-400/70 p-3 pr-8 rounded-2xl outline-none transition-all no-scrollbar resize-none font-sans leading-relaxed"
+                            />
+                            
+                            {/* Character Counter */}
+                            <div className="absolute bottom-2 right-2.5 font-mono text-[8.5px] text-[#f5debe]/60 tracking-wider">
+                              {shoutMessage.length}/300
+                            </div>
+    
+                            {/* Left smiley decoration */}
+                            <div className="absolute bottom-2 left-2.5 text-[#f5debe]/0">
+                              <Smile size={12} className="opacity-70" />
+                            </div>
                           </div>
-                        </div>
-
-                        {/* Restriction Error Message display */}
-                        {shoutValidationError && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mb-3 p-3 bg-red-950/30 border border-red-500/35 text-red-200 text-xs font-sans rounded-xl flex items-start gap-2.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
-                          >
-                            <span className="text-sm shrink-0">⚠️</span>
-                            <span className="leading-relaxed font-semibold whitespace-pre-line">{shoutValidationError}</span>
-                          </motion.div>
-                        )}
-
-                        {/* Submit Button & Footer message (Now below the textarea/chatbox) */}
-                        <div className="mb-4 flex flex-col items-center w-full">
-                          {isPostingShout ? (
-                            <div className="flex items-center gap-3 py-1 font-mono">
-                              {/* Circular Progress Loader */}
-                              <div className="relative flex items-center justify-center w-10 h-10">
-                                {/* Outer rotating ring */}
-                                <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/20 animate-spin [animation-duration:10s]" />
-                                
-                                {/* Inner SVG Circular Progress */}
-                                <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 80 80">
-                                  {/* Background Track */}
-                                  <circle
-                                    cx="40"
-                                    cy="40"
-                                    r="34"
-                                    className="stroke-neutral-900"
-                                    strokeWidth="5"
-                                    fill="transparent"
-                                  />
-                                  {/* Foreground Progress */}
-                                  <circle
-                                    cx="40"
-                                    cy="40"
-                                    r="34"
-                                    className="stroke-purple-500 transition-all duration-100 ease-out"
-                                    strokeWidth="5"
-                                    fill="transparent"
-                                    strokeDasharray="213.6"
-                                    strokeDashoffset={213.6 * (1 - postingShoutProgress / 100)}
-                                    strokeLinecap="round"
-                                  />
-                                </svg>
-                                
-                                {/* Center text showing percentage */}
-                                <div className="absolute flex flex-col items-center justify-center font-mono">
-                                  <span className="text-[7.5px] font-black text-purple-400 leading-none">
-                                    {postingShoutProgress}%
-                                  </span>
+   
+                          {/* Restriction Error Message display */}
+                          {shoutValidationError && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="mb-2 p-2.5 bg-red-950/40 border border-red-500/40 text-red-200 text-[11px] font-sans rounded-xl flex items-start gap-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                            >
+                              <span className="text-[12px] shrink-0">⚠️</span>
+                              <span className="leading-relaxed font-semibold whitespace-pre-line">{shoutValidationError}</span>
+                            </motion.div>
+                          )}
+    
+                          {/* Submit Button & Footer message */}
+                          <div className="mb-2.5 flex flex-col items-center w-full">
+                            {isPostingShout ? (
+                              <div className="flex items-center gap-2.5 py-1 font-sans">
+                                {/* Circular Progress Loader */}
+                                <div className="relative flex items-center justify-center w-8 h-8">
+                                  {/* Outer rotating ring */}
+                                  <div className="absolute inset-0 rounded-full border border-dashed border-amber-400/20 animate-spin [animation-duration:10s]" />
+                                  
+                                  {/* Inner SVG Circular Progress */}
+                                  <svg className="w-6 h-6 transform -rotate-90" viewBox="0 0 80 80">
+                                    {/* Background Track */}
+                                    <circle
+                                      cx="40"
+                                      cy="40"
+                                      r="34"
+                                      className="stroke-neutral-900"
+                                      strokeWidth="5"
+                                      fill="transparent"
+                                    />
+                                    {/* Foreground Progress */}
+                                    <circle
+                                      cx="40"
+                                      cy="40"
+                                      r="34"
+                                      className="stroke-amber-400 transition-all duration-100 ease-out"
+                                      strokeWidth="5"
+                                      fill="transparent"
+                                      strokeDasharray="213.6"
+                                      strokeDashoffset={213.6 * (1 - postingShoutProgress / 100)}
+                                      strokeLinecap="round"
+                                    />
+                                  </svg>
+                                  
+                                  {/* Center text showing percentage */}
+                                  <div className="absolute flex flex-col items-center justify-center font-sans">
+                                    <span className="text-[7px] font-black text-amber-300 leading-none">
+                                      {postingShoutProgress}%
+                                    </span>
+                                  </div>
                                 </div>
+                                <span className="text-[7.5px] uppercase tracking-[0.15em] text-amber-300 font-extrabold animate-pulse">DISPATCHING TRANSMISSION...</span>
                               </div>
-                              <span className="text-[8px] uppercase tracking-[0.15em] text-purple-400 font-bold animate-pulse">DISPATCHING TRANSMISSION...</span>
+                            ) : (
+                              <button
+                                type="submit"
+                                disabled={!shoutMessage.trim()}
+                                className="w-full py-2.5 bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 hover:brightness-110 active:scale-95 text-white font-sans text-[11px] font-extrabold uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 rounded-xl cursor-pointer shadow-lg shadow-rose-500/15"
+                              >
+                                <span>✨</span>
+                                <span>Send to shadows</span>
+                              </button>
+                            )}
+    
+                            <div className="mt-1 text-[8px] text-neutral-300 uppercase tracking-widest text-center font-sans">
+                              Stay disguised in the deep shadows. 🔮
+                            </div>
+                          </div>
+                        </div>
+   
+                        {/* Runes / Stickers toggler */}
+                        <div className="mb-0 flex-1 flex flex-col overflow-hidden min-h-0">
+                          <div className="flex items-center justify-between mb-1.5 shrink-0">
+                            <span className="text-[9px] font-sans tracking-[0.15em] uppercase text-[#f5debe]/60 font-black">
+                              CHOOSE ASSET
+                            </span>
+                            <div className="flex gap-1 bg-black/45 p-0.5 rounded-full border border-purple-500/10">
+                              <button
+                                type="button"
+                                onClick={() => setShoutAssetTab('emojis')}
+                                className={`px-2 py-0.5 rounded-full text-[8.5px] font-sans font-black uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                                  shoutAssetTab === 'emojis'
+                                    ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-white shadow-[0_0_8px_rgba(245,158,11,0.25)]'
+                                    : 'text-neutral-400 hover:text-neutral-200'
+                                }`}
+                              >
+                                Emojis 🔮
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setShoutAssetTab('stickers')}
+                                className={`px-2 py-0.5 rounded-full text-[8.5px] font-sans font-black uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                                  shoutAssetTab === 'stickers'
+                                    ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-white shadow-[0_0_8px_rgba(245,158,11,0.25)]'
+                                    : 'text-neutral-400 hover:text-neutral-200'
+                                }`}
+                              >
+                                Stickers ✨
+                              </button>
+                            </div>
+                          </div>
+  
+                          {shoutAssetTab === 'emojis' ? (
+                            <div className="flex flex-wrap gap-1 justify-start overflow-y-auto max-h-[140px] md:max-h-[110px] no-scrollbar">
+                              {[
+                                { char: '🔥', label: 'abyss flame' },
+                                { char: '🖤', label: 'shadow heart' },
+                                { char: '🔮', label: 'mystery essence' },
+                                { char: '🗡️', label: 'magic blade' },
+                                { char: '🐺', label: 'beast power' },
+                                { char: '⭐', label: 'theatrical star' },
+                                { char: '✨', label: 'abyssal spark' },
+                                { char: '🕶️', label: 'shadows' },
+                                { char: '🍷', label: 'gamma sherry' },
+                                { char: '💯', label: 'max magical force' },
+                                { char: '😈', label: 'mischievous devil' },
+                                { char: '😎', label: 'cool operative' },
+                                { char: '😏', label: 'smug mastermind' },
+                                { char: '🤫', label: 'silent whisperer' },
+                                { char: '🧐', label: 'critical intellect' },
+                                { char: '💀', label: 'dead cold' },
+                                { char: '👽', label: 'mysterious presence' },
+                                { char: '👾', label: 'cyber code' },
+                                { char: '🤖', label: 'autonomous bot' },
+                                { char: '😜', label: 'wild play' },
+                                { char: '🤘', label: 'abyssal horns' },
+                                { char: '🖖', label: 'shadow salute' },
+                                { char: '🫵', label: 'commanding focus' },
+                                { char: '👊', label: 'impact punch' },
+                                { char: '✊', label: 'garden sign' },
+                                { char: '✌️', label: 'dual blades victory' },
+                                { char: '🤞', label: 'infinite possibilities' },
+                                { char: '🤝', label: 'mitsugoshi deal' },
+                                { char: '👏', label: 'elegant applause' },
+                                { char: '🙏', label: 'atomic prayer' },
+                                { char: '✍️', label: 'beta scribe' }
+                              ].map((emoji) => (
+                                <button
+                                  key={emoji.char}
+                                  type="button"
+                                  onClick={() => {
+                                    if (shoutMessage.length + emoji.char.length <= 300) {
+                                      setShoutMessage(prev => prev + emoji.char);
+                                      if (shoutValidationError) setShoutValidationError(null);
+                                    }
+                                  }}
+                                  className="w-6 h-6 rounded-lg bg-black/40 hover:bg-black/60 border border-purple-500/10 hover:border-amber-400/40 flex items-center justify-center text-xs hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                                  title={emoji.label}
+                                >
+                                  {emoji.char}
+                                </button>
+                              ))}
                             </div>
                           ) : (
-                            <button
-                              type="submit"
-                              disabled={!shoutMessage.trim()}
-                              className="w-full py-2.5 bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500 hover:brightness-110 active:scale-[0.98] shadow-[0_0_10px_rgba(168,85,247,0.35)] text-white font-mono text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer"
-                            >
-                              <span>🔮</span>
-                              <span>Send to shadows</span>
-                            </button>
+                            <div className="grid grid-cols-3 gap-1.5 justify-items-stretch overflow-y-auto pr-0.5 max-h-[145px] md:max-h-[112px] no-scrollbar pb-1">
+                              {[
+                                { id: 'shadow_crossed', name: 'Shadow Crossed Arms', img: shadowChibiSticker, label: 'Crossed Arms 🖤' },
+                                { id: 'cid_chibi', name: 'Cid Chibi', img: shadowChibiAvatar, label: 'Cid Chibi ⭐' },
+                                { id: 'shadow_mask', name: 'Shadow Mask', img: shadowChibiNoText, label: 'Shadow Mask 🔮' },
+                                { id: 'alpha_chibi', name: 'Alpha Chibi', img: alphaChibi, label: 'Alpha Chibi 🧬' },
+                                { id: 'beta_chibi', name: 'Beta Chibi', img: betaChibi, label: 'Beta Chibi 📖' },
+                                { id: 'gamma_chibi', name: 'Gamma Chibi', img: gammaChibi, label: 'Gamma Chibi 💰' },
+                                { id: 'delta_chibi', name: 'Delta Chibi', img: deltaChibi, label: 'Delta Chibi 🐺' },
+                                { id: 'epsilon_chibi', name: 'Epsilon Chibi', img: epsilonChibi, label: 'Epsilon Chibi 🎻' },
+                                { id: 'zeta_chibi', name: 'Zeta Chibi', img: zetaChibi, label: 'Zeta Chibi 🗡️' }
+                              ].map((sticker) => (
+                                <button
+                                  key={sticker.id}
+                                  type="button"
+                                  onClick={() => {
+                                    const format = ` [Sticker: ${sticker.name}]`;
+                                    if (shoutMessage.length + format.length <= 300) {
+                                      setShoutMessage(prev => prev + format);
+                                      if (shoutValidationError) setShoutValidationError(null);
+                                    }
+                                  }}
+                                  className="group flex flex-col items-center justify-center p-1 rounded-xl bg-black/45 hover:bg-black/60 border border-purple-500/20 hover:border-amber-400/70 transition-all duration-300 cursor-pointer shadow-md text-center w-full h-[74px]"
+                                  title={sticker.name}
+                                >
+                                  <div className="w-8 h-8 rounded-lg bg-[#1e0f3d]/60 border border-purple-500/15 flex items-center justify-center overflow-hidden relative mb-1 shrink-0">
+                                    <div className="absolute inset-0 bg-purple-500/5 rounded-full blur-md group-hover:bg-amber-400/10 transition-colors" />
+                                    <img 
+                                      src={sticker.img} 
+                                      alt={sticker.name} 
+                                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  </div>
+                                  <span className="text-[7px] font-black uppercase text-amber-300/85 group-hover:text-amber-200 tracking-wider truncate w-full px-0.5">
+                                    {sticker.label}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
                           )}
- 
-                          <div className="mt-1.5 text-[9px] text-neutral-500 uppercase tracking-widest text-center font-mono">
-                            Stay disguised in the deep shadows. 💜
-                          </div>
-                        </div>
-
-                        {/* Runes selection row/wrap (Moved down) */}
-                        <div className="mb-1">
-                          <div className="text-[9px] font-mono tracking-[0.2em] uppercase text-neutral-500 mb-1.5 text-left">
-                            SELECT RUNES (EMOJI)
-                          </div>
-                          <div className="flex flex-wrap gap-1 justify-start">
-                            {[
-                              { char: '🔥', label: 'abyss flame' },
-                              { char: '🖤', label: 'shadow heart' },
-                              { char: '🔮', label: 'mystery essence' },
-                              { char: '🗡️', label: 'magic blade' },
-                              { char: '🐺', label: 'beast power' },
-                              { char: '⭐', label: 'theatrical star' },
-                              { char: '✨', label: 'abyssal spark' },
-                              { char: '🕶️', label: 'shades' },
-                              { char: '🍷', label: 'gamma sherry' },
-                              { char: '💯', label: 'max magical force' },
-                              { char: '😈', label: 'mischievous devil' },
-                              { char: '😎', label: 'cool operative' },
-                              { char: '😏', label: 'smug mastermind' },
-                              { char: '🤫', label: 'silent whisperer' },
-                              { char: '🧐', label: 'critical intellect' },
-                              { char: '💀', label: 'dead cold' },
-                              { char: '👽', label: 'mysterious presence' },
-                              { char: '👾', label: 'cyber code' },
-                              { char: '🤖', label: 'autonomous bot' },
-                              { char: '😜', label: 'wild play' }
-                            ].map((emoji) => (
-                              <button
-                                key={emoji.char}
-                                type="button"
-                                onClick={() => {
-                                  if (shoutMessage.length + emoji.char.length <= 300) {
-                                    setShoutMessage(prev => prev + emoji.char);
-                                    if (shoutValidationError) setShoutValidationError(null);
-                                  }
-                                }}
-                                className="w-7 h-7 rounded-none bg-neutral-900 hover:bg-neutral-800 border border-neutral-900/60 hover:border-purple-500/25 flex items-center justify-center text-sm hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                                title={emoji.label}
-                              >
-                                {emoji.char}
-                              </button>
-                            ))}
-                          </div>
                         </div>
                       </div>
                     </form>
                   )}
                 </div>
-              </div>
-
-              {/* Bottom bar inside modal card */}
-              <div className="mt-3 flex flex-col sm:flex-row items-center justify-between gap-2 p-2 border border-purple-500/20 bg-purple-950/10 shrink-0">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-300 text-center sm:text-left leading-relaxed">
-                  All technician files and curated tools are organized cleanly within the main database.
-                </p>
-                <button 
-                  onClick={() => {
-                    setIsShoutBoxOpen(false);
-                    onEnter();
-                  }}
-                  className="w-full sm:w-auto px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-mono text-[11px] uppercase font-bold tracking-widest shadow-md transition-all cursor-pointer whitespace-nowrap rounded-none"
-                >
-                  Access Portal Now
-                </button>
               </div>
             </motion.div>
           </div>
