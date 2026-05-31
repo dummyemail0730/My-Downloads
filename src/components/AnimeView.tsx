@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Tv, ExternalLink, Film, ArrowLeft } from 'lucide-react';
+import { Play, Tv, ExternalLink, Film, ArrowLeft, RefreshCw } from 'lucide-react';
 
 import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
 import shadowAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
@@ -74,6 +74,107 @@ const isEmbeddable = (url: string) => {
   // Only play YouTube URLs in the general iframe player block, everything else has specific handlers or external portal views
   return lower.includes('youtube.com') || lower.includes('youtu.be');
 };
+
+interface GoogleDrivePlayerProps {
+  driveId: string;
+  title: string;
+}
+
+function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
+  const [playerMode, setPlayerMode] = useState<'direct' | 'iframe'>('direct');
+  const [loading, setLoading] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    setPlayerMode('direct');
+    setLoading(true);
+  }, [driveId]);
+
+  const handleVideoError = () => {
+    // If the direct stream fails (e.g., due to virus scan redirects or format issue),
+    // we fall back to the standard Google file preview iframe
+    console.log("Direct play failed, falling back to Iframe mode");
+    setPlayerMode('iframe');
+  };
+
+  const handleLoadedData = () => {
+    setLoading(false);
+    if (videoRef.current) {
+      videoRef.current.play().catch(err => {
+        console.log("Autoplay blocked by browser. User interaction required.", err);
+      });
+    }
+  };
+
+  const directUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+  const iframeUrl = `https://drive.google.com/file/d/${driveId}/preview`;
+
+  return (
+    <div className="relative w-full h-full bg-black flex flex-col justify-center items-center overflow-hidden">
+      {playerMode === 'direct' ? (
+        <div className="relative w-full h-full flex items-center justify-center">
+          {loading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950 z-20">
+              <RefreshCw className="animate-spin text-rose-500 mb-2" size={24} />
+              <div className="text-[10px] sm:text-xs font-mono text-neutral-400 font-bold uppercase tracking-wider">
+                LOADING DIRECT DRIVE STREAM...
+              </div>
+            </div>
+          )}
+          <video
+            ref={videoRef}
+            src={directUrl}
+            controls
+            autoPlay
+            playsInline
+            onLoadedData={handleLoadedData}
+            onError={handleVideoError}
+            className="w-full h-full object-contain z-10"
+          />
+          
+          <div className="absolute top-3 left-3 z-30 flex items-center gap-1.5 flex-wrap">
+            <span className="px-2 py-0.5 bg-rose-950/80 border border-rose-500/30 rounded text-[9px] text-rose-400 font-mono font-bold tracking-wider uppercase">
+              DIRECT PLAYER (AUTOPLAY-READY)
+            </span>
+            <button
+              onClick={() => setPlayerMode('iframe')}
+              className="px-2 py-0.5 bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-700 hover:border-neutral-500 rounded text-[9px] text-neutral-300 font-mono font-bold uppercase transition-all cursor-pointer"
+              title="Switch if codec or scan limit prevents direct playback"
+            >
+              SWITCH TO IFRAME
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="relative w-full h-full">
+          <iframe
+            src={iframeUrl}
+            title={title}
+            className="w-full h-full border-0 animate-fade-in"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+          
+          <div className="absolute top-3 left-3 z-30 flex items-center gap-1.5 flex-wrap">
+            <span className="px-2 py-0.5 bg-yellow-950/80 border border-yellow-500/30 rounded text-[9px] text-yellow-500 font-mono font-bold tracking-wider uppercase">
+              IFRAME PREVIEW MODE
+            </span>
+            <button
+              onClick={() => {
+                setLoading(true);
+                setPlayerMode('direct');
+              }}
+              className="px-2 py-0.5 bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-700 hover:border-neutral-500 rounded text-[9px] text-neutral-300 font-mono font-bold uppercase transition-all cursor-pointer"
+            >
+              SWAP TO DIRECT PLAYER
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AnimeView() {
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
@@ -341,16 +442,10 @@ export default function AnimeView() {
                       const driveId = getGoogleDriveId(activeVideo.link);
                       if (driveId) {
                         return (
-                          <div className="relative w-full h-full">
-                            <iframe
-                              src={`https://drive.google.com/file/d/${driveId}/preview`}
-                              title={activeVideo.title}
-                              className="w-full h-full border-0 animate-fade-in"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                              referrerPolicy="no-referrer-when-downgrade"
-                            />
-                          </div>
+                          <GoogleDrivePlayer
+                            driveId={driveId}
+                            title={activeVideo.title}
+                          />
                         );
                       } else {
                         return (
