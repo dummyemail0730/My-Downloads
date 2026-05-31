@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Tv, ExternalLink, Film, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Play, Tv, ExternalLink, Film, ArrowLeft, RefreshCw, Download } from 'lucide-react';
 
 import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
 import shadowAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
@@ -81,119 +81,40 @@ interface GoogleDrivePlayerProps {
 }
 
 function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
-  const [playerMode, setPlayerMode] = useState<'direct' | 'iframe'>('direct');
-  const [loading, setLoading] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    setPlayerMode('direct');
-    setLoading(true);
-  }, [driveId]);
-
-  const handleVideoError = () => {
-    // If the direct stream fails (e.g., due to virus scan redirects or format issue),
-    // we fall back to the standard Google file preview iframe
-    console.log("Direct play failed, falling back to Iframe mode");
-    setPlayerMode('iframe');
-  };
-
-  const handleLoadedData = () => {
-    setLoading(false);
-    if (videoRef.current) {
-      videoRef.current.play().catch(err => {
-        console.log("Autoplay blocked by browser. User interaction required.", err);
-      });
-    }
-  };
-
-  const directUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
   const iframeUrl = `https://drive.google.com/file/d/${driveId}/preview?autoplay=1`;
 
   return (
     <div className="relative w-full h-full bg-black flex flex-col justify-center items-center overflow-hidden">
-      {playerMode === 'direct' ? (
-        <div className="relative w-full h-full flex items-center justify-center">
-          {loading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950 z-20">
-              <RefreshCw className="animate-spin text-rose-500 mb-2" size={24} />
-              <div className="text-[10px] sm:text-xs font-mono text-neutral-400 font-bold uppercase tracking-wider">
-                LOADING DIRECT DRIVE STREAM...
-              </div>
-            </div>
-          )}
-          <video
-            ref={videoRef}
-            src={directUrl}
-            controls
-            autoPlay
-            playsInline
-            onLoadedData={handleLoadedData}
-            onError={handleVideoError}
-            className="w-full h-full object-contain z-10"
-          />
-          
-          <div className="absolute top-3 left-3 z-30 flex items-center gap-1.5 flex-wrap">
-            <span className="px-2 py-0.5 bg-rose-950/80 border border-rose-500/30 rounded text-[9px] text-rose-400 font-mono font-bold tracking-wider uppercase">
-              DIRECT PLAYER (AUTOPLAY-READY)
-            </span>
-            <button
-              onClick={() => setPlayerMode('iframe')}
-              className="px-2 py-0.5 bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-700 hover:border-neutral-500 rounded text-[9px] text-neutral-300 font-mono font-bold uppercase transition-all cursor-pointer"
-              title="Switch if codec or scan limit prevents direct playback"
-            >
-              SWITCH TO IFRAME
-            </button>
-            <a
-              href={`https://drive.google.com/file/d/${driveId}/view`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-2 py-0.5 bg-rose-600 hover:bg-rose-500 rounded text-[9px] text-white font-mono font-bold uppercase transition-all flex items-center gap-1 cursor-pointer"
-            >
-              <span>OPEN NATIVE TAB ↗</span>
-            </a>
-          </div>
+      <div className="relative w-full h-full">
+        <iframe
+          src={iframeUrl}
+          title={title}
+          className="w-full h-full border-0 animate-fade-in"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+        
+        <div className="absolute top-3 left-3 z-30 flex items-center gap-1.5 flex-wrap">
+          <span className="px-2 py-0.5 bg-rose-950/85 border border-rose-500/30 rounded text-[9px] text-rose-400 font-mono font-bold tracking-wider uppercase">
+            SECURE EMBEDDED PLAYER
+          </span>
+          <a
+            href={`https://drive.google.com/file/d/${driveId}/view`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2.5 py-0.5 bg-rose-600 hover:bg-rose-500 rounded text-[9px] text-white font-mono font-bold uppercase transition-all flex items-center gap-1 cursor-pointer hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(244,63,94,0.35)]"
+          >
+            <span>OPEN NATIVE TAB ↗</span>
+          </a>
         </div>
-      ) : (
-        <div className="relative w-full h-full">
-          <iframe
-            src={iframeUrl}
-            title={title}
-            className="w-full h-full border-0 animate-fade-in"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-          
-          <div className="absolute top-3 left-3 z-30 flex items-center gap-1.5 flex-wrap">
-            <span className="px-2 py-0.5 bg-yellow-950/80 border border-yellow-500/30 rounded text-[9px] text-yellow-500 font-mono font-bold tracking-wider uppercase">
-              IFRAME PREVIEW MODE
-            </span>
-            <button
-              onClick={() => {
-                setLoading(true);
-                setPlayerMode('direct');
-              }}
-              className="px-2 py-0.5 bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-700 hover:border-neutral-500 rounded text-[9px] text-neutral-300 font-mono font-bold uppercase transition-all cursor-pointer"
-            >
-              SWAP TO DIRECT PLAYER
-            </button>
-            <a
-              href={`https://drive.google.com/file/d/${driveId}/view`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-2 py-0.5 bg-rose-600 hover:bg-rose-500 rounded text-[9px] text-white font-mono font-bold uppercase transition-all flex items-center gap-1 cursor-pointer"
-            >
-              <span>OPEN NATIVE TAB ↗</span>
-            </a>
-          </div>
 
-          <div className="absolute bottom-3 right-3 z-30">
-            <div className="text-[8px] sm:text-[9px] font-mono text-neutral-400 bg-neutral-950/90 border border-neutral-800 rounded px-2.5 py-1 text-center max-w-[280px] leading-tight">
-              ⚠️ Browser blocking cookies? Click <span className="text-rose-400 font-bold">OPEN NATIVE TAB</span> to autoplay securely.
-            </div>
+        <div className="absolute bottom-3 right-3 z-30">
+          <div className="text-[8px] sm:text-[9px] font-mono text-neutral-400 bg-neutral-950/90 border border-neutral-800 rounded px-2.5 py-1 text-center max-w-[280px] leading-tight shadow-md">
+            ⚠️ Browser blocking cookies? Click <span className="text-rose-400 font-bold">OPEN NATIVE TAB</span> to play securely.
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -306,6 +227,10 @@ export default function AnimeView() {
           const Tag = motion.div;
           const adminLink = localStorage.getItem('admin_console_link') || 'https://drive.google.com';
           const targetLink = anime.link || adminLink;
+          const driveId = getGoogleDriveId(targetLink);
+          const downloadUrl = driveId 
+            ? `https://drive.google.com/uc?export=download&id=${driveId}`
+            : targetLink;
 
           const handleClick = (e: React.MouseEvent) => {
             e.preventDefault();
@@ -388,19 +313,38 @@ export default function AnimeView() {
                   <span className="text-[8px] font-mono font-black text-rose-400 hover:text-white uppercase tracking-[0.16em] bg-rose-950/10 border border-rose-955/20 px-2 py-0.5 rounded">
                     // STREAM
                   </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleClick(e);
-                    }}
-                    className={`h-10 w-10 shrink-0 flex items-center justify-center border transition-all duration-300 cursor-pointer shadow-md rounded-none ${
-                      hasBgImage
-                        ? 'bg-rose-950/40 hover:bg-rose-900/60 border-rose-500/40 text-rose-300 hover:text-white shadow-[0_0_15px_rgba(244,63,94,0.12)] hover:shadow-[0_0_20px_rgba(244,63,94,0.35)] hover:border-rose-400'
-                        : 'bg-purple-950/40 hover:bg-purple-900/60 border-purple-500/40 text-purple-300 hover:text-white shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400'
-                    }`}
-                  >
-                    <Play size={14} fill="currentColor" className="shrink-0 ml-0.5" />
-                  </button>
+                  
+                  <div className="flex gap-1.5 items-center shrink-0">
+                    <a
+                      href={downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className={`h-10 w-10 shrink-0 flex items-center justify-center border transition-all duration-300 cursor-pointer shadow-md rounded-none ${
+                        hasBgImage
+                          ? 'bg-neutral-900/45 hover:bg-neutral-800/80 border-neutral-700/50 hover:border-rose-500/50 text-neutral-400 hover:text-rose-400'
+                          : 'bg-neutral-900/45 hover:bg-neutral-800/80 border-neutral-700/50 hover:border-purple-500/50 text-neutral-400 hover:text-purple-400'
+                      }`}
+                      title="Download file directly"
+                    >
+                      <Download size={14} className="shrink-0" />
+                    </a>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClick(e);
+                      }}
+                      className={`h-10 w-10 shrink-0 flex items-center justify-center border transition-all duration-300 cursor-pointer shadow-md rounded-none ${
+                        hasBgImage
+                          ? 'bg-rose-950/40 hover:bg-rose-900/60 border-rose-500/40 text-rose-300 hover:text-white shadow-[0_0_15px_rgba(244,63,94,0.12)] hover:shadow-[0_0_20px_rgba(244,63,94,0.35)] hover:border-rose-400'
+                          : 'bg-purple-950/40 hover:bg-purple-900/60 border-purple-500/40 text-purple-300 hover:text-white shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400'
+                      }`}
+                      title="Play stream"
+                    >
+                      <Play size={14} fill="currentColor" className="shrink-0 ml-0.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </Tag>
