@@ -178,6 +178,7 @@ function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
 
 export default function AnimeView() {
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
+  const [inlineLinkInput, setInlineLinkInput] = useState('');
 
   const [animeList, setAnimeList] = useState<any[]>(() => {
     const saved = localStorage.getItem('custom_anime');
@@ -252,6 +253,26 @@ export default function AnimeView() {
       ...defaultAnime.filter(def => !customList.some((l: any) => normalizeTitle(l.title) === normalizeTitle(def.title)))
     ];
   });
+
+  const handleUpdateEpisodeLink = (episodeId: string, newLink: string) => {
+    const updated = animeList.map(item => {
+      if (item.id === episodeId) {
+        return { ...item, link: newLink.trim() };
+      }
+      return item;
+    });
+    setAnimeList(updated);
+    
+    // Save locally
+    localStorage.setItem('custom_anime', JSON.stringify(updated));
+    localStorage.setItem('admin_console_link', newLink.trim());
+    
+    // Update active state
+    if (activeVideo && activeVideo.id === episodeId) {
+      setActiveVideo((prev: any) => prev ? ({ ...prev, link: newLink.trim() }) : null);
+    }
+    setInlineLinkInput('');
+  };
 
 
 
@@ -449,7 +470,7 @@ export default function AnimeView() {
                         );
                       } else {
                         return (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden bg-neutral-950">
+                          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden bg-neutral-950 animate-fade-in">
                             {activeVideo.image && (
                               <div className="absolute inset-0 z-0 select-none pointer-events-none">
                                 <img 
@@ -461,28 +482,61 @@ export default function AnimeView() {
                                 <div className="absolute inset-0 bg-neutral-950/85" />
                               </div>
                             )}
-                            <div className="relative z-10 max-w-md space-y-4 flex flex-col items-center">
-                              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-950/40 border border-rose-500/25 rounded text-[9px] text-rose-400 font-black tracking-widest uppercase mb-1">
-                                <ExternalLink size={10} />
-                                <span>PARENT DIRECTORY MODE</span>
+                            <div className="relative z-10 max-w-sm w-full space-y-4 flex flex-col items-center">
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-950/40 border border-rose-500/25 rounded text-[9px] text-rose-400 font-extrabold tracking-widest uppercase mb-1 font-mono">
+                                <Tv size={10} />
+                                <span>STREAM CONFIGURATION PORTAL</span>
                               </div>
                               <div className="space-y-1">
-                                <h4 className="text-sm md:text-base font-black uppercase text-white tracking-tight">
-                                  GOOGLE DRIVE CLOUD DIRECTORY
+                                <h4 className="text-sm md:text-base font-black uppercase text-white tracking-tight font-mono">
+                                  {activeVideo.title}
                                 </h4>
-                                <p className="text-[10px] md:text-xs text-neutral-400 font-semibold leading-relaxed">
-                                  This default terminal refers to the root space. To stream direct files, configure a specific file sharing link in your settings console. Otherwise, access files directly in a secure tab.
+                                <p className="text-[10px] md:text-xs text-neutral-400 font-medium leading-relaxed max-w-xs mx-auto">
+                                  Paste your specific Google Drive share link (with sharing set to "Anyone with the link can view") or direct video URL below to stream, or test immediately using our demo module.
                                 </p>
                               </div>
-                              <a
-                                href={activeVideo.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white rounded-xl font-mono text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:shadow-[0_0_30px_rgba(244,63,94,0.5)] border border-rose-500/30 active:scale-95 cursor-pointer font-bold"
-                              >
-                                <span>LAUNCH GOOGLE DRIVE</span>
-                                <ExternalLink size={13} className="text-white" />
-                              </a>
+
+                              {/* INLINE LINK PORTAL */}
+                              <div className="w-full space-y-3 pt-2">
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Paste Google Drive link / direct MP4..."
+                                    value={inlineLinkInput}
+                                    onChange={(e) => setInlineLinkInput(e.target.value)}
+                                    className="flex-1 bg-neutral-900/90 border border-neutral-800 focus:border-rose-500/60 rounded-xl px-3 py-2 text-xs text-neutral-100 font-mono focus:outline-none placeholder-neutral-600 focus:ring-1 focus:ring-rose-500/20"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      if (inlineLinkInput.trim()) {
+                                        handleUpdateEpisodeLink(activeVideo.id, inlineLinkInput);
+                                      }
+                                    }}
+                                    className="bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black px-4 py-2 rounded-xl font-mono tracking-widest transition-all uppercase cursor-pointer shrink-0 active:scale-95"
+                                  >
+                                    STREAM
+                                  </button>
+                                </div>
+                                
+                                <div className="flex flex-col gap-2 pt-1">
+                                  <button
+                                    onClick={() => handleUpdateEpisodeLink(activeVideo.id, 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4')}
+                                    className="bg-rose-950/20 hover:bg-rose-950/40 text-rose-400 hover:text-rose-300 border border-rose-500/30 text-[10px] font-bold tracking-wider font-mono px-4 py-2.5 rounded-xl transition-all uppercase cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-[0_0_15px_rgba(244,63,94,0.1)] hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]"
+                                  >
+                                    <span>⚡ PLAY SAMPLE STREAM (AUTOPLAYS INSTANTLY)</span>
+                                  </button>
+                                  
+                                  <a
+                                    href={activeVideo.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-neutral-500 hover:text-neutral-400 text-[8px] font-mono uppercase tracking-widest flex items-center justify-center gap-1 mt-1.5 transition-colors"
+                                  >
+                                    <span>Browse configured workspace link</span>
+                                    <ExternalLink size={8} />
+                                  </a>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         );
