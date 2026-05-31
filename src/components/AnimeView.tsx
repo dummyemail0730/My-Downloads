@@ -107,7 +107,7 @@ function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
   };
 
   const directUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
-  const iframeUrl = `https://drive.google.com/file/d/${driveId}/preview`;
+  const iframeUrl = `https://drive.google.com/file/d/${driveId}/preview?autoplay=1`;
 
   return (
     <div className="relative w-full h-full bg-black flex flex-col justify-center items-center overflow-hidden">
@@ -143,6 +143,14 @@ function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
             >
               SWITCH TO IFRAME
             </button>
+            <a
+              href={`https://drive.google.com/file/d/${driveId}/view`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2 py-0.5 bg-rose-600 hover:bg-rose-500 rounded text-[9px] text-white font-mono font-bold uppercase transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <span>OPEN NATIVE TAB ↗</span>
+            </a>
           </div>
         </div>
       ) : (
@@ -169,6 +177,20 @@ function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
             >
               SWAP TO DIRECT PLAYER
             </button>
+            <a
+              href={`https://drive.google.com/file/d/${driveId}/view`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2 py-0.5 bg-rose-600 hover:bg-rose-500 rounded text-[9px] text-white font-mono font-bold uppercase transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <span>OPEN NATIVE TAB ↗</span>
+            </a>
+          </div>
+
+          <div className="absolute bottom-3 right-3 z-30">
+            <div className="text-[8px] sm:text-[9px] font-mono text-neutral-400 bg-neutral-950/90 border border-neutral-800 rounded px-2.5 py-1 text-center max-w-[280px] leading-tight">
+              ⚠️ Browser blocking cookies? Click <span className="text-rose-400 font-bold">OPEN NATIVE TAB</span> to autoplay securely.
+            </div>
           </div>
         </div>
       )}
