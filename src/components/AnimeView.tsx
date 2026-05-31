@@ -38,17 +38,8 @@ function getEmbedUrl(url: string, title?: string) {
     }
   }
 
-  // Fallback Crunchyroll or general link conversion to high-quality embeddable YouTube official Shadow Garden PVs/Trailers
-  const searchString = ((title || '') + ' ' + url).toLowerCase();
-  if (searchString.includes('movie') || searchString.includes('echoes')) {
-    return 'https://www.youtube.com/embed/fXW96M1Qc9c?autoplay=1&rel=0'; // Movie teaser / trailer
-  }
-  if (searchString.includes('s2') || searchString.includes('season 2') || searchString.includes('episode 2')) {
-    return 'https://www.youtube.com/embed/A8vGg0vT828?autoplay=1&rel=0'; // Season 2 trailer (internationally friendly)
-  }
-  
-  // Default to Season 1 official subbed opening theme which is 100% available and embed-unrestricted globally
-  return 'https://www.youtube.com/embed/5vstC9fKIn0?autoplay=1&rel=0';
+  // No arbitrary YouTube fallbacks or promotional trailers
+  return '';
 }
 
 const isGoogleDriveUrl = (url: string) => {
@@ -80,10 +71,8 @@ const isDirectVideo = (url: string) => {
 const isEmbeddable = (url: string) => {
   if (!url) return false;
   const lower = url.toLowerCase().trim();
-  if (lower.includes('crunchyroll.com') || lower.includes('hidive.com') || lower.includes('bilibili.com')) {
-    return false;
-  }
-  return true;
+  // Only play YouTube URLs in the general iframe player block, everything else has specific handlers or external portal views
+  return lower.includes('youtube.com') || lower.includes('youtu.be');
 };
 
 export default function AnimeView() {
@@ -347,7 +336,64 @@ export default function AnimeView() {
                       className="w-full h-full object-contain col-span-full"
                       referrerPolicy="no-referrer"
                     />
-                  ) : (isGoogleDriveUrl(activeVideo.link) || isEmbeddable(activeVideo.link)) ? (
+                  ) : isGoogleDriveUrl(activeVideo.link) ? (
+                    (() => {
+                      const driveId = getGoogleDriveId(activeVideo.link);
+                      if (driveId) {
+                        return (
+                          <div className="relative w-full h-full">
+                            <iframe
+                              src={`https://drive.google.com/file/d/${driveId}/preview`}
+                              title={activeVideo.title}
+                              className="w-full h-full border-0 animate-fade-in"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                              referrerPolicy="no-referrer-when-downgrade"
+                            />
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden bg-neutral-950">
+                            {activeVideo.image && (
+                              <div className="absolute inset-0 z-0 select-none pointer-events-none">
+                                <img 
+                                  src={activeVideo.image} 
+                                  alt="" 
+                                  className="w-full h-full object-cover filter brightness-[0.12] blur-[6px]"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="absolute inset-0 bg-neutral-950/85" />
+                              </div>
+                            )}
+                            <div className="relative z-10 max-w-md space-y-4 flex flex-col items-center">
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-950/40 border border-rose-500/25 rounded text-[9px] text-rose-400 font-black tracking-widest uppercase mb-1">
+                                <ExternalLink size={10} />
+                                <span>PARENT DIRECTORY MODE</span>
+                              </div>
+                              <div className="space-y-1">
+                                <h4 className="text-sm md:text-base font-black uppercase text-white tracking-tight">
+                                  GOOGLE DRIVE CLOUD DIRECTORY
+                                </h4>
+                                <p className="text-[10px] md:text-xs text-neutral-400 font-semibold leading-relaxed">
+                                  This default terminal refers to the root space. To stream direct files, configure a specific file sharing link in your settings console. Otherwise, access files directly in a secure tab.
+                                </p>
+                              </div>
+                              <a
+                                href={activeVideo.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white rounded-xl font-mono text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:shadow-[0_0_30px_rgba(244,63,94,0.5)] border border-rose-500/30 active:scale-95 cursor-pointer font-bold"
+                              >
+                                <span>LAUNCH GOOGLE DRIVE</span>
+                                <ExternalLink size={13} className="text-white" />
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      }
+                    })()
+                  ) : isEmbeddable(activeVideo.link) ? (
                     <div className="relative w-full h-full">
                       <iframe
                         src={getEmbedUrl(activeVideo.link, activeVideo.title)}
