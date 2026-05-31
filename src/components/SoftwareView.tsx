@@ -94,20 +94,20 @@ export default function SoftwareView() {
                 }`} />
               </div>
               
-              <div className="mt-auto pt-6">
+              <div className="mt-auto pt-6 flex justify-end">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleClick(e);
                   }}
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 text-[9px] font-mono font-black uppercase tracking-[0.16em] border rounded-lg transition-all duration-300 cursor-pointer w-full justify-center ${
+                  className={`h-10 w-10 shrink-0 flex items-center justify-center border transition-all duration-300 cursor-pointer shadow-md rounded-none ${
                     hasBgImage
                       ? 'bg-cyan-950/40 hover:bg-cyan-900/60 border-cyan-500/40 text-cyan-300 hover:text-white shadow-[0_0_15px_rgba(34,211,238,0.12)] hover:shadow-[0_0_20px_rgba(34,211,238,0.35)] hover:border-cyan-400'
                       : 'bg-purple-950/40 hover:bg-purple-900/60 border-purple-500/40 text-purple-300 hover:text-white shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400'
                   }`}
+                  title="Download File"
                 >
-                  <Download size={12} className="shrink-0 animate-[pulse_2s_infinite]" />
-                  <span>DOWNLOAD</span>
+                  <Download size={14} className="shrink-0" />
                 </button>
               </div>
             </div>

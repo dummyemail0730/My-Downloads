@@ -65,19 +65,6 @@ export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, on
       <div className="flex-1 p-2 md:p-6 flex flex-col justify-end">
         <div className="mb-4 space-y-4 md:space-y-4">
           <button 
-            onClick={onSupportClick}
-            className="w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 pb-1 md:pb-0 group transition-all duration-300 text-neutral-400 hover:text-white"
-          >
-            <div className="w-8 h-8 rounded-lg bg-neutral-900/50 border border-purple-500/25 flex items-center justify-center text-purple-400 group-hover:text-purple-300 group-hover:border-purple-500/50 transition-all shadow-[0_0_8px_rgba(168,85,247,0.15)] group-hover:shadow-[0_0_12px_rgba(168,85,247,0.35)] shrink-0">
-              <Heart className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
-            </div>
-            <span className="font-mono text-[9px] md:text-[10px] font-extrabold uppercase tracking-wider leading-[1.15] text-center md:text-left block cursor-pointer">
-              <span className="md:hidden">SUSTAIN<br/>SHADOWS</span>
-              <span className="hidden md:inline">Sustain the Shadows</span>
-            </span>
-          </button>
-
-          <button 
             onClick={onShowOwnerClick}
             className="w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 pb-1 md:pb-0 group transition-all duration-305 text-neutral-400 hover:text-white"
           >

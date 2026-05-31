@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
@@ -197,6 +197,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   const [activeTab, setActiveTab] = useState<'uplink' | 'linked' | 'tutorials'>('uplink');
   const [unlinkTrigger, setUnlinkTrigger] = useState(0);
   const [isAdminSuggestionsOpen, setIsAdminSuggestionsOpen] = useState(false);
+  const [isAdminAppointmentsOpen, setIsAdminAppointmentsOpen] = useState(false);
 
   // --- TUTORIALS STATE ---
   const [tutorials, setTutorials] = useState<Array<{ id: string; title: string; category: string; description: string; url: string; system?: boolean }>>(() => {
@@ -224,8 +225,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   const [showAppointmentSuccess, setShowAppointmentSuccess] = useState(false);
   const [appointmentProgress, setAppointmentProgress] = useState(0);
   const [appointmentStage, setAppointmentStage] = useState('');
-  const [appointmentToSubmit, setAppointmentToSubmit] = useState<{ id: string; name: string; contact: string; specs: string; problem: string; description: string; date: string; status: string } | null>(null);
-  const [aptActiveTab, setAptActiveTab] = useState<'book' | 'view'>('book');
+  const [appointmentToSubmit, setAppointmentToSubmit] = useState<{ id: string; name: string; contact: string; specs: string; problem: string; description: string; furtherDetails?: string; date: string; status: string } | null>(null);
   
   const [aptName, setAptName] = useState('');
   const [aptContact, setAptContact] = useState('');
@@ -238,6 +238,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   const [aptStep, setAptStep] = useState(1);
   const [aptProblem, setAptProblem] = useState('Slow Performance & Freezing');
   const [aptExplain, setAptExplain] = useState('');
+  const [aptFurther, setAptFurther] = useState('');
   const [appointmentValidationError, setAppointmentValidationError] = useState<string | null>(null);
 
   // --- SUGGESTIONS STATE ---
@@ -388,7 +389,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
     return defaults;
   });
 
-  const [appointments, setAppointments] = useState<Array<{ id: string; name: string; contact: string; specs: string; problem: string; description: string; date: string; status: string }>>(() => {
+  const [appointments, setAppointments] = useState<Array<{ id: string; name: string; contact: string; specs: string; problem: string; description: string; furtherDetails?: string; date: string; status: string }>>(() => {
     const saved = localStorage.getItem('shadow_appointments');
     if (saved) {
       try {
@@ -402,6 +403,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
             specs: item.specs || item.location || 'Core i7 13700H, 16GB RAM, RTX 4060, Windows 11',
             problem: item.problem || item.purpose || 'Slow Performance & Freezing',
             description: item.description || item.purpose || 'No additional explanation provided.',
+            furtherDetails: item.furtherDetails || '',
             date: item.date || '2026-05-28',
             status: item.status || 'PENDING'
           }));
@@ -412,8 +414,8 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
       }
     }
     const defaults = [
-      { id: 'ap-1', name: 'Alpha', contact: 'alpha@shadow-garden.net', specs: 'Intel Core i9-13900K, 64GB DDR5, NVMe Gen4 2TB', problem: 'Slow Performance & Freezing', description: 'The compilation of system files is taking more than 5 minutes due to IO storage bottle-necks.', date: '2026-05-28', status: 'CONFIRMED' },
-      { id: 'ap-2', name: 'Sherry Barnett', contact: 'sherry@academic.net', specs: 'AMD Ryzen 7 5800X, 32GB RAM, AMD RX 6700XT', problem: 'Windows / OS Boot Failure', description: 'System hangs on the BIOS screen with an unidentified artifact verification failure code.', date: '2026-05-27', status: 'PENDING' }
+      { id: 'ap-1', name: 'Alpha', contact: 'alpha@shadow-garden.net', specs: 'Intel Core i9-13900K, 64GB DDR5, NVMe Gen4 2TB', problem: 'Slow Performance & Freezing', description: 'The compilation of system files is taking more than 5 minutes due to IO storage bottle-necks.', furtherDetails: 'This happens specifically during large GCC builds.', date: '2026-05-28', status: 'CONFIRMED' },
+      { id: 'ap-2', name: 'Sherry Barnett', contact: 'sherry@academic.net', specs: 'AMD Ryzen 7 5800X, 32GB RAM, AMD RX 6700XT', problem: 'Windows / OS Boot Failure', description: 'System hangs on the BIOS screen with an unidentified artifact verification failure code.', furtherDetails: 'No BIOS beep codes but fans are spinning at maximum. Already checked RAM seats.', date: '2026-05-27', status: 'PENDING' }
     ];
     localStorage.setItem('shadow_appointments', JSON.stringify(defaults));
     return defaults;
@@ -588,6 +590,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
             specs: appointmentToSubmit.specs,
             problem: appointmentToSubmit.problem,
             description: appointmentToSubmit.description,
+            furtherDetails: appointmentToSubmit.furtherDetails || '',
             date: appointmentToSubmit.date,
             status: 'PENDING'
           };
@@ -610,6 +613,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
           setAptStep(1);
           setAptProblem('Slow Performance & Freezing');
           setAptExplain('');
+          setAptFurther('');
           
           setAppointmentToSubmit(null);
           setIsSubmittingAppointment(false);
@@ -2919,6 +2923,20 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                           </span>
                         )}
                       </button>
+
+                      <button 
+                        type="button"
+                        onClick={() => setIsAdminAppointmentsOpen(true)}
+                        className="w-full sm:w-auto px-4 py-2.5 bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-950/40 text-purple-400 hover:text-purple-300 rounded-xl font-mono text-[10px] uppercase tracking-[0.15em] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Calendar size={11} className="text-purple-400 animate-pulse" />
+                        <span>APPOINTMENTS</span>
+                        {appointments.length > 0 && (
+                          <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[8px] font-black rounded font-mono leading-none">
+                            {appointments.length}
+                          </span>
+                        )}
+                      </button>
                     </div>
                     
                     {isSendingUplink ? (
@@ -3165,6 +3183,20 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                         {suggestions.length > 0 && (
                           <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[8px] font-black rounded font-mono leading-none">
                             {suggestions.length}
+                          </span>
+                        )}
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={() => setIsAdminAppointmentsOpen(true)}
+                        className="w-full sm:w-auto px-4 py-2 bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-950/40 text-purple-400 hover:text-purple-300 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Calendar size={11} className="text-purple-400 animate-pulse" />
+                        <span>APPOINTMENTS</span>
+                        {appointments.length > 0 && (
+                          <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[8px] font-black rounded font-mono leading-none">
+                            {appointments.length}
                           </span>
                         )}
                       </button>
@@ -3665,30 +3697,68 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-x-0 inset-y-0 bg-neutral-950/98 z-50 flex flex-col items-center justify-center text-center p-6 gap-5"
+                    className="absolute inset-x-0 inset-y-0 bg-neutral-950/98 z-50 flex flex-col items-center justify-center text-center p-4 md:p-6 gap-4 overflow-y-auto bg-black/95 rounded-3xl"
                   >
-                    <div className="relative">
+                    <div className="relative shrink-0">
                       <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl animate-pulse" />
-                      <CheckCircle className="text-purple-500 w-20 h-20 animate-bounce relative z-10" />
+                      <CheckCircle className="text-purple-500 w-16 h-16 md:w-20 md:h-20 animate-bounce relative z-10" />
                     </div>
-                    <div>
-                      <h4 className="text-purple-400 font-mono font-black uppercase text-base tracking-[0.3em] mb-2">APPOINTMENT BOOKED</h4>
+                    <div className="shrink-0">
+                      <h4 className="text-purple-400 font-mono font-black uppercase text-sm md:text-base tracking-[0.3em] mb-1">APPOINTMENT BOOKED</h4>
                       <p className="text-neutral-200 font-sans text-xs max-w-sm mx-auto leading-relaxed">
                         Your appointment has been successfully booked. We will review your details and reach out to you shortly!
                       </p>
-                      <p className="text-neutral-500 font-mono text-[9px] uppercase tracking-widest mt-3">
-                        RESERVATION COMPLETED // APPOINTMENT SECURED
-                      </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAppointmentSuccess(false);
-                      }}
-                      className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 border border-purple-500/30 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:brightness-110 transition-all cursor-pointer active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.15)] mt-2"
-                    >
-                      Acknowledge
-                    </button>
+
+                    {appointmentToSubmit && (
+                      <div className="w-full max-w-md bg-neutral-900/40 border border-neutral-900 rounded-2xl p-4 text-left font-mono space-y-2 text-xs">
+                        <div className="flex justify-between border-b border-neutral-950 pb-2 mb-2">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-purple-400">APPOINTMENT SECURED</span>
+                          <span className="text-[8px] text-neutral-500 font-bold uppercase">ID: {appointmentToSubmit.id.toUpperCase()}</span>
+                        </div>
+                        <div className="grid grid-cols-[85px_1fr] gap-x-2 gap-y-1.5 text-[10px]">
+                          <span className="text-neutral-500 uppercase font-extrabold tracking-wider">CLIENT:</span>
+                          <span className="text-white font-bold">{appointmentToSubmit.name}</span>
+
+                          <span className="text-neutral-500 uppercase font-extrabold tracking-wider">CONTACT:</span>
+                          <span className="text-neutral-300 font-sans">{appointmentToSubmit.contact}</span>
+
+                          <span className="text-neutral-500 uppercase font-extrabold tracking-wider">PREFERRED:</span>
+                          <span className="text-neutral-300 font-sans">{appointmentToSubmit.specs}</span>
+
+                          <span className="text-neutral-500 uppercase font-extrabold tracking-wider">TOPIC:</span>
+                          <span className="text-purple-300 font-bold">{appointmentToSubmit.problem}</span>
+                        </div>
+                        {appointmentToSubmit.description && (
+                          <div className="mt-2 pt-2 border-t border-neutral-950">
+                            <span className="text-neutral-500 uppercase font-extrabold tracking-wider text-[8px] block mb-1">PROBLEM DESCRIPTION:</span>
+                            <div className="p-2 bg-neutral-950/80 border border-neutral-900/60 rounded-xl text-[9px]/relaxed text-neutral-300 font-sans max-h-20 overflow-y-auto whitespace-pre-wrap">
+                              {appointmentToSubmit.description}
+                            </div>
+                          </div>
+                        )}
+                        {appointmentToSubmit.furtherDetails && appointmentToSubmit.furtherDetails !== 'No further details provided.' && (
+                          <div className="mt-2 pt-2 border-t border-neutral-950">
+                            <span className="text-neutral-500 uppercase font-extrabold tracking-wider text-[8px] block mb-1">FURTHER DETAILS:</span>
+                            <div className="p-2 bg-neutral-950/80 border border-neutral-900/60 rounded-xl text-[9px]/relaxed text-neutral-300 font-sans max-h-20 overflow-y-auto whitespace-pre-wrap">
+                              {appointmentToSubmit.furtherDetails}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="shrink-0 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAppointmentSuccess(false);
+                        }}
+                        className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 border border-purple-500/30 text-white font-black uppercase tracking-widest text-[10px] rounded-xl hover:brightness-110 transition-all cursor-pointer active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
+                      >
+                        Acknowledge
+                      </button>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -3725,40 +3795,9 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                 </button>
               </div>
 
-              {/* Tabs selector */}
-              <div className="flex gap-2 mb-6 border-b border-neutral-900 pb-4 shrink-0 relative z-10">
-                <button
-                  onClick={() => setAptActiveTab('book')}
-                  disabled={isSubmittingAppointment}
-                  className={`px-4 py-2 border rounded-xl text-[10px] uppercase font-bold tracking-widest transition-all cursor-pointer ${
-                    aptActiveTab === 'book'
-                      ? 'bg-purple-950/40 border-purple-500 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.15)] font-black'
-                      : 'bg-neutral-950/50 border-neutral-900 text-neutral-400 hover:text-neutral-200'
-                  }`}
-                >
-                  Book Appointment
-                </button>
-                <button
-                  onClick={() => setAptActiveTab('view')}
-                  disabled={isSubmittingAppointment}
-                  className={`px-4 py-2 border rounded-xl text-[10px] uppercase font-bold tracking-widest transition-all cursor-pointer flex items-center gap-2 ${
-                    aptActiveTab === 'view'
-                      ? 'bg-purple-950/40 border-purple-500 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.15)] font-black'
-                      : 'bg-neutral-950/50 border-neutral-900 text-neutral-400 hover:text-neutral-200'
-                  }`}
-                >
-                  <span>Active Appointments</span>
-                  <span className="px-1.5 py-0.5 bg-neutral-900 border border-neutral-850 text-neutral-500 text-[8px] rounded font-bold leading-normal">
-                    {appointments.length}
-                  </span>
-                </button>
-              </div>
-
               {/* Main Content Area */}
               <div className="flex flex-col gap-6 relative z-10 overflow-y-auto no-scrollbar pb-4 flex-1">
-                
-                {aptActiveTab === 'book' ? (
-                  <div className="w-full flex flex-col gap-5">
+                <div className="w-full flex flex-col gap-5">
                     <div>
                       <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold mb-1">
                         New Appointment
@@ -3816,23 +3855,51 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                           e.preventDefault();
                           setAppointmentValidationError(null);
 
+                          // Validate the active step before transitioning or submitting
+                          if (aptStep === 1) {
+                            if (!aptName.trim()) {
+                              setAppointmentValidationError('Validation error: Your Name / Alias is required to proceed.');
+                              return;
+                            }
+                          } else if (aptStep === 2) {
+                            if (!aptContact.trim()) {
+                              setAppointmentValidationError('Validation error: Contact details (email, discord, or phone) are required.');
+                              return;
+                            }
+                          } else if (aptStep === 3) {
+                            if (!aptSpecs.trim()) {
+                              setAppointmentValidationError('Validation error: Preferred appointment date & time slot is required.');
+                              return;
+                            }
+                          }
+
+                          // If they are not on the final step yet, just transition to the next step
+                          if (aptStep < 6) {
+                            setAptStep(prev => prev + 1);
+                            return;
+                          }
+
                           const name = aptName.trim();
                           const contact = aptContact.trim();
                           const specs = aptSpecs.trim(); // Preferred Date & Time
                           const problem = aptProblem; // Topic / Purpose
                           const description = aptExplain.trim(); // Additional Notes
+                          const further = aptFurther.trim();
 
                           if (!name) {
+                            setAptStep(1);
                             setAppointmentValidationError('Validation error: Your Name / Alias is required to proceed.');
                             return;
                           }
 
                           if (!contact) {
-                            setAppointmentValidationError('Validation error: Contact details (email, discord, or phone) are required.');
+                            setAptStep(2);
+                            setAppointmentValidationError('Validation error: Contact details are required.');
                             return;
                           }
 
                           if (!specs) {
+                            setAptStep(3);
                             setAppointmentValidationError('Validation error: Preferred appointment date & time slot is required.');
                             return;
                           }
@@ -3846,6 +3913,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                             specs,
                             problem,
                             description: description || 'No additional notes provided.',
+                            furtherDetails: further || 'No further details provided.',
                             date: todayStr,
                             status: 'PENDING'
                           });
@@ -3855,94 +3923,218 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                         }}
                         className="space-y-4 text-left"
                       >
-                        <div className="space-y-4 bg-neutral-950/40 p-5 border border-neutral-900/60 rounded-2xl">
-                          {/* Name / Alias field */}
-                          <div>
-                            <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                              Your Name / Alias
-                            </label>
-                            <input
-                              type="text"
-                              value={aptName}
-                              onChange={(e) => {
-                                setAptName(e.target.value);
-                                if (appointmentValidationError) setAppointmentValidationError(null);
-                              }}
-                              placeholder="e.g. Sherry Barnett"
-                              required
-                              className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
-                            />
+                        <div className={`bg-neutral-950/40 p-5 md:p-6 border border-neutral-900/60 rounded-2xl ${aptStep >= 5 ? 'min-h-[320px]' : 'min-h-[220px]'} flex flex-col justify-between relative overflow-hidden transition-all duration-300`}>
+                          {/* Segmented Step Progress Indicators */}
+                          <div className="flex items-center justify-between gap-4 mb-4 border-b border-neutral-900/40 pb-3 shrink-0">
+                            <div className="flex gap-1.5">
+                              {[1, 2, 3, 4, 5, 6].map((stepNum) => (
+                                <div 
+                                  key={stepNum}
+                                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                                    stepNum === aptStep 
+                                      ? 'w-6 bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]' 
+                                      : stepNum < aptStep 
+                                      ? 'w-3 bg-purple-950/70' 
+                                      : 'w-2 bg-neutral-900'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <span className="font-mono text-[9px] tracking-[0.2em] text-purple-400 font-extrabold">
+                              QUESTION 0{aptStep} OF 06
+                            </span>
                           </div>
 
-                          {/* Contact Info * field */}
-                          <div>
-                            <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                              Contact Information
-                            </label>
-                            <input
-                              type="text"
-                              value={aptContact}
-                              onChange={(e) => {
-                                setAptContact(e.target.value);
-                                if (appointmentValidationError) setAppointmentValidationError(null);
-                              }}
-                              placeholder="e.g. email, discord, or phone"
-                              required
-                              className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
-                            />
-                          </div>
+                          {/* Dynamic Slide-in Question Content */}
+                          <div className="flex-1 flex flex-col justify-center my-2">
+                            <AnimatePresence mode="wait">
+                              {aptStep === 1 && (
+                                <motion.div 
+                                  key="step1"
+                                  initial={{ opacity: 0, x: 20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -20 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="space-y-2.5"
+                                >
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-[0.25em] text-purple-400 font-black mb-2">
+                                      Your Name / Alias:
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={aptName}
+                                      onChange={(e) => {
+                                        setAptName(e.target.value);
+                                        if (appointmentValidationError) setAppointmentValidationError(null);
+                                      }}
+                                      placeholder="e.g. Sherry Barnett or Cid Kagenou"
+                                      required
+                                      autoFocus
+                                      className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3.5 py-3 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
+                                    />
+                                    <p className="text-[8px] text-neutral-500 uppercase tracking-widest mt-1.5">
+                                      Provide your designation or standard target code.
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
 
-                          {/* Preferred Appointment Date & Time Slot */}
-                          <div>
-                            <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                              Preferred Date & Time Slot
-                            </label>
-                            <input
-                              type="text"
-                              value={aptSpecs}
-                              onChange={(e) => {
-                                setAptSpecs(e.target.value);
-                                if (appointmentValidationError) setAppointmentValidationError(null);
-                              }}
-                              placeholder="e.g. June 15 at 2:00 PM (or weekends)"
-                              required
-                              className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
-                            />
-                          </div>
+                              {aptStep === 2 && (
+                                <motion.div 
+                                  key="step2"
+                                  initial={{ opacity: 0, x: 20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -20 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="space-y-2.5"
+                                >
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-[0.25em] text-purple-400 font-black mb-2">
+                                      Contact Information:
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={aptContact}
+                                      onChange={(e) => {
+                                        setAptContact(e.target.value);
+                                        if (appointmentValidationError) setAppointmentValidationError(null);
+                                      }}
+                                      placeholder="e.g. email, discord handle, or terminal code"
+                                      required
+                                      autoFocus
+                                      className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3.5 py-3 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
+                                    />
+                                    <p className="text-[8px] text-neutral-500 uppercase tracking-widest mt-1.5">
+                                      This will be used to establish secure support transmission.
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
 
-                          {/* Purpose / Service Select */}
-                          <div>
-                            <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                              Topic / Purpose of Session
-                            </label>
-                            <select
-                              value={aptProblem}
-                              onChange={(e) => setAptProblem(e.target.value)}
-                              className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all cursor-pointer"
-                            >
-                              <option value="General Consultation">General Tech Consultation</option>
-                              <option value="Hardware Overhaul & Assembly">Hardware Assembly & Upgrades</option>
-                              <option value="System Diagnostics">Performance Troubleshooting & Diagnostics</option>
-                              <option value="Software Optimization">OS & Software Optimization</option>
-                              <option value="Other Assistance">Other Support Topic</option>
-                            </select>
-                          </div>
+                              {aptStep === 3 && (
+                                <motion.div 
+                                  key="step3"
+                                  initial={{ opacity: 0, x: 20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -20 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="space-y-2.5"
+                                >
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-[0.25em] text-purple-400 font-black mb-2">
+                                      Preferred Date & Time Slot:
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={aptSpecs}
+                                      onChange={(e) => {
+                                        setAptSpecs(e.target.value);
+                                        if (appointmentValidationError) setAppointmentValidationError(null);
+                                      }}
+                                      placeholder="e.g. June 15 at 2:00 PM (or weekends)"
+                                      required
+                                      autoFocus
+                                      className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3.5 py-3 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
+                                    />
+                                    <p className="text-[8px] text-neutral-500 uppercase tracking-widest mt-1.5">
+                                      Specify timing using offline local clock coordinates.
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
 
-                          {/* Additional description notes */}
-                          <div>
-                            <label className="block text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-black mb-1.5">
-                              Additional Details (Optional)
-                            </label>
-                            <textarea
-                              value={aptExplain}
-                              onChange={(e) => {
-                                setAptExplain(e.target.value);
-                                if (appointmentValidationError) setAppointmentValidationError(null);
-                              }}
-                              placeholder="Any specific questions or issues to discuss?..."
-                              rows={3}
-                              className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3 py-2.5 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px] resize-none"
-                            />
+                              {aptStep === 4 && (
+                                <motion.div 
+                                  key="step4"
+                                  initial={{ opacity: 0, x: 20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -20 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="space-y-2.5"
+                                >
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-[0.25em] text-purple-400 font-black mb-2">
+                                      Topic / Purpose of Session:
+                                    </label>
+                                    <select
+                                      value={aptProblem}
+                                      onChange={(e) => setAptProblem(e.target.value)}
+                                      className="w-full text-xs font-mono bg-neutral-900 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 text-white px-3.5 py-3 rounded-xl outline-none transition-all cursor-pointer"
+                                    >
+                                      <option value="General Consultation">General Tech Consultation</option>
+                                      <option value="Hardware Overhaul & Assembly">Hardware Assembly & Upgrades</option>
+                                      <option value="System Diagnostics">Performance Troubleshooting & Diagnostics</option>
+                                      <option value="Software Optimization">OS & Software Optimization</option>
+                                      <option value="Other Assistance">Other Support Topic</option>
+                                    </select>
+                                    <p className="text-[8px] text-neutral-500 uppercase tracking-widest mt-1.5">
+                                      Select core subject category for support dispatch.
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
+
+                              {aptStep === 5 && (
+                                <motion.div 
+                                  key="step5"
+                                  initial={{ opacity: 0, x: 20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -20 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="space-y-2.5"
+                                >
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-[0.25em] text-purple-400 font-black mb-2">
+                                      Problem Description (Optional):
+                                    </label>
+                                    <textarea
+                                      value={aptExplain}
+                                      onChange={(e) => {
+                                        setAptExplain(e.target.value);
+                                        if (appointmentValidationError) setAppointmentValidationError(null);
+                                      }}
+                                      placeholder="Describe the issue, problem specifications, or system errors you are experiencing..."
+                                      rows={7}
+                                      className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/25 text-white px-3.5 py-3 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px] resize-none"
+                                    />
+                                    <p className="text-[8px] text-neutral-500 uppercase tracking-widest mt-1.5">
+                                      Provide precise troubleshooting details, logs, or steps to reproduce the issue.
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
+
+                              {aptStep === 6 && (
+                                <motion.div 
+                                  key="step6"
+                                  initial={{ opacity: 0, x: 20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -20 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="space-y-2.5"
+                                >
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-[0.25em] text-purple-400 font-black mb-2">
+                                      Explain Further Details:
+                                    </label>
+                                    <textarea
+                                      value={aptFurther}
+                                      onChange={(e) => {
+                                        setAptFurther(e.target.value);
+                                        if (appointmentValidationError) setAppointmentValidationError(null);
+                                      }}
+                                      placeholder="Explain further details, specific environments, custom boot configs, or extra expectations..."
+                                      rows={7}
+                                      className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/25 text-white px-3.5 py-3 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px] resize-none"
+                                    />
+                                    <p className="text-[8px] text-neutral-500 uppercase tracking-widest mt-1.5">
+                                      Provide deep-dive technical context, config rules, or expectations.
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         </div>
 
@@ -3957,97 +4149,68 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                           </motion.div>
                         )}
 
-                        {/* Nav buttons */}
-                        <div className="flex items-center justify-end pt-4 border-t border-neutral-900 mt-2">
-                          <button
-                            type="submit"
-                            className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-mono text-[9px] uppercase font-bold tracking-[0.15em] transition-all rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-lg"
-                          >
-                            <Send size={11} />
-                            <span>Book Appointment Session</span>
-                          </button>
+                        {/* Navigation / Control Row */}
+                        <div className="flex items-center justify-between pt-4 border-t border-neutral-900 mt-2">
+                          <div>
+                            {aptStep > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAppointmentValidationError(null);
+                                  setAptStep(prev => prev - 1);
+                                }}
+                                className="w-11 h-11 bg-neutral-950/80 border border-neutral-850 hover:border-neutral-750 text-neutral-400 hover:text-white rounded-xl flex items-center justify-center cursor-pointer transition-all duration-300 active:scale-95"
+                                title="Previous Question"
+                              >
+                                <ArrowLeft size={18} />
+                              </button>
+                            )}
+                          </div>
+
+                          <div>
+                            {aptStep < 6 ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAppointmentValidationError(null);
+                                  // Validate active step
+                                  if (aptStep === 1) {
+                                    if (!aptName.trim()) {
+                                      setAppointmentValidationError('Validation error: Your Name / Alias is required to proceed.');
+                                      return;
+                                    }
+                                  } else if (aptStep === 2) {
+                                    if (!aptContact.trim()) {
+                                      setAppointmentValidationError('Validation error: Contact details (email, discord, or phone) are required.');
+                                      return;
+                                    }
+                                  } else if (aptStep === 3) {
+                                    if (!aptSpecs.trim()) {
+                                      setAppointmentValidationError('Validation error: Preferred appointment date & time slot is required.');
+                                      return;
+                                    }
+                                  }
+                                  setAptStep(prev => prev + 1);
+                                }}
+                                className="w-11 h-11 bg-neutral-900 border border-purple-500/30 hover:border-purple-500 text-purple-400 hover:text-white rounded-xl flex items-center justify-center cursor-pointer transition-all duration-300 shadow-[0_0_12px_rgba(168,85,247,0.15)] hover:shadow-[0_0_18px_rgba(168,85,247,0.35)] active:scale-95"
+                                title="Next Question"
+                              >
+                                <ArrowRight size={18} />
+                              </button>
+                            ) : (
+                              <button
+                                type="submit"
+                                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-mono text-[9px] uppercase font-bold tracking-[0.15em] transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+                              >
+                                <span>Book Appointment</span>
+                                <ArrowRight size={12} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </form>
                     )}
                   </div>
-                ) : (
-                  /* List of scheduled appointments */
-                  <div className="w-full flex-1 flex flex-col gap-4">
-                    <div>
-                      <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold mb-1">
-                        Active Appointments
-                      </h4>
-                      <p className="text-[8px] uppercase tracking-wider text-neutral-500 leading-normal">
-                        View scheduled appointments. All records are strictly stored locally on your device.
-                      </p>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto pr-1 space-y-3 max-h-[45vh] scrollbar-thin scrollbar-thumb-purple-500/20 hover:scrollbar-thumb-purple-500/40">
-                      {appointments.length === 0 ? (
-                        <div className="h-40 flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-900 rounded-2xl bg-neutral-950/40">
-                          <span className="text-xl mb-1 text-neutral-600 animate-pulse">🕰️</span>
-                          <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
-                            NO ACTIVE APPOINTMENTS SCHEDULED
-                          </span>
-                        </div>
-                      ) : (
-                        appointments.map((apt) => (
-                          <div 
-                            key={apt.id}
-                            className="bg-neutral-950/90 border border-neutral-900 rounded-2xl p-4 relative overflow-hidden text-left flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-                          >
-                            <div className="space-y-2 flex-grow">
-                              {/* Headers and status badging */}
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-[10px] font-black text-white">{apt.name}</span>
-                                <span className="px-1.5 py-0.5 bg-neutral-900 border border-neutral-800 text-neutral-400 text-[7px] font-bold tracking-widest uppercase rounded">
-                                  REF ID: {apt.id.substring(0, 12).toUpperCase()}
-                                </span>
-                                <span className="px-1.5 py-0.5 bg-yellow-950/40 border border-yellow-500/35 text-amber-400 text-[7px] font-bold tracking-widest uppercase rounded leading-none">
-                                  ● {apt.status}
-                                </span>
-                              </div>
-
-                              <div className="text-[10px] text-neutral-400 space-y-1">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-neutral-500 text-[8px]">CONTACT DETAILS:</span>
-                                  <span className="text-neutral-300 font-sans">{apt.contact || 'N/A'}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-neutral-500 text-[8px]">PREFERRED SLOT:</span>
-                                  <span className="text-neutral-300 font-sans">{apt.specs}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-neutral-500 text-[8px]">TOPIC / PURPOSE:</span>
-                                  <span className="text-purple-400 tracking-wide font-black uppercase text-[8.5px]">{apt.problem}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-neutral-500 text-[8px]">SUBMITTED ON:</span>
-                                  <span className="text-neutral-300 font-sans">{apt.date}</span>
-                                </div>
-                                <div className="mt-1.5 p-2 bg-neutral-900/60 border border-neutral-850 rounded-lg text-[9px] text-neutral-300 font-sans whitespace-pre-wrap">
-                                  {apt.description}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Actions / cancel button */}
-                            <button
-                              onClick={() => {
-                                const filtered = appointments.filter(item => item.id !== apt.id);
-                                setAppointments(filtered);
-                                localStorage.setItem('shadow_appointments', JSON.stringify(filtered));
-                              }}
-                              className="px-3 py-1.5 md:self-center font-mono text-[8.5px] bg-red-955/25 border border-red-500/35 hover:border-red-500 text-red-400 hover:bg-neutral-900 transition-all uppercase tracking-widest font-extrabold cursor-pointer rounded-lg shrink-0 self-start text-xs font-semibold"
-                            >
-                              Cancel Appointment
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Footer text */}
@@ -4172,6 +4335,138 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                 <span className="text-[8px] uppercase tracking-[0.12em] text-neutral-500">
                   SECURE CONTROL PANEL // PERSISTENT STORE SYSTEM
                 </span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Admin Appointments View Modal */}
+      <AnimatePresence>
+        {isAdminAppointmentsOpen && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto w-full font-mono" id="admin-appointments-view-modal">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 30 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-2xl rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono flex flex-col max-h-[85vh]"
+            >
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-20" />
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-purple-500/30 rounded-tl-xl pointer-events-none" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-purple-500/30 rounded-tr-xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-purple-500/30 rounded-bl-xl pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-500/30 rounded-br-xl pointer-events-none" />
+
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6 pb-4 border-b border-neutral-900 relative z-10 font-mono">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-purple-950/40 border border-purple-500/30">
+                    <Calendar size={13} className="text-purple-400 animate-pulse" />
+                  </div>
+                  <div>
+                    <span className="text-xs uppercase tracking-[0.2em] text-purple-400 font-extrabold block">ACTIVE APPOINTMENTS</span>
+                    <span className="text-[8px] uppercase tracking-widest text-neutral-500 block">VIEW AND MANAGE SCHEDULED SESSIONS</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAdminAppointmentsOpen(false)}
+                  className="p-1.5 hover:bg-neutral-900 text-neutral-400 hover:text-white rounded-lg transition-colors cursor-pointer border border-transparent hover:border-neutral-800"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* List Container */}
+              <div className="flex-1 overflow-y-auto pr-1 space-y-3.5 font-mono mb-5 relative z-10 max-h-[50vh] scrollbar-thin scrollbar-thumb-purple-500/20 hover:scrollbar-thumb-purple-500/40">
+                {appointments.length === 0 ? (
+                  <div className="h-44 flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-800 bg-neutral-900/20 rounded-2xl font-mono">
+                    <Calendar className="text-neutral-500 w-9 h-9 mb-2 animate-pulse" />
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-500 font-mono">NO ACTIVE APPOINTMENTS</span>
+                    <p className="text-[8px] uppercase tracking-wider text-neutral-400 mt-1 max-w-xs font-mono">
+                      Your scheduled sessions with Shadow Garden support will materialize here.
+                    </p>
+                  </div>
+                ) : (
+                  appointments.map((apt) => (
+                    <div 
+                      key={apt.id}
+                      className="p-4 rounded-xl bg-neutral-900/40 border border-neutral-900 hover:border-neutral-850 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 font-mono group"
+                    >
+                      <div className="space-y-2 flex-grow text-left">
+                        {/* Headers and status badging */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10.5px] font-black text-white">{apt.name}</span>
+                          <span className="px-1.5 py-0.5 bg-neutral-900 border border-neutral-850 text-neutral-400 text-[6.5px] font-bold tracking-widest uppercase rounded">
+                            REF ID: {apt.id.substring(0, 12).toUpperCase()}
+                          </span>
+                          <span className="px-1.5 py-0.5 bg-yellow-950/30 border border-yellow-500/30 text-amber-400 text-[6.5px] font-bold tracking-widest uppercase rounded leading-none">
+                            ● {apt.status}
+                          </span>
+                        </div>
+
+                        <div className="text-[9.5px]/relaxed text-neutral-400 space-y-1 font-mono">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-neutral-600 text-[7.5px] font-extrabold uppercase tracking-wider">CONTACT:</span>
+                            <span className="text-neutral-300 font-sans">{apt.contact || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-neutral-600 text-[7.5px] font-extrabold uppercase tracking-wider">PREFERRED SLOT:</span>
+                            <span className="text-neutral-300 font-sans">{apt.specs}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-neutral-600 text-[7.5px] font-extrabold uppercase tracking-wider">TOPIC:</span>
+                            <span className="text-purple-400 tracking-wide font-black uppercase text-[8px]">{apt.problem}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-neutral-600 text-[7.5px] font-extrabold uppercase tracking-wider">SUBMITTED ON:</span>
+                            <span className="text-neutral-300 font-sans">{apt.date}</span>
+                          </div>
+                          {apt.description && (
+                            <div className="mt-1.5 p-2 bg-neutral-950/80 border border-neutral-900 rounded-xl text-[9px] text-neutral-300 font-sans whitespace-pre-wrap leading-relaxed">
+                              <span className="text-neutral-600 text-[7.5px] font-extrabold uppercase tracking-wider block mb-0.5">PROBLEM DESCRIPTION</span>
+                              {apt.description}
+                            </div>
+                          )}
+                          {apt.furtherDetails && apt.furtherDetails !== 'No further details provided.' && (
+                            <div className="mt-1 p-2 bg-neutral-950/80 border border-neutral-900 rounded-xl text-[9px] text-neutral-300 font-sans whitespace-pre-wrap leading-relaxed">
+                              <span className="text-neutral-600 text-[7.5px] font-extrabold uppercase tracking-wider block mb-0.5">FURTHER DETAILS</span>
+                              {apt.furtherDetails}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Cancel action */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const filtered = appointments.filter(item => item.id !== apt.id);
+                          setAppointments(filtered);
+                          localStorage.setItem('shadow_appointments', JSON.stringify(filtered));
+                        }}
+                        className="px-3 py-1.5 font-mono text-[8.5px] bg-red-955/25 border border-red-500/30 hover:border-red-500 text-red-400 hover:bg-neutral-900 transition-all uppercase tracking-widest font-extrabold cursor-pointer rounded-lg shrink-0 self-start md:self-center"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Footer cancel controls */}
+              <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-neutral-900 shrink-0 gap-3 font-mono">
+                <span className="text-[8px] uppercase tracking-[0.12em] text-neutral-500">
+                  OFFLINE SUPPORT DISPATCH // CENTRAL DEPLOY SECURITY
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsAdminAppointmentsOpen(false)}
+                  className="px-4 py-2 bg-neutral-900 hover:bg-neutral-850 text-[#ececec] border border-neutral-800 hover:border-neutral-700 rounded-xl text-[9px] uppercase tracking-[0.15em] font-extrabold transition-colors cursor-pointer font-mono"
+                >
+                  Close Console
+                </button>
               </div>
             </motion.div>
           </div>

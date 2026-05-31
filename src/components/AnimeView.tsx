@@ -75,6 +75,28 @@ const isEmbeddable = (url: string) => {
   return lower.includes('youtube.com') || lower.includes('youtu.be');
 };
 
+const getNormalizedSeason = (anime: any): 'S1' | 'S2' | 'MOVIE' => {
+  if (anime.season) {
+    const s = anime.season.toUpperCase();
+    if (s.includes('SEASON 1') || s.includes('S1')) return 'S1';
+    if (s.includes('SEASON 2') || s.includes('S2')) return 'S2';
+    if (s.includes('MOVIE') || s.includes('THEATRIC') || s.includes('LOST ECHOES')) return 'MOVIE';
+  }
+  const title = (anime.title || '').toLowerCase();
+  const protocol = (anime.protocol || '').toLowerCase();
+  
+  if (title.includes('season 1') || title.includes('s1') || protocol.includes('s1') || title.includes('episode 1')) {
+    return 'S1';
+  }
+  if (title.includes('season 2') || title.includes('s2') || protocol.includes('s2') || title.includes('episode 2')) {
+    return 'S2';
+  }
+  if (title.includes('movie') || protocol.includes('movie') || title.includes('echoes')) {
+    return 'MOVIE';
+  }
+  return 'S1'; // fallback
+};
+
 interface GoogleDrivePlayerProps {
   driveId: string;
   title: string;
@@ -122,6 +144,7 @@ function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
 export default function AnimeView() {
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
   const [inlineLinkInput, setInlineLinkInput] = useState('');
+  const [selectedTab, setSelectedTab] = useState<'S1' | 'S2' | 'MOVIE'>('S1');
 
   const [animeList, setAnimeList] = useState<any[]>(() => {
     const saved = localStorage.getItem('custom_anime');
@@ -219,10 +242,91 @@ export default function AnimeView() {
 
 
 
+  const filteredAnimeList = animeList.filter(anime => {
+    return getNormalizedSeason(anime) === selectedTab;
+  });
+
   return (
     <div className="h-full flex flex-col bg-neutral-950">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-full border-b border-neutral-900 bg-neutral-950 flex-1">
-        {animeList.map((anime, idx) => {
+      {/* Dynamic Purple High-Contrast Glowing Tab Bar Controls */}
+      <div className="relative border-b border-purple-950/40 bg-neutral-950 px-4 py-4 md:px-8 flex flex-col items-center justify-center shrink-0 overflow-hidden shadow-[0_10px_30px_rgba(168,85,247,0.06)]">
+        {/* Emanating purple visual glow */}
+        <div className="absolute -bottom-12 left-1/4 w-[350px] h-20 bg-purple-650/10 blur-[50px] rounded-full pointer-events-none animate-pulse" />
+        <div className="absolute -bottom-12 right-1/4 w-[350px] h-20 bg-fuchsia-650/10 blur-[50px] rounded-full pointer-events-none animate-pulse" />
+        
+        <div className="relative w-full max-w-5xl flex flex-col md:flex-row items-center md:justify-between gap-4 z-10">
+          <div className="flex flex-col items-center md:items-start text-center md:text-left">
+            <span className="text-[9px] font-mono font-bold tracking-[0.3em] text-purple-400/90 uppercase">
+              ARCHIVE SAGA SYSTEM
+            </span>
+            <h2 className="text-xl font-black uppercase text-white tracking-widest flex items-center gap-2">
+              <span>XADO SEASONS</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+            </h2>
+          </div>
+
+          {/* Glowing tab buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap justify-center bg-neutral-900/40 p-1 border border-neutral-800/80 rounded-xl relative shadow-[inset_0_1px_4px_rgba(0,0,0,0.8)]">
+            {[
+              { id: 'S1', label: 'Season 1', tagline: 'Shadow Resurrection', badge: `${animeList.filter(a => getNormalizedSeason(a) === 'S1').length}` },
+              { id: 'S2', label: 'Season 2', tagline: 'Neon Eminence', badge: `${animeList.filter(a => getNormalizedSeason(a) === 'S2').length}` },
+              { id: 'MOVIE', label: 'Movie / Teaser', tagline: 'Lost Chronicles', badge: `${animeList.filter(a => getNormalizedSeason(a) === 'MOVIE').length}` },
+            ].map((tab) => {
+              const isActive = selectedTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedTab(tab.id as any)}
+                  className={`relative px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg transition-all duration-300 font-mono text-[10px] font-black uppercase tracking-widest flex flex-col items-center justify-center shrink-0 cursor-pointer overflow-hidden group select-none ${
+                    isActive
+                      ? 'text-white border border-purple-500/40 bg-gradient-to-b from-purple-950/80 to-purple-900/60 shadow-[0_0_20px_rgba(168,85,247,0.3)]'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800/40 border border-transparent'
+                  }`}
+                >
+                  {/* Purple Laser underline emanation */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTabIndicator"
+                      className="absolute inset-x-0 bottom-0 h-[2.5px] bg-gradient-to-r from-purple-500 via-fuchsia-400 to-purple-600 shadow-[0_0_12px_rgba(168,85,247,0.9)]"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  
+                  <div className="flex items-center gap-1.5">
+                    <span>{tab.label}</span>
+                    <span className={`text-[8px] font-mono px-1.5 py-0.2 rounded transition-colors ${
+                      isActive ? 'bg-purple-500 text-black font-extrabold shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'bg-neutral-800 text-neutral-400 group-hover:bg-neutral-700'
+                    }`}>
+                      {tab.badge}
+                    </span>
+                  </div>
+                  <span className={`text-[7px] lowercase tracking-normal font-medium mt-0.5 opacity-60 ${
+                    isActive ? 'text-purple-300' : 'text-neutral-500 group-hover:text-neutral-400'
+                  }`}>
+                    {tab.tagline}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {filteredAnimeList.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-12 bg-neutral-950/40 font-mono select-none text-center">
+          <div className="w-12 h-12 bg-purple-950/30 border border-purple-500/25 flex items-center justify-center rounded-xl text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.15)] mb-4 animate-pulse">
+            <Tv size={20} />
+          </div>
+          <span className="text-xs font-black uppercase text-white tracking-widest">
+            no recordings decrypted
+          </span>
+          <span className="text-[9px] text-neutral-500 uppercase tracking-wider block mt-1">
+            no episodes exist in category '{selectedTab}'
+          </span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-full border-b border-neutral-900 bg-neutral-950 flex-1">
+          {filteredAnimeList.map((anime, idx) => {
           const hasBgImage = !!anime.image;
           const Tag = motion.div;
           const adminLink = localStorage.getItem('admin_console_link') || 'https://drive.google.com';
@@ -309,10 +413,7 @@ export default function AnimeView() {
                   </div>
                 </div>
                 
-                <div className="pt-6 flex justify-between items-end mt-auto">
-                  <span className="text-[8px] font-mono font-black text-rose-400 hover:text-white uppercase tracking-[0.16em] bg-rose-950/10 border border-rose-955/20 px-2 py-0.5 rounded">
-                    // STREAM
-                  </span>
+                <div className="pt-6 flex justify-end items-end mt-auto">
                   
                   <div className="flex gap-1.5 items-center shrink-0">
                     <a
@@ -351,10 +452,11 @@ export default function AnimeView() {
           );
         })}
         {/* Empty filler block to maintain grid integrity */}
-        {(animeList.length % 3 !== 0) && Array.from({ length: 3 - (animeList.length % 3) }).map((_, i) => (
+        {(filteredAnimeList.length % 3 !== 0) && Array.from({ length: 3 - (filteredAnimeList.length % 3) }).map((_, i) => (
           <div key={`filler-${i}`} className="border-b border-neutral-900 p-5 hidden lg:block bg-neutral-900/10 last:border-r border-r border-neutral-900"></div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Dynamic In-App Video Player Overlay Modal (Rose-themed for Anime View) */}
       <AnimatePresence>

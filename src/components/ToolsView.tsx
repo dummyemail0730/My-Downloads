@@ -10,10 +10,28 @@ import shadowMysteriousAura from '../assets/images/shadow_mysterious_aura_177925
 import shadowMoonRain from '../assets/images/shadow_moon_rain_1779250676888.png';
 import shadowNeonElectricity from '../assets/images/shadow_neon_electricity_1779250694461.png';
 import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
-import shadowMasterAtomic from '../assets/images/shadow_master_atomic_1779279129608.png';
+import shadowGardenCharacters from '../assets/images/shadow_garden_characters_1780189909589.png';
+
+import shadowSoloBg from '../assets/images/shadow_solo_bg_1780190187431.png';
+import alphaSoloBg from '../assets/images/alpha_solo_bg_1780190207110.png';
+import betaSoloBg from '../assets/images/beta_solo_bg_1780190226477.png';
+import gammaSoloBg from '../assets/images/gamma_solo_bg_1780190246677.png';
+import deltaSoloBg from '../assets/images/delta_solo_bg_1780190266500.png';
+import epsilonSoloBg from '../assets/images/epsilon_solo_bg_1780190286312.png';
+import zetaSoloBg from '../assets/images/zeta_solo_bg_1780190306077.png';
+
+const CHARACTER_BG_IMAGES = [
+  shadowSoloBg,
+  alphaSoloBg,
+  betaSoloBg,
+  gammaSoloBg,
+  deltaSoloBg,
+  epsilonSoloBg,
+  zetaSoloBg
+];
 
 const TOOL_BG_IMAGES = [
-  shadowMasterAtomic,
+  shadowGardenCharacters,
   shadowOnRoof,
   shadowDarkBlade,
   shadowMysteriousAura,
@@ -77,7 +95,7 @@ export default function ToolsView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-neutral-900">
         {tools.map((tool, idx) => {
           const Tag = motion.div;
-          const bgImage = shadowMasterAtomic;
+          const bgImage = CHARACTER_BG_IMAGES[idx % CHARACTER_BG_IMAGES.length];
 
           const targetLink = tool.link || defaultToolLinks[tool.id] || 'https://drive.google.com/drive/my-drive';
 
@@ -104,10 +122,10 @@ export default function ToolsView() {
                 <img 
                   src={bgImage} 
                   alt="" 
-                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-[0.65] group-hover:brightness-[0.75]"
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-75 group-hover:brightness-90 saturate-[0.50] group-hover:saturate-[0.70] contrast-[1.05]"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-purple-950/45 to-black/30 group-hover:from-black/95 group-hover:via-purple-900/50 group-hover:to-black/35 transition-all duration-350 z-10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-neutral-950/40 to-black/20 group-hover:from-black/95 group-hover:via-neutral-900/35 group-hover:to-black/25 transition-all duration-350 z-10" />
               </div>
 
               {/* Top part / main content */}
@@ -128,16 +146,16 @@ export default function ToolsView() {
                   {tool.name}
                 </h3>
                 
-                <div className="mt-auto pt-6">
+                <div className="mt-auto pt-6 flex justify-end">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleClick(e);
                     }}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-[9px] font-mono font-black uppercase tracking-[0.16em] border border-purple-500/40 bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 hover:text-white rounded-lg transition-all duration-300 cursor-pointer w-full justify-center shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400"
+                    className="h-10 w-10 shrink-0 flex items-center justify-center border border-purple-500/40 bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 hover:text-white rounded-none transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400"
+                    title="Download File"
                   >
-                    <Download size={12} className="shrink-0 animate-[pulse_2s_infinite]" />
-                    <span>DOWNLOAD</span>
+                    <Download size={14} className="shrink-0" />
                   </button>
                 </div>
               </div>
