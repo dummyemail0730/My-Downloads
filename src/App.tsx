@@ -198,7 +198,9 @@ export default function App() {
   const [showGuestPopup, setShowGuestPopup] = useState(false);
   const [guestPasscode, setGuestPasscode] = useState('');
   const [guestAuthError, setGuestAuthError] = useState('');
-  const [generatedGuestPasscode, setGeneratedGuestPasscode] = useState<string | null>(null);
+  const [generatedGuestPasscode, setGeneratedGuestPasscode] = useState<string | null>(() => {
+    return localStorage.getItem('generated_guest_passcode') || null;
+  });
   const [showAdminPasscode, setShowAdminPasscode] = useState(false);
   const [showGuestPasscode, setShowGuestPasscode] = useState(false);
 
@@ -206,6 +208,15 @@ export default function App() {
   useEffect(() => {
     localStorage.removeItem('shadow_sys_authorized');
   }, []);
+
+  // Save changes to generated Guest passcode to stay in sync
+  useEffect(() => {
+    if (generatedGuestPasscode) {
+      localStorage.setItem('generated_guest_passcode', generatedGuestPasscode);
+    } else {
+      localStorage.removeItem('generated_guest_passcode');
+    }
+  }, [generatedGuestPasscode]);
 
   const [appLoading, setAppLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('SOFTWARE');
@@ -652,12 +663,6 @@ export default function App() {
                       if (hashHex === 'cf7a14191ac01a39913eadfae86c9e032ec7bd69fe01d452113f54ea6eef68ef') {
                         setIsAuthorized(true);
                         setAuthError('');
-                      } else if (generatedGuestPasscode && entered === generatedGuestPasscode) {
-                        setIsAuthorized(true);
-                        setAuthError('');
-                      } else if (entered.toLowerCase() === 'guest') {
-                        setIsAuthorized(true);
-                        setAuthError('');
                       } else {
                         setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
                         setPasscode('');
@@ -665,12 +670,6 @@ export default function App() {
                     } catch (err) {
                       // Fallback verification using basic obscuration in case subtle crypto is unavailable
                       if (btoa(entered) === 'S0dhYjA3MzA=') {
-                        setIsAuthorized(true);
-                        setAuthError('');
-                      } else if (generatedGuestPasscode && entered === generatedGuestPasscode) {
-                        setIsAuthorized(true);
-                        setAuthError('');
-                      } else if (entered.toLowerCase() === 'guest') {
                         setIsAuthorized(true);
                         setAuthError('');
                       } else {
@@ -708,49 +707,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Random Password Generator for Guest */}
-                  <div className="bg-[#0b081a]/90 border border-purple-950/50 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden shadow-inner">
-                    <div className="flex items-center justify-between text-[8px] font-bold text-neutral-500 tracking-[0.2em] uppercase font-mono">
-                      <span>GUEST TEMPORARY DECRYPTOR</span>
-                      <span className="text-[7px] text-purple-400/90 font-semibold tracking-widest">SECURE SHELL</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-                          let code = '';
-                          for (let i = 0; i < 8; i++) {
-                            code += chars.charAt(Math.floor(Math.random() * chars.length));
-                          }
-                          setGeneratedGuestPasscode(code);
-                          setPasscode(code); // Autofill
-                          if (authError) setAuthError('');
-                        }}
-                        className="py-1.5 px-3 bg-purple-950/40 hover:bg-purple-900/40 border border-purple-800/60 hover:border-purple-500/80 text-purple-300 font-mono text-[8px] uppercase font-extrabold tracking-widest rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shrink-0"
-                      >
-                        <Key size={10} />
-                        GENERATE ACCESS KEY
-                      </button>
-                      <div className="flex-1 min-w-0 bg-black/60 border border-neutral-900 rounded-lg px-2 py-1 flex items-center justify-between font-mono h-[28px]">
-                        <span className="text-[9px] tracking-widest font-black text-purple-400 select-all truncate font-mono">
-                          {generatedGuestPasscode || 'SYS-STDBY-KEY'}
-                        </span>
-                        {generatedGuestPasscode && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(generatedGuestPasscode);
-                            }}
-                            className="text-neutral-500 hover:text-purple-300 transition-colors duration-200 cursor-pointer p-0.5"
-                            title="Copy Passcode"
-                          >
-                            <Copy size={10} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+
 
                   {authError && (
                     <motion.p 
@@ -853,6 +810,8 @@ export default function App() {
             onSupportClick={() => {
               setShowSupportPage(true);
             }}
+            generatedGuestPasscode={generatedGuestPasscode}
+            setGeneratedGuestPasscode={setGeneratedGuestPasscode}
           />
         </div>
       </div>

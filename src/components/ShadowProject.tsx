@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary, Key } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import shadowChibiSticker from '../assets/images/shadow_chibi_avatar_1779438320279.png';
@@ -18,7 +18,25 @@ import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.pn
 import shadowTechMagic from '../assets/images/shadow_tech_magic_1780090755590.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
-export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, isAudioAllowed = false, onLogout, onSupportClick }: { onEnter: () => void; hasPlayed?: boolean; onShowShadowLore: () => void; isAudioAllowed?: boolean; onLogout?: () => void; onSupportClick?: () => void }) {
+export default function ShadowProject({ 
+  onEnter, 
+  hasPlayed, 
+  onShowShadowLore, 
+  isAudioAllowed = false, 
+  onLogout, 
+  onSupportClick,
+  generatedGuestPasscode,
+  setGeneratedGuestPasscode
+}: { 
+  onEnter: () => void; 
+  hasPlayed?: boolean; 
+  onShowShadowLore: () => void; 
+  isAudioAllowed?: boolean; 
+  onLogout?: () => void; 
+  onSupportClick?: () => void;
+  generatedGuestPasscode?: string | null;
+  setGeneratedGuestPasscode?: (code: string | null) => void;
+}) {
   const skip = hasPlayed;
   
   // Custom Google Drive / File link state
@@ -206,6 +224,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   const [unlinkTrigger, setUnlinkTrigger] = useState(0);
   const [isAdminSuggestionsOpen, setIsAdminSuggestionsOpen] = useState(false);
   const [isAdminAppointmentsOpen, setIsAdminAppointmentsOpen] = useState(false);
+  const [isAdminKeysOpen, setIsAdminKeysOpen] = useState(false);
 
   // --- TUTORIALS STATE ---
   const [tutorials, setTutorials] = useState<Array<{ id: string; title: string; category: string; description: string; url: string; system?: boolean }>>(() => {
@@ -2969,6 +2988,15 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                           </span>
                         )}
                       </button>
+
+                      <button 
+                        type="button"
+                        onClick={() => setIsAdminKeysOpen(true)}
+                        className="w-full sm:w-auto px-4 py-2.5 bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-950/40 text-purple-400 hover:text-purple-300 rounded-xl font-mono text-[10px] uppercase tracking-[0.15em] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-md"
+                      >
+                        <Key size={11} className="text-purple-400 animate-pulse" />
+                        <span>GUEST KEYS</span>
+                      </button>
                     </div>
                     
                     {isSendingUplink ? (
@@ -4661,6 +4689,129 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                   className="px-4 py-2 bg-neutral-900 hover:bg-neutral-850 text-[#ececec] border border-neutral-800 hover:border-neutral-700 rounded-xl text-[9px] uppercase tracking-[0.15em] font-extrabold transition-colors cursor-pointer font-mono"
                 >
                   Close Console
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Admin Keys View Modal */}
+      <AnimatePresence>
+        {isAdminKeysOpen && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto w-full font-mono" id="admin-keys-view-modal">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 30 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-neutral-950 border-2 border-neutral-900 w-full max-w-sm rounded-3xl shadow-2xl relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono flex flex-col"
+            >
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-20" />
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-purple-500/30 rounded-tl-xl pointer-events-none" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-purple-500/30 rounded-tr-xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-purple-500/30 rounded-bl-xl pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-500/30 rounded-br-xl pointer-events-none" />
+
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6 pb-4 border-b border-neutral-900 relative z-10 font-mono">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-purple-950/40 border border-purple-500/30">
+                    <Key size={13} className="text-purple-400 animate-pulse" />
+                  </div>
+                  <div>
+                    <span className="text-xs uppercase tracking-[0.2em] text-purple-400 font-extrabold block font-mono">GUEST KEYS</span>
+                    <span className="text-[8px] uppercase tracking-widest text-neutral-500 block font-mono">TEMPORARY CLEARANCE MANAGEMENT</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAdminKeysOpen(false)}
+                  className="p-1.5 hover:bg-neutral-900 text-neutral-400 hover:text-white rounded-lg transition-colors cursor-pointer border border-transparent hover:border-neutral-800"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Main Content Area */}
+              <div className="space-y-5 relative z-10 font-mono">
+                <div className="text-left">
+                  <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold mb-1">
+                    Generate Guest Access Credentials
+                  </h4>
+                  <p className="text-[8.5px] uppercase tracking-wider text-neutral-500 leading-normal font-medium">
+                    This module generates dynamic keys that authorize secure passage into the digital archives for standard guest accounts.
+                  </p>
+                </div>
+
+                <div className="bg-[#0b081a]/90 border border-purple-950/50 rounded-xl p-4 flex flex-col gap-3 relative overflow-hidden shadow-inner w-full">
+                  <div className="flex items-center justify-between text-[8px] font-bold text-neutral-500 tracking-[0.2em] uppercase font-mono">
+                    <span>GUEST DECRYPTOR UTILITY</span>
+                    <span className="text-[7px] text-purple-400/90 font-semibold tracking-widest">SECURE SYSTEM</span>
+                  </div>
+                  
+                  <div className="flex flex-col gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                        let code = '';
+                        for (let i = 0; i < 8; i++) {
+                          code += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        if (setGeneratedGuestPasscode) {
+                          setGeneratedGuestPasscode(code);
+                        }
+                      }}
+                      className="w-full py-2.5 bg-purple-950/40 hover:bg-purple-900/40 border border-purple-800/60 hover:border-purple-500/80 text-purple-300 font-mono text-[9px] uppercase font-extrabold tracking-widest rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    >
+                      <Key size={11} />
+                      GENERATE GUEST ACCESS KEY
+                    </button>
+                    
+                    <div className="w-full min-w-0 bg-black/60 border border-neutral-900 rounded-lg px-3 py-2 flex items-center justify-between font-mono h-[36px]">
+                      <span className="text-[10px] tracking-widest font-black text-purple-400 select-all truncate font-mono">
+                        {generatedGuestPasscode || 'STANDBY // NO KEY'}
+                      </span>
+                      {generatedGuestPasscode && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(generatedGuestPasscode);
+                            // Visual feedback
+                            const feedbackId = document.getElementById("key-copy-indicator");
+                            if (feedbackId) {
+                              feedbackId.innerText = "COPIED";
+                              setTimeout(() => { if (feedbackId) feedbackId.innerText = "COPY"; }, 1500);
+                            }
+                          }}
+                          className="text-[8px] font-extrabold uppercase tracking-wider text-neutral-400 hover:text-purple-300 transition-colors duration-200 cursor-pointer p-1 border border-neutral-800 rounded bg-neutral-950 px-2 flex items-center gap-1 active:scale-95"
+                          title="Copy generated passcode"
+                        >
+                          <Copy size={9} />
+                          <span id="key-copy-indicator">COPY</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-[8.5px] uppercase tracking-wider text-purple-400/90 leading-normal bg-neutral-900/20 rounded-lg p-2.5 border border-purple-950/30 text-left font-semibold">
+                  ⚡ <strong>NOTE:</strong> Hand this dynamic key code directly to standard operators. The system accepts this key on the guest decryption terminal.
+                </div>
+              </div>
+
+              {/* Footer controls */}
+              <div className="flex flex-col sm:flex-row items-center justify-between pt-5 border-t border-neutral-900 shrink-0 gap-3 font-mono mt-5">
+                <span className="text-[8px] uppercase tracking-[0.12em] text-neutral-700 font-black">
+                  ROOT PRIVILEGES REQUIRED
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsAdminKeysOpen(false)}
+                  className="px-4 py-2 bg-neutral-900 hover:bg-neutral-850 text-[#ececec] border border-neutral-800 hover:border-neutral-700 rounded-xl text-[9px] uppercase tracking-[0.15em] font-extrabold transition-colors cursor-pointer font-mono"
+                >
+                  Close
                 </button>
               </div>
             </motion.div>
