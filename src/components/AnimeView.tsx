@@ -182,15 +182,6 @@ export default function AnimeView() {
 
     const defaultAnime = [
       {
-        id: 'default-anime-s1',
-        title: 'Xado Episode 1',
-        season: 'SEASON 1',
-        description: '',
-        protocol: 'S1 FULL',
-        link: adminLink,
-        image: shadowOnRoof
-      },
-      {
         id: 'default-anime-s2',
         title: 'Xado Episode 2',
         season: 'SEASON 2',
@@ -236,7 +227,7 @@ export default function AnimeView() {
         image: item.image || matchedDefault?.image || fallbackImages[idx % fallbackImages.length],
         season: item.season || matchedDefault?.season || ''
       };
-    });
+    }).filter((item: any) => normalizeTitle(item.title) !== 'xadoepisode1');
 
     // Merge default list while filtering duplicates by title
     return [
@@ -303,7 +294,7 @@ export default function AnimeView() {
               ARCHIVE SAGA SYSTEM
             </span>
             <h2 className="text-xl font-black uppercase text-white tracking-widest flex items-center gap-2">
-              <span>XADO SEASONS</span>
+              <span>SHADOW SEASONS</span>
               <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
             </h2>
           </div>
