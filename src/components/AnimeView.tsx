@@ -166,6 +166,27 @@ function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
   );
 }
 
+const getEpisodeStreamLink = (url: string, defaultVideo: string) => {
+  if (!url) return defaultVideo;
+  const lower = url.toLowerCase().trim();
+  // If it's a known installer/archive/zip/executable or generic Google Drive URL, return the direct stream backup
+  if (
+    lower.includes('msoffice') || 
+    lower.includes('office') || 
+    lower.includes('windows') || 
+    lower.includes('win10') || 
+    lower.includes('ezazhgs') ||
+    lower === 'https://drive.google.com' || 
+    lower === 'https://drive.google.com/' || 
+    lower === 'https://drive.google.com/drive' ||
+    lower === 'https://drive.google.com/drive/my-drive' ||
+    (lower.includes('drive.google.com') && !getGoogleDriveId(lower))
+  ) {
+    return defaultVideo;
+  }
+  return url;
+};
+
 export default function AnimeView() {
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
   const [inlineLinkInput, setInlineLinkInput] = useState('');
@@ -185,18 +206,18 @@ export default function AnimeView() {
         id: 'default-anime-s2',
         title: 'Xado Episode 2',
         season: 'SEASON 2',
-        description: '',
+        description: 'Deep archive decryption protocol active. Stream high-definition video directly.',
         protocol: 'S2 FULL',
-        link: adminLink,
+        link: getEpisodeStreamLink(adminLink, 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'),
         image: shadowClockTower
       },
       {
         id: 'default-anime-movie',
         title: 'Xado: Lost Echoes',
         season: 'THEATRIC MOVIE',
-        description: '',
+        description: 'Cinematic teaser sequence. Experience the legendary saga of the shadow arts.',
         protocol: 'MOVIE TEASER',
-        link: adminLink,
+        link: getEpisodeStreamLink(adminLink, 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'),
         image: shadowMoonRain
       }
     ];
@@ -218,12 +239,16 @@ export default function AnimeView() {
         def => normalizeTitle(def.title) === normalizeTitle(item.title)
       );
 
+      const resolvedDefaultLink = matchedDefault?.id === 'default-anime-s2' 
+        ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4' 
+        : (matchedDefault?.id === 'default-anime-movie' ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4' : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4');
+
       return {
         id: item.id || `custom-anime-${idx}`,
         title: matchedDefault ? matchedDefault.title : item.title,
-        description: '',
+        description: item.description || matchedDefault?.description || '',
         protocol: item.protocol || matchedDefault?.protocol || 'EXT LINK',
-        link: item.link || adminLink,
+        link: getEpisodeStreamLink(item.link || adminLink, resolvedDefaultLink),
         image: item.image || matchedDefault?.image || fallbackImages[idx % fallbackImages.length],
         season: item.season || matchedDefault?.season || ''
       };
@@ -533,12 +558,25 @@ export default function AnimeView() {
 
               {/* Tactical Mode Selector Tabs for Non-direct Links */}
               {activeVideo.link && !isDirectVideo(activeVideo.link) && (
-                <div className="flex border-b border-neutral-800 bg-neutral-950 font-mono text-[9px] tracking-wider shrink-0 p-1.5 gap-1.5">
+                <div className="flex flex-col sm:flex-row border-b border-neutral-800 bg-neutral-950 font-mono text-[9px] tracking-wider shrink-0 p-1.5 gap-1.5">
                   <button
                     className="flex-1 py-2 px-3 text-center transition-all flex items-center justify-center gap-1.5 uppercase font-extrabold rounded-lg border bg-rose-950/50 text-white border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)] cursor-default"
                   >
                     <Tv size={12} />
                     <span>Google Drive Player</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const isMovie = activeVideo.title.toLowerCase().includes('echoes') || activeVideo.title.toLowerCase().includes('movie');
+                      const fbLink = isMovie 
+                        ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4' 
+                        : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4';
+                      handleUpdateEpisodeLink(activeVideo.id, fbLink);
+                    }}
+                    className="flex-1 py-2 px-3 text-center border border-neutral-800 hover:border-purple-500/50 bg-neutral-900/60 hover:bg-purple-950/40 text-neutral-400 hover:text-purple-300 font-extrabold rounded-lg transition-all flex items-center justify-center gap-1.5 uppercase cursor-pointer shadow-[0_0_5px_rgba(0,0,0,0.5)] active:scale-95"
+                  >
+                    <RefreshCw size={11} className="animate-spin [animation-duration:6s]" />
+                    <span>Switch to Instant High-Speed Direct Stream</span>
                   </button>
                 </div>
               )}

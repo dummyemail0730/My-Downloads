@@ -5427,69 +5427,136 @@ export default function ShadowProject({
 
               <div className="flex flex-col sm:flex-row items-center gap-4 flex-wrap">
                 {/* Enter Archive Action Container */}
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                  <motion.button 
-                    initial={skip ? { opacity: 1 } : { opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={skip ? { duration: 0 } : { 
-                      duration: 5.0, 
-                      ease: "easeInOut", 
-                      delay: 3.0 
-                    }}
-                    whileHover={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 1.02 }}
-                    whileTap={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 0.98 }}
-                    onClick={() => {
-                      setIsEnteringArchive(true);
-                      setEnteringArchiveProgress(1);
-                    }}
-                    disabled={isEnteringArchive || isAccessingTutorials}
-                    className={`group flex items-center justify-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs transition-all duration-200 cursor-pointer w-full sm:w-auto ${
-                      (isEnteringArchive || isAccessingTutorials) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-neutral-200'
-                    }`}
-                  >
-                    Enter Archive
-                    <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500" />
-                  </motion.button>
+                <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+                  <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <motion.button 
+                      initial={skip ? { opacity: 1 } : { opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={skip ? { duration: 0 } : { 
+                        duration: 5.0, 
+                        ease: "easeInOut", 
+                        delay: 3.0 
+                      }}
+                      whileHover={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 1.02 }}
+                      whileTap={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 0.98 }}
+                      onClick={() => {
+                        setIsEnteringArchive(true);
+                        setEnteringArchiveProgress(1);
+                      }}
+                      disabled={isEnteringArchive || isAccessingTutorials}
+                      className={`group flex items-center justify-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs transition-all duration-200 cursor-pointer w-full sm:w-auto ${
+                        (isEnteringArchive || isAccessingTutorials) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-neutral-200'
+                      }`}
+                    >
+                      Enter Archive
+                      <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500" />
+                    </motion.button>
 
-                  {isEnteringArchive && (
-                    <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
-                      {/* Outer rotating dashed purple ring */}
-                      <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/30 animate-spin [animation-duration:12s]" />
-                      
-                      {/* Inner SVG Circular Progress */}
-                      <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 80 80">
-                        {/* Background Track */}
-                        <circle
-                          cx="40"
-                          cy="40"
-                          r="34"
-                          className="stroke-neutral-950/85"
-                          strokeWidth="6"
-                          fill="transparent"
-                        />
-                        {/* Foreground Progress */}
-                        <circle
-                          cx="40"
-                          cy="40"
-                          r="34"
-                          className="stroke-purple-500 transition-all duration-100 ease-out"
-                          strokeWidth="6"
-                          fill="transparent"
-                          strokeDasharray="213.6"
-                          strokeDashoffset={213.6 * (1 - enteringArchiveProgress / 100)}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      
-                      {/* Center text showing percentage and TX label */}
-                      <div className="absolute flex flex-col items-center justify-center font-mono">
-                        <span className="text-[10px] font-black text-purple-400 leading-none">
-                          {enteringArchiveProgress}%
-                        </span>
-                        <span className="text-[5px] font-black text-purple-500/60 tracking-wider uppercase leading-none mt-0.5">TX</span>
+                    {isEnteringArchive && (
+                      <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                        {/* Outer rotating dashed purple ring */}
+                        <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/30 animate-spin [animation-duration:12s]" />
+                        
+                        {/* Inner SVG Circular Progress */}
+                        <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 80 80">
+                          {/* Background Track */}
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            className="stroke-neutral-950/85"
+                            strokeWidth="6"
+                            fill="transparent"
+                          />
+                          {/* Foreground Progress */}
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            className="stroke-purple-500 transition-all duration-100 ease-out"
+                            strokeWidth="6"
+                            fill="transparent"
+                            strokeDasharray="213.6"
+                            strokeDashoffset={213.6 * (1 - enteringArchiveProgress / 100)}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        
+                        {/* Center text showing percentage and TX label */}
+                        <div className="absolute flex flex-col items-center justify-center font-mono">
+                          <span className="text-[10px] font-black text-purple-400 leading-none">
+                            {enteringArchiveProgress}%
+                          </span>
+                          <span className="text-[5px] font-black text-purple-500/60 tracking-wider uppercase leading-none mt-0.5">TX</span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <motion.button 
+                      initial={skip ? { opacity: 1 } : { opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={skip ? { duration: 0 } : { 
+                        duration: 5.0, 
+                        ease: "easeInOut", 
+                        delay: 3.3 
+                      }}
+                      whileHover={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 1.02 }}
+                      whileTap={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 0.98 }}
+                      onClick={() => {
+                        setIsAccessingTutorials(true);
+                        setAccessingTutorialsProgress(1);
+                      }}
+                      disabled={isEnteringArchive || isAccessingTutorials}
+                      className={`group flex items-center justify-center gap-4 px-8 py-3 bg-purple-950/45 hover:bg-purple-900/40 border border-purple-500/50 hover:border-purple-400 text-purple-200 hover:text-white font-black uppercase tracking-widest text-xs transition-all duration-200 cursor-pointer w-full sm:w-auto ${
+                        (isEnteringArchive || isAccessingTutorials) ? 'opacity-40 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      Master Shadow Tutorial
+                      <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500 text-purple-400" />
+                    </motion.button>
+
+                    {isAccessingTutorials && (
+                      <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                        {/* Outer rotating dashed purple ring */}
+                        <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/30 animate-spin [animation-duration:12s]" />
+                        
+                        {/* Inner SVG Circular Progress */}
+                        <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 80 80">
+                          {/* Background Track */}
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            className="stroke-neutral-950/85"
+                            strokeWidth="6"
+                            fill="transparent"
+                          />
+                          {/* Foreground Progress */}
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            className="stroke-purple-500 transition-all duration-100 ease-out"
+                            strokeWidth="6"
+                            fill="transparent"
+                            strokeDasharray="213.6"
+                            strokeDashoffset={213.6 * (1 - accessingTutorialsProgress / 100)}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        
+                        {/* Center text showing percentage and TX label */}
+                        <div className="absolute flex flex-col items-center justify-center font-mono">
+                          <span className="text-[10px] font-black text-purple-400 leading-none">
+                            {accessingTutorialsProgress}%
+                          </span>
+                          <span className="text-[5px] font-black text-purple-500/60 tracking-wider uppercase leading-none mt-0.5">SYS</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

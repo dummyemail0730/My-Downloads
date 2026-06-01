@@ -169,16 +169,16 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
                 animate={{ scale: 1, opacity: 1 }}
                 className="pt-2 w-full flex justify-center"
               >
-                <button
-                  onClick={() => {
-                    window.open(targetUrl, '_blank', 'noopener,noreferrer');
-                    onClose();
-                  }}
+                <a
+                  href={targetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={onClose}
                   className="px-6 py-3.5 rounded-xl bg-black border-2 border-purple-500 text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:text-black hover:border-white shadow-[0_0_25px_rgba(168,85,247,0.6)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>DOWNLOAD LINK READY</span>
                   <span className="text-[14px]">⚡</span>
-                </button>
+                </a>
               </motion.div>
             )}
 
