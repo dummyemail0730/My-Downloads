@@ -183,6 +183,53 @@ async function startServer() {
     }
   });
 
+  // API Route - Get Configs
+  app.get("/api/configs", async (req, res) => {
+    try {
+      const configPath = path.join(process.cwd(), "custom_configs.json");
+      const { promises: fsPromises } = await import("fs");
+      try {
+        const data = await fsPromises.readFile(configPath, "utf-8");
+        return res.json(JSON.parse(data));
+      } catch (err) {
+        // If file doesn't exist, return empty config with default links
+        return res.json({
+          admin_console_link: "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing",
+          custom_projects: [],
+          custom_anime: [],
+          custom_games: [],
+          shadow_master_tutorials: [],
+          custom_tools: [],
+          deleted_item_ids: []
+        });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // API Route - Update Configs
+  app.post("/api/configs", async (req, res) => {
+    try {
+      const newConfig = req.body;
+      const configPath = path.join(process.cwd(), "custom_configs.json");
+      const { promises: fsPromises } = await import("fs");
+      
+      // Merge with existing config if any
+      let currentConfig: any = {};
+      try {
+        const existingData = await fsPromises.readFile(configPath, "utf-8");
+        currentConfig = JSON.parse(existingData);
+      } catch (e) {}
+
+      const updatedConfig = { ...currentConfig, ...newConfig };
+      await fsPromises.writeFile(configPath, JSON.stringify(updatedConfig, null, 2), "utf-8");
+      return res.json({ success: true, config: updatedConfig });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Vite middleware for development vs static serve for production
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
