@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft, Eye, EyeOff, Clock, ArrowRight } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
 import AnimeView from './components/AnimeView';
@@ -201,22 +201,100 @@ export default function App() {
   const [generatedGuestPasscode, setGeneratedGuestPasscode] = useState<string | null>(() => {
     return localStorage.getItem('generated_guest_passcode') || null;
   });
+  const [isGuestMode, setIsGuestMode] = useState<boolean>(() => {
+    return localStorage.getItem('is_guest_mode') === 'true';
+  });
   const [showAdminPasscode, setShowAdminPasscode] = useState(false);
   const [showGuestPasscode, setShowGuestPasscode] = useState(false);
+
+  const [generatedGuestPasscodeDuration, setGeneratedGuestPasscodeDuration] = useState<number>(() => {
+    const stored = localStorage.getItem('generated_guest_passcode_duration');
+    return stored ? parseInt(stored, 10) : 90; // Fallback to 90 minutes
+  });
+  const [generatedGuestPasscodeTime, setGeneratedGuestPasscodeTime] = useState<number | null>(() => {
+    const stored = localStorage.getItem('generated_guest_passcode_time');
+    return stored ? parseInt(stored, 10) : null;
+  });
+  const [guestLoginTime, setGuestLoginTime] = useState<number | null>(() => {
+    const stored = localStorage.getItem('guest_login_time');
+    return stored ? parseInt(stored, 10) : null;
+  });
+  const [guestSessionExpired, setGuestSessionExpired] = useState(false);
+
+  // Sync session structures
+  useEffect(() => {
+    if (guestLoginTime) {
+      localStorage.setItem('guest_login_time', guestLoginTime.toString());
+    } else {
+      localStorage.removeItem('guest_login_time');
+    }
+  }, [guestLoginTime]);
+
+  // Guest active session watchdog timer
+  useEffect(() => {
+    if (!isAuthorized || !isGuestMode || !guestLoginTime || !generatedGuestPasscodeDuration) {
+      setGuestSessionExpired(false);
+      return;
+    }
+
+    const checkExpiration = () => {
+      const elapsed = Date.now() - guestLoginTime;
+      if (elapsed >= generatedGuestPasscodeDuration * 60 * 1000) {
+        setGuestSessionExpired(true);
+      }
+    };
+
+    checkExpiration();
+    const interval = setInterval(checkExpiration, 1000);
+    return () => clearInterval(interval);
+  }, [isAuthorized, isGuestMode, guestLoginTime, generatedGuestPasscodeDuration]);
+
+  const getGuestTimeRemainingStr = () => {
+    if (!guestLoginTime || !generatedGuestPasscodeDuration) return '';
+    const elapsed = Date.now() - guestLoginTime;
+    const remaining = Math.max(0, (generatedGuestPasscodeDuration * 60 * 1000) - elapsed);
+    const totalSeconds = Math.floor(remaining / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) {
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const handleSessionExpiredLogout = () => {
+    setIsAuthorized(false);
+    setIsGuestMode(false);
+    setGuestLoginTime(null);
+    setGuestSessionExpired(false);
+    localStorage.removeItem('guest_login_time');
+    localStorage.setItem('is_guest_mode', 'false');
+  };
 
   // Clear any legacy authorized states or stored session marks
   useEffect(() => {
     localStorage.removeItem('shadow_sys_authorized');
   }, []);
 
-  // Save changes to generated Guest passcode to stay in sync
-  useEffect(() => {
-    if (generatedGuestPasscode) {
-      localStorage.setItem('generated_guest_passcode', generatedGuestPasscode);
+  const handleSetGeneratedGuestPasscode = (code: string | null) => {
+    setGeneratedGuestPasscode(code);
+    if (code) {
+      const now = Date.now();
+      setGeneratedGuestPasscodeTime(now);
+      localStorage.setItem('generated_guest_passcode_time', now.toString());
+      localStorage.setItem('generated_guest_passcode', code);
     } else {
+      setGeneratedGuestPasscodeTime(null);
+      localStorage.removeItem('generated_guest_passcode_time');
       localStorage.removeItem('generated_guest_passcode');
     }
-  }, [generatedGuestPasscode]);
+  };
+
+  // Sync remaining key codes/settings to stay persist-safe
+  useEffect(() => {
+    localStorage.setItem('is_guest_mode', isGuestMode.toString());
+  }, [isGuestMode]);
 
   const [appLoading, setAppLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('SOFTWARE');
@@ -450,6 +528,11 @@ export default function App() {
                     
                     if (enteredLower === 'guest' || isGeneratedMatch) {
                       setIsAuthorized(true);
+                      setIsGuestMode(true);
+                      if (isGeneratedMatch) {
+                        const now = Date.now();
+                        setGuestLoginTime(now);
+                      }
                       setShowGuestPopup(false);
                       setGuestAuthError('');
                     } else {
@@ -485,11 +568,11 @@ export default function App() {
                       </button>
                     </div>
                     <div className="text-[8px] uppercase font-bold tracking-[0.12em] text-neutral-500 mt-2 text-center">
-                      HINT: <span className="text-purple-400 select-all">guest</span>
+                      HINT: <span className="text-purple-400 select-all font-mono">guest</span>
                       {generatedGuestPasscode && (
                         <>
                           {' '}OR{' '}
-                          <span className="text-purple-400 select-all">{generatedGuestPasscode}</span>
+                          <span className="text-purple-400 select-all font-mono">{generatedGuestPasscode}</span>
                         </>
                       )}
                     </div>
@@ -662,6 +745,7 @@ export default function App() {
                       
                       if (hashHex === 'cf7a14191ac01a39913eadfae86c9e032ec7bd69fe01d452113f54ea6eef68ef') {
                         setIsAuthorized(true);
+                        setIsGuestMode(false);
                         setAuthError('');
                       } else {
                         setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
@@ -671,6 +755,7 @@ export default function App() {
                       // Fallback verification using basic obscuration in case subtle crypto is unavailable
                       if (btoa(entered) === 'S0dhYjA3MzA=') {
                         setIsAuthorized(true);
+                        setIsGuestMode(false);
                         setAuthError('');
                       } else {
                         setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
@@ -811,7 +896,12 @@ export default function App() {
               setShowSupportPage(true);
             }}
             generatedGuestPasscode={generatedGuestPasscode}
-            setGeneratedGuestPasscode={setGeneratedGuestPasscode}
+            setGeneratedGuestPasscode={handleSetGeneratedGuestPasscode}
+            generatedGuestPasscodeDuration={generatedGuestPasscodeDuration}
+            setGeneratedGuestPasscodeDuration={(duration: number) => {
+              setGeneratedGuestPasscodeDuration(duration);
+              localStorage.setItem('generated_guest_passcode_duration', duration.toString());
+            }}
           />
         </div>
       </div>
@@ -838,7 +928,15 @@ export default function App() {
               <Folder className="text-purple-400" size={20} strokeWidth={2.5} />
             </div>
             <div>
-              <h1 className="text-xs sm:text-lg md:text-xl font-black uppercase tracking-tighter leading-none text-white">Digital Archive</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xs sm:text-lg md:text-xl font-black uppercase tracking-tighter leading-none text-white">Digital Archive</h1>
+                {isGuestMode && (
+                  <div className="px-2 py-0.5 bg-purple-950/80 border border-purple-500/50 rounded-md flex items-center gap-1.5 animate-pulse text-[8px] sm:text-[9px] font-mono text-purple-300 font-bold shadow-[0_0_10px_rgba(168,85,247,0.2)]">
+                    <Clock size={10} className="text-purple-400" />
+                    <span>GUEST ACCESS: ACTIVE</span>
+                  </div>
+                )}
+              </div>
               <p className="text-[8px] sm:text-[10px] uppercase tracking-widest text-neutral-400 leading-none mt-1">Design & Development / 2026 Edition</p>
             </div>
           </div>
@@ -1059,6 +1157,51 @@ export default function App() {
                   <span className="text-emerald-500 font-bold animate-pulse">● UPLINK ACTIVE</span>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Guest Session Expired Popup Modal */}
+      <AnimatePresence>
+        {guestSessionExpired && (
+          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[9999] flex items-center justify-center p-4 font-mono select-none" id="guest-session-expired-modal">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.3 }}
+              className="bg-neutral-950 border border-red-500/50 w-full max-w-sm rounded-2xl shadow-[0_0_50px_rgba(239,68,68,0.25)] p-6 text-white text-center flex flex-col items-center relative"
+            >
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-red-500/30 rounded-tl-xl pointer-events-none" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-red-500/30 rounded-tr-xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-red-500/30 rounded-bl-xl pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-red-500/30 rounded-br-xl pointer-events-none" />
+
+              {/* Glowing Clock/Warning Icon */}
+              <div className="w-14 h-14 rounded-full bg-red-950/20 border border-red-500/40 flex items-center justify-center mb-4 text-red-400 relative">
+                <Clock size={24} className="animate-pulse" />
+              </div>
+
+              {/* Title & Description */}
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-red-500 mb-2 font-mono">
+                TIME UP // ACCESS EXPIRED
+              </h3>
+              
+              <p className="text-[10px] uppercase tracking-wider text-neutral-300 leading-normal max-w-xs mb-6 font-semibold font-mono">
+                Your guest access key has reached its manual duration limit of {generatedGuestPasscodeDuration} minutes.
+                <span className="block text-purple-400 font-extrabold mt-2 tracking-widest text-[9px]">CONTACT ADMIN TO CONTINUE ACCESS</span>
+              </p>
+
+              {/* Action Button */}
+              <button
+                type="button"
+                onClick={handleSessionExpiredLogout}
+                className="w-full py-2.5 bg-red-950/40 hover:bg-red-900/45 border border-red-500/60 hover:border-red-400 text-red-200 hover:text-white font-mono text-[9px] uppercase font-bold tracking-widest rounded-xl transition-all cursor-pointer active:scale-95 shadow-md flex items-center justify-center gap-1.5"
+              >
+                <span>DISCONNECT GATEWAY</span>
+                <ArrowRight size={10} />
+              </button>
             </motion.div>
           </div>
         )}

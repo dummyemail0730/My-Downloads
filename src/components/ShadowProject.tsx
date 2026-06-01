@@ -26,7 +26,9 @@ export default function ShadowProject({
   onLogout, 
   onSupportClick,
   generatedGuestPasscode,
-  setGeneratedGuestPasscode
+  setGeneratedGuestPasscode,
+  generatedGuestPasscodeDuration = 90,
+  setGeneratedGuestPasscodeDuration
 }: { 
   onEnter: () => void; 
   hasPlayed?: boolean; 
@@ -36,6 +38,8 @@ export default function ShadowProject({
   onSupportClick?: () => void;
   generatedGuestPasscode?: string | null;
   setGeneratedGuestPasscode?: (code: string | null) => void;
+  generatedGuestPasscodeDuration?: number;
+  setGeneratedGuestPasscodeDuration?: (duration: number) => void;
 }) {
   const skip = hasPlayed;
   
@@ -225,6 +229,8 @@ export default function ShadowProject({
   const [isAdminSuggestionsOpen, setIsAdminSuggestionsOpen] = useState(false);
   const [isAdminAppointmentsOpen, setIsAdminAppointmentsOpen] = useState(false);
   const [isAdminKeysOpen, setIsAdminKeysOpen] = useState(false);
+  const [isCustomDurationPopupOpen, setIsCustomDurationPopupOpen] = useState(false);
+  const [tempDuration, setTempDuration] = useState<string>('90');
 
   // --- TUTORIALS STATE ---
   const [tutorials, setTutorials] = useState<Array<{ id: string; title: string; category: string; description: string; url: string; system?: boolean }>>(() => {
@@ -2798,22 +2804,6 @@ export default function ShadowProject({
                     </span>
                   )}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('tutorials')}
-                  className={`pb-2.5 px-2.5 font-mono text-[8.5px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.05em] md:tracking-[0.12em] font-bold border-b-2 transition-all cursor-pointer relative whitespace-nowrap ${
-                    activeTab === 'tutorials'
-                      ? 'border-purple-500 text-purple-400 font-extrabold'
-                      : 'border-transparent text-neutral-500 hover:text-neutral-300'
-                  }`}
-                >
-                  [03] SHADOW TUTORIALS
-                  {tutorials.length > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 bg-neutral-900 border border-purple-500/30 text-purple-400 font-black text-[7.5px] sm:text-[8.5px] rounded-full font-mono">
-                      {tutorials.length}
-                    </span>
-                  )}
-                </button>
               </div>
 
               {activeTab === 'uplink' && (
@@ -3264,196 +3254,6 @@ export default function ShadowProject({
                     
                     <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500">
                       SECURE TERMINAL DIRECTORY INDEX
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'tutorials' && (
-                <div className="space-y-4 relative z-10 flex flex-col h-[340px] text-left">
-                  {/* Tutorial Links Header / Add Tutorial Trigger */}
-                  <div className="flex items-center justify-between font-mono pb-2 border-b border-neutral-900 shrink-0">
-                    <span className="text-[9px] uppercase tracking-wider text-purple-400 font-extrabold flex items-center gap-1.5">
-                      <BookOpen size={11} className="text-purple-400 animate-pulse" />
-                      <span>// SYSTEM REFERENCE DIRECTORY</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingTutorial(!isAddingTutorial)}
-                      className="px-2 py-1 bg-purple-950/20 border border-purple-500/20 hover:border-purple-500 hover:bg-purple-950/40 text-[8px] text-purple-400 hover:text-purple-300 rounded font-black tracking-widest uppercase transition-all select-none cursor-pointer flex items-center gap-1"
-                    >
-                      {isAddingTutorial ? 'Cancel' : '+ File Link'}
-                    </button>
-                  </div>
-
-                  {isAddingTutorial ? (
-                    /* Add Tutorial Form */
-                    <form 
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (!newTutorialTitle || !newTutorialUrl) return;
-                        const newTut = {
-                          id: `custom-tut-${Date.now()}`,
-                          title: newTutorialTitle.toUpperCase(),
-                          category: newTutorialCategory.toUpperCase(),
-                          description: newTutorialDesc || 'Custom resource linked by user profile.',
-                          url: newTutorialUrl
-                        };
-                        const updated = [...tutorials, newTut];
-                        setTutorials(updated);
-                        
-                        // Save to localStorage (only the non-system ones)
-                        const customOnly = updated.filter(t => !t.system);
-                        localStorage.setItem('shadow_master_tutorials', JSON.stringify(customOnly));
-                        
-                        // Reset forms
-                        setNewTutorialTitle('');
-                        setNewTutorialDesc('');
-                        setNewTutorialUrl('');
-                        setIsAddingTutorial(false);
-                      }}
-                      className="flex-1 overflow-y-auto pr-1 space-y-3.5 font-mono"
-                    >
-                      <div>
-                        <label className="text-[8px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1 block">
-                          [01] TUTORIAL TITLE OR PROTOCOL NAME
-                        </label>
-                        <input
-                          type="text"
-                          value={newTutorialTitle}
-                          onChange={(e) => setNewTutorialTitle(e.target.value)}
-                          placeholder="e.g. ULTIMATE WINDOWS OS LATENCY SLIGHT ENGINE"
-                          className="w-full rounded-xl bg-neutral-950 border border-neutral-850 p-2.5 text-white font-mono text-[10.5px] uppercase tracking-wider focus:border-purple-500 outline-none placeholder:text-neutral-700 font-semibold"
-                          required
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[8px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1 block">
-                            [02] CATEGORY TAG
-                          </label>
-                          <select
-                            value={newTutorialCategory}
-                            onChange={(e) => setNewTutorialCategory(e.target.value)}
-                            className="w-full rounded-xl bg-neutral-950 border border-neutral-850 p-2 text-white font-mono text-[10.5px] focus:border-purple-500 outline-none cursor-pointer font-semibold"
-                          >
-                            <option value="CPU/POWER">CPU/POWER</option>
-                            <option value="RAM OC">RAM OC</option>
-                            <option value="OS OPTIMIZATION">OS OPTIMIZATION</option>
-                            <option value="OS OVERRIDES">OS OVERRIDES</option>
-                            <option value="STORAGE DISKS">STORAGE DISKS</option>
-                            <option value="MISC GUIDE">MISC GUIDE</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-[8px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1 block">
-                            [03] RESOURCE DESTINATION URL
-                          </label>
-                          <input
-                            type="url"
-                            value={newTutorialUrl}
-                            onChange={(e) => setNewTutorialUrl(e.target.value)}
-                            placeholder="https://example.com/guide.md"
-                            className="w-full rounded-xl bg-neutral-950 border border-neutral-850 p-2 text-white font-mono text-[10.5px] focus:border-purple-500 outline-none placeholder:text-neutral-700 font-semibold"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-[8px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1 block">
-                          [04] SUMMARY OR BRIEF BRIEF
-                        </label>
-                        <textarea
-                          value={newTutorialDesc}
-                          onChange={(e) => setNewTutorialDesc(e.target.value)}
-                          placeholder="Summary of memory addresses, registry paths, or execution bounds..."
-                          rows={2}
-                          className="w-full rounded-xl bg-neutral-950 border border-neutral-850 p-2.5 text-white font-mono text-[10px] focus:border-purple-500 outline-none placeholder:text-neutral-700 resize-none font-medium"
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full py-2 bg-purple-600 hover:bg-purple-755 text-white font-black text-[9px] uppercase tracking-widest rounded-xl transition-all font-mono shadow-md cursor-pointer"
-                      >
-                        SUBMIT SHADOW TUTORIAL DATA PACKET
-                      </button>
-                    </form>
-                  ) : (
-                    /* Tutorials List */
-                    <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 font-mono scrollbar-thin scrollbar-thumb-purple-500/10 hover:scrollbar-thumb-purple-500/30">
-                      {tutorials.length === 0 ? (
-                        <div className="py-12 px-4 rounded-2xl bg-neutral-900/10 border border-dashed border-neutral-900 flex flex-col items-center justify-center text-center">
-                          <span className="text-xl mb-1.5 opacity-60">📁</span>
-                          <span className="text-[9px] font-black text-neutral-500 uppercase tracking-widest block mb-0.5">
-                            REFERENCE DIRECTORY EMPTY
-                          </span>
-                          <p className="text-[8px] text-neutral-655 max-w-[280px] leading-normal font-sans text-neutral-500 uppercase font-bold tracking-wide">
-                            No linked manuals found in index. Register custom reference files with '+ FILE LINK'.
-                          </p>
-                        </div>
-                      ) : (
-                        tutorials.map((tut) => (
-                          <div 
-                            key={tut.id}
-                            className="p-3.5 rounded-2xl bg-neutral-900/40 border border-neutral-900/80 hover:border-neutral-800 transition-all flex flex-col font-mono relative group"
-                          >
-                            <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[7px] font-bold tracking-widest px-1.5 py-0.5 bg-purple-950/20 text-purple-400 border border-purple-900/25 rounded uppercase">
-                                  {tut.category}
-                                </span>
-                                {tut.system && (
-                                  <span className="text-[6.5px] font-black tracking-wider px-1 bg-neutral-950/60 text-neutral-500 border border-neutral-900 rounded select-none">
-                                    SYSTEM
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {!tut.system && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const filtered = tutorials.filter(t => t.id !== tut.id);
-                                    setTutorials(filtered);
-                                    const customOnly = filtered.filter(t => !t.system);
-                                    localStorage.setItem('shadow_master_tutorials', JSON.stringify(customOnly));
-                                  }}
-                                  className="text-[7.5px] text-red-500 hover:text-red-400 uppercase tracking-wider font-extrabold cursor-pointer select-none transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                >
-                                  Revoke
-                                </button>
-                              )}
-                            </div>
-
-                            <h4 className="text-[10px] sm:text-[10.5px] font-extrabold tracking-wide text-white mb-1 uppercase">
-                              {tut.title}
-                            </h4>
-                            
-                            <p className="text-[9px] text-neutral-400 leading-normal mb-2 font-sans">
-                              {tut.description}
-                            </p>
-
-                            <a
-                              href={tut.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="self-start text-[8px] font-black text-purple-400 hover:text-purple-300 uppercase tracking-widest inline-flex items-center gap-1 border-b border-dashed border-purple-400/30 hover:border-purple-300/60 pb-0.5 no-underline cursor-pointer"
-                            >
-                              INITIALIZE EDUCATION DECODER <ExternalLink size={9} />
-                            </a>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-
-                  {/* Tutorials Footer Cancel / Back Indicator */}
-                  <div className="flex items-center justify-end pt-4 border-t border-neutral-900 mt-2 shrink-0 w-full font-mono">
-                    <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500 text-right w-full">
-                      MASTER INSTRUCTION DIRECTIVES
                     </span>
                   </div>
                 </div>
@@ -4735,15 +4535,6 @@ export default function ShadowProject({
 
               {/* Main Content Area */}
               <div className="space-y-5 relative z-10 font-mono">
-                <div className="text-left">
-                  <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-extrabold mb-1">
-                    Generate Guest Access Credentials
-                  </h4>
-                  <p className="text-[8.5px] uppercase tracking-wider text-neutral-500 leading-normal font-medium">
-                    This module generates dynamic keys that authorize secure passage into the digital archives for standard guest accounts.
-                  </p>
-                </div>
-
                 <div className="bg-[#0b081a]/90 border border-purple-950/50 rounded-xl p-4 flex flex-col gap-3 relative overflow-hidden shadow-inner w-full">
                   <div className="flex items-center justify-between text-[8px] font-bold text-neutral-500 tracking-[0.2em] uppercase font-mono">
                     <span>GUEST DECRYPTOR UTILITY</span>
@@ -4754,14 +4545,8 @@ export default function ShadowProject({
                     <button
                       type="button"
                       onClick={() => {
-                        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-                        let code = '';
-                        for (let i = 0; i < 8; i++) {
-                          code += chars.charAt(Math.floor(Math.random() * chars.length));
-                        }
-                        if (setGeneratedGuestPasscode) {
-                          setGeneratedGuestPasscode(code);
-                        }
+                        setTempDuration(generatedGuestPasscodeDuration.toString());
+                        setIsCustomDurationPopupOpen(true);
                       }}
                       className="w-full py-2.5 bg-purple-950/40 hover:bg-purple-900/40 border border-purple-800/60 hover:border-purple-500/80 text-purple-300 font-mono text-[9px] uppercase font-extrabold tracking-widest rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                     >
@@ -4793,11 +4578,14 @@ export default function ShadowProject({
                         </button>
                       )}
                     </div>
-                  </div>
-                </div>
 
-                <div className="text-[8.5px] uppercase tracking-wider text-purple-400/90 leading-normal bg-neutral-900/20 rounded-lg p-2.5 border border-purple-950/30 text-left font-semibold">
-                  ⚡ <strong>NOTE:</strong> Hand this dynamic key code directly to standard operators. The system accepts this key on the guest decryption terminal.
+                    {generatedGuestPasscode && (
+                      <div className="text-[8px] uppercase tracking-wider text-emerald-400 font-extrabold flex flex-col items-center justify-center gap-1 mt-1 font-mono w-full text-center">
+                        <span className="animate-pulse">● KEY STATUS: ACTIVE / DEPLOYED</span>
+                        <span className="text-neutral-500 font-medium text-[7.5px] tracking-wide mt-0.5 uppercase">// VISITOR SESSION CAP: {generatedGuestPasscodeDuration} MINUTES //</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -4812,6 +4600,121 @@ export default function ShadowProject({
                   className="px-4 py-2 bg-neutral-900 hover:bg-neutral-850 text-[#ececec] border border-neutral-800 hover:border-neutral-700 rounded-xl text-[9px] uppercase tracking-[0.15em] font-extrabold transition-colors cursor-pointer font-mono"
                 >
                   Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Duration Input Popup Modal */}
+      <AnimatePresence>
+        {isCustomDurationPopupOpen && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[10000] flex items-center justify-center p-4 font-mono select-none" id="guest-duration-setup-modal">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="bg-neutral-950 border border-purple-500/50 w-full max-w-sm rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.3)] p-6 text-white relative flex flex-col"
+            >
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-purple-500/30 rounded-tl-xl pointer-events-none" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-purple-500/30 rounded-tr-xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-purple-500/30 rounded-bl-xl pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-500/30 rounded-br-xl pointer-events-none" />
+
+              {/* Title Header */}
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-purple-950/40">
+                <Clock size={14} className="text-purple-400 animate-pulse" />
+                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-purple-300">
+                  VISIT DURATION // SCHEDULER
+                </h4>
+              </div>
+
+              {/* Desc */}
+              <p className="text-[10px] text-neutral-400 leading-normal mb-4">
+                SPECIFY THE ALLOTTED VISIT MINUTES FOR THE NEW GUEST ACCESS KEY CODE.
+              </p>
+
+              {/* Pre-sets */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { label: "15 MINS", val: 15 },
+                  { label: "30 MINS", val: 30 },
+                  { label: "1 HOUR", val: 60 },
+                  { label: "2 HOURS", val: 120 },
+                  { label: "4 HOURS", val: 240 },
+                  { label: "8 HOURS", val: 480 },
+                ].map((preset) => (
+                  <button
+                    key={preset.val}
+                    type="button"
+                    onClick={() => setTempDuration(preset.val.toString())}
+                    className={`py-1.5 rounded text-[8px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                      tempDuration === preset.val.toString()
+                        ? 'bg-purple-950/80 border-purple-500 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.25)]'
+                        : 'bg-neutral-900/40 border-neutral-800 text-neutral-500 hover:text-neutral-300 hover:border-neutral-700'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom input */}
+              <div className="space-y-1.5 mb-6">
+                <label className="text-[8px] font-bold text-neutral-500 tracking-[0.2em] uppercase block">
+                  MANUAL VISIT MINUTES
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type="number"
+                    min="1"
+                    max="10080"
+                    placeholder="90"
+                    value={tempDuration}
+                    onChange={(e) => setTempDuration(e.target.value)}
+                    className="w-full text-center bg-black/80 border border-neutral-900 focus:border-purple-500 rounded-lg p-2 text-xs font-extrabold text-purple-300 tracking-wider outline-none"
+                  />
+                  <span className="absolute right-3 text-[9px] text-neutral-600 font-extrabold uppercase font-mono">MINS</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsCustomDurationPopupOpen(false)}
+                  className="flex-1 py-2 bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white rounded-lg text-[9px] font-bold uppercase tracking-widest cursor-pointer transition-colors"
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const mins = parseInt(tempDuration, 10);
+                    if (isNaN(mins) || mins <= 0) {
+                      return;
+                    }
+                    if (setGeneratedGuestPasscodeDuration) {
+                      setGeneratedGuestPasscodeDuration(mins);
+                    }
+                    
+                    // Generate code
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                    let code = '';
+                    for (let i = 0; i < 8; i++) {
+                      code += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                    if (setGeneratedGuestPasscode) {
+                      setGeneratedGuestPasscode(code);
+                    }
+
+                    setIsCustomDurationPopupOpen(false);
+                  }}
+                  className="flex-1 py-2 bg-purple-750/90 hover:bg-purple-700 hover:border-purple-500 border border-purple-800/80 text-white rounded-lg text-[9px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md shadow-purple-950/50"
+                >
+                  GENERATE KEY
                 </button>
               </div>
             </motion.div>
@@ -5582,72 +5485,6 @@ export default function ShadowProject({
                       <div className="absolute flex flex-col items-center justify-center font-mono">
                         <span className="text-[10px] font-black text-purple-400 leading-none">
                           {enteringArchiveProgress}%
-                        </span>
-                        <span className="text-[5px] font-black text-purple-500/60 tracking-wider uppercase leading-none mt-0.5">TX</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Access Tutorials Action Container */}
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                  <motion.button 
-                    initial={skip ? { opacity: 1 } : { opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={skip ? { duration: 0 } : { 
-                      duration: 5.0, 
-                      ease: "easeInOut", 
-                      delay: 3.2 
-                    }}
-                    whileHover={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 1.02 }}
-                    whileTap={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 0.98 }}
-                    onClick={() => {
-                      setIsAccessingTutorials(true);
-                      setAccessingTutorialsProgress(1);
-                    }}
-                    disabled={isEnteringArchive || isAccessingTutorials}
-                    className={`group flex items-center justify-center gap-4 px-8 py-3 bg-purple-950/40 border border-purple-500/40 text-purple-300 font-black uppercase tracking-widest text-xs transition-all duration-200 shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer w-full sm:w-auto ${
-                      (isEnteringArchive || isAccessingTutorials) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-purple-900/60 hover:border-purple-400'
-                    }`}
-                  >
-                    Access Shadow Master Tutorials
-                    <Sparkles size={16} className="text-purple-400 group-hover:rotate-12 transition-transform duration-300 animate-pulse" />
-                  </motion.button>
-
-                  {isAccessingTutorials && (
-                    <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
-                      {/* Outer rotating dashed purple ring */}
-                      <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/30 animate-spin [animation-duration:12s]" />
-                      
-                      {/* Inner SVG Circular Progress */}
-                      <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 80 80">
-                        {/* Background Track */}
-                        <circle
-                          cx="40"
-                          cy="40"
-                          r="34"
-                          className="stroke-neutral-950/85"
-                          strokeWidth="6"
-                          fill="transparent"
-                        />
-                        {/* Foreground Progress */}
-                        <circle
-                          cx="40"
-                          cy="40"
-                          r="34"
-                          className="stroke-purple-500 transition-all duration-100 ease-out"
-                          strokeWidth="6"
-                          fill="transparent"
-                          strokeDasharray="213.6"
-                          strokeDashoffset={213.6 * (1 - accessingTutorialsProgress / 100)}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      
-                      {/* Center text showing percentage and TX label */}
-                      <div className="absolute flex flex-col items-center justify-center font-mono">
-                        <span className="text-[10px] font-black text-purple-400 leading-none">
-                          {accessingTutorialsProgress}%
                         </span>
                         <span className="text-[5px] font-black text-purple-500/60 tracking-wider uppercase leading-none mt-0.5">TX</span>
                       </div>
