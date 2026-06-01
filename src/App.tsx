@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
 import AnimeView from './components/AnimeView';
@@ -195,6 +195,12 @@ export default function App() {
   const [passcode, setPasscode] = useState('');
   const [authError, setAuthError] = useState('');
   const [showOverrideInput, setShowOverrideInput] = useState(false);
+  const [showGuestPopup, setShowGuestPopup] = useState(false);
+  const [guestPasscode, setGuestPasscode] = useState('');
+  const [guestAuthError, setGuestAuthError] = useState('');
+  const [generatedGuestPasscode, setGeneratedGuestPasscode] = useState<string | null>(null);
+  const [showAdminPasscode, setShowAdminPasscode] = useState(false);
+  const [showGuestPasscode, setShowGuestPasscode] = useState(false);
 
   // Clear any legacy authorized states or stored session marks
   useEffect(() => {
@@ -382,17 +388,159 @@ export default function App() {
   if (!isAuthorized) {
     return (
       <div className="min-h-screen w-full bg-black relative flex items-center justify-center p-4 font-mono select-none overflow-hidden text-white">
-        {/* Absolute ADMIN LOG IN Button at the bottom left corner as requested */}
-        <button
-          onClick={() => {
-            setAuthError('');
-            setShowOverrideInput(!showOverrideInput);
-          }}
-          className="absolute bottom-6 left-6 px-4 py-2.5 bg-neutral-900/30 hover:bg-[#1f1a40]/40 border border-neutral-800 hover:border-purple-500/40 text-neutral-400 hover:text-white rounded-xl font-mono text-[9px] uppercase font-bold tracking-[0.18em] flex items-center gap-2 transition-all duration-300 backdrop-blur-md shadow-lg cursor-pointer z-50 ml-4 mb-2"
-        >
-          <Lock size={11} className="text-purple-400" />
-          <span>ADMIN LOG IN</span>
-        </button>
+        {/* Guest Passcode Verification Modal Overlay */}
+        <AnimatePresence>
+          {showGuestPopup && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -15 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+                className="w-full max-w-sm bg-[#0d091e]/95 border border-purple-500/40 rounded-[2rem] p-6 md:p-8 shadow-[0_0_80px_rgba(147,51,234,0.35)] relative overflow-hidden"
+              >
+                {/* Active Corner Brackets to match style */}
+                <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-purple-500/40 rounded-tl-xl" />
+                <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-purple-500/40 rounded-tr-xl" />
+                <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-purple-500/40 rounded-bl-xl" />
+                <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-purple-500/40 rounded-br-xl" />
+
+                <div className="flex justify-between items-center mb-5 pb-3 border-b border-purple-950/40">
+                  <div className="flex items-center gap-2">
+                    <User size={14} className="text-purple-400" />
+                    <h3 className="text-xs font-black tracking-[0.2em] uppercase font-mono text-purple-200">
+                      GUEST REGISTRATION
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowGuestPopup(false)}
+                    className="text-neutral-500 hover:text-white p-1 hover:bg-neutral-900/50 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <p className="text-[10px] md:text-[11px] text-neutral-400 tracking-wide leading-relaxed mb-6 font-mono text-center">
+                  Gaining limited guest privileges requires standard terminal validation.
+                </p>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const enteredOriginal = guestPasscode.trim();
+                    const enteredLower = enteredOriginal.toLowerCase();
+                    const isGeneratedMatch = generatedGuestPasscode && (enteredOriginal === generatedGuestPasscode || enteredLower === generatedGuestPasscode.toLowerCase());
+                    
+                    if (enteredLower === 'guest' || isGeneratedMatch) {
+                      setIsAuthorized(true);
+                      setShowGuestPopup(false);
+                      setGuestAuthError('');
+                    } else {
+                      setGuestAuthError('INVALID GUEST PASSPHRASE. DECRYPTION FAILED.');
+                      setGuestPasscode('');
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-[8px] uppercase tracking-[0.25em] text-neutral-400 font-extrabold mb-2.5 text-center">
+                      ENTER GUEST SECURITY PASSPHRASE
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type={showGuestPasscode ? "text" : "password"}
+                        autoFocus
+                        placeholder="••••••••"
+                        value={guestPasscode}
+                        onChange={(e) => {
+                          setGuestPasscode(e.target.value);
+                          if (guestAuthError) setGuestAuthError('');
+                        }}
+                        className="w-full text-center text-sm font-mono bg-black hover:bg-neutral-900/45 focus:bg-black border border-neutral-800 focus:border-purple-500/60 text-purple-400 p-3 pr-11 rounded-xl outline-none transition-all placeholder:text-neutral-800/60 tracking-widest font-bold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowGuestPasscode(!showGuestPasscode)}
+                        className="absolute right-3 text-neutral-500 hover:text-purple-400 transition-colors p-1.5 rounded cursor-pointer z-10"
+                        title={showGuestPasscode ? "Hide Passcode" : "Show Passcode"}
+                      >
+                        {showGuestPasscode ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                    <div className="text-[8px] uppercase font-bold tracking-[0.12em] text-neutral-500 mt-2 text-center">
+                      HINT: <span className="text-purple-400 select-all">guest</span>
+                      {generatedGuestPasscode && (
+                        <>
+                          {' '}OR{' '}
+                          <span className="text-purple-400 select-all">{generatedGuestPasscode}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {guestAuthError && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-[9px] text-red-400 text-center font-bold tracking-wider leading-relaxed px-2 py-1.5 bg-red-950/10 border border-red-900/30 rounded-lg font-mono"
+                    >
+                      {guestAuthError}
+                    </motion.p>
+                  )}
+
+                  <div className="pt-2 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowGuestPopup(false)}
+                      className="flex-1 py-2.5 bg-transparent border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/30 text-neutral-400 hover:text-neutral-200 font-mono text-[9px] uppercase font-bold tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      CANCEL
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-98 text-white font-mono text-[9px] font-extrabold tracking-widest rounded-xl flex items-center justify-center gap-1.5 shadow-lg transition-all cursor-pointer"
+                    >
+                      <Unlock size={10} />
+                      DECRYPT ACCESS
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Absolute ADMIN LOG IN & GUEST LOGIN Buttons at the bottom left corner as requested */}
+        <div className="absolute bottom-6 left-6 z-50 ml-4 mb-2 flex items-center gap-3">
+          <button
+            onClick={() => {
+              setAuthError('');
+              setShowOverrideInput(!showOverrideInput);
+            }}
+            className="px-4 py-2.5 bg-neutral-900/40 hover:bg-[#1f1a40]/60 border border-neutral-800 hover:border-purple-500/40 text-neutral-400 hover:text-white rounded-xl font-mono text-[9px] uppercase font-bold tracking-[0.18em] flex items-center gap-2 transition-all duration-300 backdrop-blur-md shadow-lg cursor-pointer"
+          >
+            <Lock size={11} className="text-purple-400" />
+            <span>ADMIN LOG IN</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setGuestAuthError('');
+              setGuestPasscode('');
+              setShowGuestPopup(true);
+            }}
+            className="px-4 py-2.5 bg-purple-700/80 hover:bg-purple-600 border border-purple-500/30 hover:border-purple-400/55 text-white rounded-xl font-mono text-[9px] uppercase font-bold tracking-[0.18em] flex items-center gap-2 transition-all duration-300 backdrop-blur-md shadow-[0_4px_15px_rgba(147,51,234,0.15)] hover:shadow-[0_4px_22px_rgba(147,51,234,0.35)] cursor-pointer"
+          >
+            <User size={11} className="text-purple-200" />
+            <span>GUEST LOGIN</span>
+          </button>
+        </div>
 
         {/* Immersive background matching the theme */}
         <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
@@ -504,6 +652,12 @@ export default function App() {
                       if (hashHex === 'cf7a14191ac01a39913eadfae86c9e032ec7bd69fe01d452113f54ea6eef68ef') {
                         setIsAuthorized(true);
                         setAuthError('');
+                      } else if (generatedGuestPasscode && entered === generatedGuestPasscode) {
+                        setIsAuthorized(true);
+                        setAuthError('');
+                      } else if (entered.toLowerCase() === 'guest') {
+                        setIsAuthorized(true);
+                        setAuthError('');
                       } else {
                         setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
                         setPasscode('');
@@ -511,6 +665,12 @@ export default function App() {
                     } catch (err) {
                       // Fallback verification using basic obscuration in case subtle crypto is unavailable
                       if (btoa(entered) === 'S0dhYjA3MzA=') {
+                        setIsAuthorized(true);
+                        setAuthError('');
+                      } else if (generatedGuestPasscode && entered === generatedGuestPasscode) {
+                        setIsAuthorized(true);
+                        setAuthError('');
+                      } else if (entered.toLowerCase() === 'guest') {
                         setIsAuthorized(true);
                         setAuthError('');
                       } else {
@@ -525,17 +685,71 @@ export default function App() {
                     <label className="block text-[8px] uppercase tracking-[0.25em] text-neutral-400 font-extrabold mb-2.5 text-center">
                       ENTER ACCESS PASSCODE
                     </label>
-                    <input 
-                      type="password"
-                      autoFocus
-                      placeholder="••••••••"
-                      value={passcode}
-                      onChange={(e) => {
-                        setPasscode(e.target.value);
-                        if (authError) setAuthError('');
-                      }}
-                      className="w-full text-center text-sm font-mono bg-black hover:bg-neutral-900/45 focus:bg-black border border-neutral-800 focus:border-purple-500/60 text-purple-400 p-3 rounded-xl outline-none transition-all placeholder:text-neutral-800 tracking-widest"
-                    />
+                    <div className="relative flex items-center">
+                      <input 
+                        type={showAdminPasscode ? "text" : "password"}
+                        autoFocus
+                        placeholder="••••••••"
+                        value={passcode}
+                        onChange={(e) => {
+                          setPasscode(e.target.value);
+                          if (authError) setAuthError('');
+                        }}
+                        className="w-full text-center text-sm font-mono bg-black hover:bg-neutral-900/45 focus:bg-black border border-neutral-800 focus:border-purple-500/60 text-purple-400 p-3 pr-11 rounded-xl outline-none transition-all placeholder:text-neutral-800 tracking-widest font-bold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminPasscode(!showAdminPasscode)}
+                        className="absolute right-3 text-neutral-500 hover:text-purple-400 transition-colors p-1.5 rounded cursor-pointer z-10"
+                        title={showAdminPasscode ? "Hide Passcode" : "Show Passcode"}
+                      >
+                        {showAdminPasscode ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Random Password Generator for Guest */}
+                  <div className="bg-[#0b081a]/90 border border-purple-950/50 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden shadow-inner">
+                    <div className="flex items-center justify-between text-[8px] font-bold text-neutral-500 tracking-[0.2em] uppercase font-mono">
+                      <span>GUEST TEMPORARY DECRYPTOR</span>
+                      <span className="text-[7px] text-purple-400/90 font-semibold tracking-widest">SECURE SHELL</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                          let code = '';
+                          for (let i = 0; i < 8; i++) {
+                            code += chars.charAt(Math.floor(Math.random() * chars.length));
+                          }
+                          setGeneratedGuestPasscode(code);
+                          setPasscode(code); // Autofill
+                          if (authError) setAuthError('');
+                        }}
+                        className="py-1.5 px-3 bg-purple-950/40 hover:bg-purple-900/40 border border-purple-800/60 hover:border-purple-500/80 text-purple-300 font-mono text-[8px] uppercase font-extrabold tracking-widest rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shrink-0"
+                      >
+                        <Key size={10} />
+                        GENERATE ACCESS KEY
+                      </button>
+                      <div className="flex-1 min-w-0 bg-black/60 border border-neutral-900 rounded-lg px-2 py-1 flex items-center justify-between font-mono h-[28px]">
+                        <span className="text-[9px] tracking-widest font-black text-purple-400 select-all truncate font-mono">
+                          {generatedGuestPasscode || 'SYS-STDBY-KEY'}
+                        </span>
+                        {generatedGuestPasscode && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(generatedGuestPasscode);
+                            }}
+                            className="text-neutral-500 hover:text-purple-300 transition-colors duration-200 cursor-pointer p-0.5"
+                            title="Copy Passcode"
+                          >
+                            <Copy size={10} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {authError && (
