@@ -100,8 +100,7 @@ export default function GamesView() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: idx * 0.05 }}
-                  onClick={handleClick}
-                  className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-pointer ${
+                  className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-default ${
                     hasBgImage 
                       ? 'bg-neutral-950 text-white' 
                       : 'bg-neutral-900/35 hover:bg-neutral-900/80 text-white'
@@ -148,10 +147,7 @@ export default function GamesView() {
                     
                     <div className="pt-6">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleClick(e);
-                        }}
+                        onClick={handleClick}
                         className={`inline-flex items-center gap-2 px-4 py-2.5 text-[9px] font-mono font-black uppercase tracking-[0.16em] border rounded-lg transition-all duration-300 cursor-pointer w-full justify-center ${
                           hasBgImage
                             ? 'bg-sky-950/40 hover:bg-sky-900/60 border-sky-500/40 text-sky-300 hover:text-white shadow-[0_0_15px_rgba(56,189,248,0.12)] hover:shadow-[0_0_20px_rgba(56,189,248,0.35)] hover:border-sky-400'

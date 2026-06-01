@@ -62,8 +62,7 @@ export default function SoftwareView() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: idx * 0.05 }}
-            onClick={handleClick}
-            className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-pointer ${
+            className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-default ${
               hasBgImage 
                 ? 'bg-neutral-950 text-white' 
                 : 'bg-neutral-900/35 hover:bg-neutral-900/80 text-white'
@@ -91,17 +90,20 @@ export default function SoftwareView() {
                 }`}>
                   {project.title}
                 </h3>
-                <ExternalLink size={16} className={`transition-opacity ${
-                  hasBgImage ? 'opacity-70 group-hover:opacity-100 text-white' : 'opacity-40 group-hover:opacity-100 text-neutral-400 group-hover:text-purple-300'
-                }`} />
+                <button
+                  onClick={handleClick}
+                  className="cursor-pointer p-1 rounded hover:bg-neutral-800/40 transition-colors"
+                  title="Open External Link"
+                >
+                  <ExternalLink size={16} className={`transition-opacity ${
+                    hasBgImage ? 'opacity-70 group-hover:opacity-100 text-white' : 'opacity-40 group-hover:opacity-100 text-neutral-400 group-hover:text-purple-300'
+                  }`} />
+                </button>
               </div>
               
               <div className="mt-auto pt-6 flex justify-end">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClick(e);
-                  }}
+                  onClick={handleClick}
                   className={`h-10 w-10 shrink-0 flex items-center justify-center border transition-all duration-300 cursor-pointer shadow-md rounded-none ${
                     hasBgImage
                       ? 'bg-cyan-950/40 hover:bg-cyan-900/60 border-cyan-500/40 text-cyan-300 hover:text-white shadow-[0_0_15px_rgba(34,211,238,0.12)] hover:shadow-[0_0_20px_rgba(34,211,238,0.35)] hover:border-cyan-400'

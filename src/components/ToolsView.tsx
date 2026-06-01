@@ -116,8 +116,7 @@ export default function ToolsView() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: idx * 0.05 }}
-              onClick={handleClick}
-              className="border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group text-white cursor-pointer"
+              className="border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group text-white cursor-default"
             >
               {/* Background Image of Cid Kagenou with purple gradient blending */}
               <div className="absolute inset-0 z-0 overflow-hidden">
@@ -137,10 +136,16 @@ export default function ToolsView() {
                     {getIcon(tool.category)}
                   </div>
                   <div className="flex items-center gap-1.55">
-                    <span className="text-[8px] font-mono font-bold bg-neutral-900 text-neutral-300 border border-neutral-800 px-1.5 py-0.5 group-hover:bg-purple-500 group-hover:text-black transition-all duration-300 rounded">
+                    <span className="text-[8px] font-mono font-bold bg-neutral-900 text-neutral-300 border border-neutral-800 px-1.5 py-0.5 group-hover:bg-purple-500 group-hover:text-black transition-all duration-300 rounded mr-1">
                       V{tool.version}
                     </span>
-                    <ExternalLink size={14} className="opacity-45 group-hover:opacity-100 transition-opacity text-neutral-400 group-hover:text-purple-300" />
+                    <button
+                      onClick={handleClick}
+                      className="cursor-pointer p-1 rounded hover:bg-neutral-800/40 transition-colors"
+                      title="Open External Link"
+                    >
+                      <ExternalLink size={14} className="opacity-45 group-hover:opacity-100 transition-opacity text-neutral-400 group-hover:text-purple-300" />
+                    </button>
                   </div>
                 </div>
 
@@ -150,10 +155,7 @@ export default function ToolsView() {
                 
                 <div className="mt-auto pt-6 flex justify-end">
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleClick(e);
-                    }}
+                    onClick={handleClick}
                     className="h-10 w-10 shrink-0 flex items-center justify-center border border-purple-500/40 bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 hover:text-white rounded-none transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400"
                     title="Download File"
                   >
