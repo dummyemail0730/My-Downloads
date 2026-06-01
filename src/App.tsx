@@ -47,7 +47,7 @@ try {
           id: '1',
           title: 'G.S. W11 ISO / TINYCORE11',
           description: customDesc || 'all-in-one, bootable Windows Preinstallation Environment (WinPE)',
-          link: customLink || 'https://drive.google.com/file/d/1Lz'
+          link: customLink || 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing'
         });
       }
       projectsList.splice(w11CustomIdx, 1);
@@ -127,7 +127,7 @@ try {
     const msofficeIdx = projectsList.findIndex((p: any) => p.id === '3' || (p.title && p.title.toLowerCase().includes('microsoft office')));
     if (msofficeIdx !== -1) {
       if (!projectsList[msofficeIdx].link) {
-        projectsList[msofficeIdx].link = 'https://drive.google.com/file/d/1O_MSOfficeLTSC2021';
+        projectsList[msofficeIdx].link = 'https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing';
       }
     }
 

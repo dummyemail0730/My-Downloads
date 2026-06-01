@@ -13,7 +13,7 @@ export const PROJECTS: Project[] = [
     description: 'all-in-one, bootable Windows Preinstallation Environment (WinPE)',
     tags: ['Rust', 'Vulkan', 'Graphics'],
     image: shadowOnRoof,
-    link: 'https://drive.google.com/file/d/1Lz',
+    link: 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing',
   },
   {
     id: '2',
@@ -29,7 +29,7 @@ export const PROJECTS: Project[] = [
     description: 'Complete productivity suite featuring Microsoft Word, Excel, PowerPoint, and Outlook pre-activated and pre-configured.',
     tags: ['Office', 'Utility', 'Productivity'],
     image: shadowMysteriousAura,
-    link: 'https://drive.google.com/file/d/1O_MSOfficeLTSC2021',
+    link: 'https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing',
   },
   {
     id: '4',

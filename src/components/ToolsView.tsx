@@ -83,7 +83,7 @@ export default function ToolsView() {
   });
 
   const defaultToolLinks: { [key: string]: string } = {
-    '1': 'https://drive.google.com/file/d/1Lz',
+    '1': 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing',
     '2': 'https://www.3dpchip.com',
     '3': 'https://www.wagnardsoft.com/display-driver-uninstaller-ddu',
     '4': 'https://www.cpuid.com/softwares/cpu-z.html',

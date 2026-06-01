@@ -181,8 +181,8 @@ export default function ShadowProject({
 
   // Google Drive Accounts dropdown list - strictly Primary G-Drive and Secondary G-Drive Mirror
   const driveAccounts = [
-    { name: 'PRIMARY G-DRIVE // MAIN CLOUD', url: 'https://drive.google.com/file/d/1Lz' },
-    { name: 'SECONDARY G-DRIVE // CLOUD MIRROR', url: 'https://drive.google.com/file/d/1O_MSOfficeLTSC2021' },
+    { name: 'PRIMARY G-DRIVE // MAIN CLOUD', url: 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing' },
+    { name: 'SECONDARY G-DRIVE // CLOUD MIRROR', url: 'https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing' },
   ];
   const [selectedDriveUrl, setSelectedDriveUrl] = useState<string>('CUSTOM_URL');
 
