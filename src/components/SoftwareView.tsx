@@ -8,7 +8,9 @@ export default function SoftwareView() {
   const [projects] = useState<Project[]>(() => {
     const saved = localStorage.getItem('custom_projects');
     const loaded = saved ? JSON.parse(saved) : STATIC_PROJECTS;
+    const deletedIds = JSON.parse(localStorage.getItem('deleted_item_ids') || '[]');
     return loaded
+      .filter((proj: Project) => !deletedIds.includes(proj.id))
       .map((proj: Project) => {
         // Find the corresponding static project to merge newly updated details/assets
         const staticProj = STATIC_PROJECTS.find(p => p.id === proj.id);

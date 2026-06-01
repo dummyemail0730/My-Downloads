@@ -586,6 +586,47 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
           const trimTitle = uplinkToSubmit.gameTitle;
           const { category, description, linkType, gameFile } = uplinkToSubmit;
 
+          // Search if there is a matching existing item ID and un-blacklist it if matching
+          let matchedId: string | null = null;
+          if (category === 'SOFTWARE') {
+            const saved = localStorage.getItem('custom_projects');
+            const projectsList = saved ? JSON.parse(saved) : STATIC_PROJECTS;
+            const existingIdx = projectsList.findIndex((p: any) => p.title.toLowerCase() === trimTitle.toLowerCase());
+            if (existingIdx !== -1) matchedId = projectsList[existingIdx].id;
+          } else if (category === 'ANIME') {
+            const saved = localStorage.getItem('custom_anime');
+            if (saved) {
+              const animeList = JSON.parse(saved);
+              const existingIdx = animeList.findIndex((a: any) => a.title.toLowerCase() === trimTitle.toLowerCase());
+              if (existingIdx !== -1) matchedId = animeList[existingIdx].id;
+            }
+          } else if (category === 'GAMES') {
+            const saved = localStorage.getItem('custom_games');
+            if (saved) {
+              const gamesList = JSON.parse(saved);
+              const existingIdx = gamesList.findIndex((g: any) => g.title.toLowerCase() === trimTitle.toLowerCase());
+              if (existingIdx !== -1) matchedId = gamesList[existingIdx].id;
+            }
+          } else if (category === 'TUTORIALS') {
+            const saved = localStorage.getItem('shadow_master_tutorials');
+            if (saved) {
+              const tutorialsList = JSON.parse(saved);
+              const existingIdx = tutorialsList.findIndex((t: any) => t.title.toLowerCase() === trimTitle.toLowerCase());
+              if (existingIdx !== -1) matchedId = tutorialsList[existingIdx].id;
+            }
+          } else {
+            const saved = localStorage.getItem('custom_tools');
+            const toolsList = saved ? JSON.parse(saved) : STATIC_TOOLS;
+            const existingIdx = toolsList.findIndex((t: any) => t.name.toLowerCase() === trimTitle.toLowerCase());
+            if (existingIdx !== -1) matchedId = toolsList[existingIdx].id;
+          }
+
+          if (matchedId) {
+            const deleted = JSON.parse(localStorage.getItem('deleted_item_ids') || '[]');
+            const newDeleted = deleted.filter((dId: string) => dId !== matchedId);
+            localStorage.setItem('deleted_item_ids', JSON.stringify(newDeleted));
+          }
+
           if (category === 'SOFTWARE') {
             const saved = localStorage.getItem('custom_projects');
             const projectsList = saved ? JSON.parse(saved) : STATIC_PROJECTS;
@@ -1437,6 +1478,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
     // Read from localStorage with fallback to predefined list
     const savedProjects = localStorage.getItem('custom_projects');
     const projectsList = savedProjects ? JSON.parse(savedProjects) : STATIC_PROJECTS;
+    const deletedIds = JSON.parse(localStorage.getItem('deleted_item_ids') || '[]');
     const mergedProjects = projectsList.map((proj: any) => {
       const staticProj = STATIC_PROJECTS.find(p => p.id === proj.id);
       if (staticProj) {
@@ -1451,7 +1493,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
       }
       return proj;
     });
-    const linkedProjects = mergedProjects.filter((p: any) => p.link);
+    const linkedProjects = mergedProjects.filter((p: any) => p.link && !deletedIds.includes(p.id));
 
     const savedTools = localStorage.getItem('custom_tools');
     const toolsList = savedTools ? JSON.parse(savedTools) : STATIC_TOOLS;
@@ -1467,7 +1509,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
       }
       return tool;
     });
-    const linkedTools = mergedTools.filter((t: any) => t.link);
+    const linkedTools = mergedTools.filter((t: any) => t.link && !deletedIds.includes(t.id));
 
     const savedAnime = localStorage.getItem('custom_anime');
     let customAnimeList = [];
@@ -1655,22 +1697,19 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   };
 
   const handleUnlink = (id: string, type: string) => {
+    // Record the deletion in deleted_item_ids blacklist
+    const deleted = JSON.parse(localStorage.getItem('deleted_item_ids') || '[]');
+    if (!deleted.includes(id)) {
+      deleted.push(id);
+      localStorage.setItem('deleted_item_ids', JSON.stringify(deleted));
+    }
+
     if (type === 'SOFTWARE') {
       const saved = localStorage.getItem('custom_projects');
       if (saved) {
         const projectsList = JSON.parse(saved);
-        const existingIdx = projectsList.findIndex((p: any) => p.id === id);
-        if (existingIdx !== -1) {
-          const isStatic = STATIC_PROJECTS.some(p => p.id === id);
-          let updatedList;
-          if (isStatic) {
-            updatedList = [...projectsList];
-            delete updatedList[existingIdx].link;
-          } else {
-            updatedList = projectsList.filter((p: any) => p.id !== id);
-          }
-          localStorage.setItem('custom_projects', JSON.stringify(updatedList));
-        }
+        const updatedList = projectsList.filter((p: any) => p.id !== id);
+        localStorage.setItem('custom_projects', JSON.stringify(updatedList));
       }
     } else if (type === 'ANIME') {
       const saved = localStorage.getItem('custom_anime');
@@ -1698,18 +1737,8 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
       const saved = localStorage.getItem('custom_tools');
       if (saved) {
         const toolsList = JSON.parse(saved);
-        const existingIdx = toolsList.findIndex((t: any) => t.id === id);
-        if (existingIdx !== -1) {
-          const isStatic = STATIC_TOOLS.some(t => t.id === id);
-          let updatedList;
-          if (isStatic) {
-            updatedList = [...toolsList];
-            delete updatedList[existingIdx].link;
-          } else {
-            updatedList = toolsList.filter((t: any) => t.id !== id);
-          }
-          localStorage.setItem('custom_tools', JSON.stringify(updatedList));
-        }
+        const updatedList = toolsList.filter((t: any) => t.id !== id);
+        localStorage.setItem('custom_tools', JSON.stringify(updatedList));
       }
     }
     setUnlinkTrigger(prev => prev + 1);
@@ -1720,6 +1749,11 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
   };
 
   const handleSaveLink = (id: string, type: string) => {
+    // If the item was previously blacklisted as deleted, remove it upon active save
+    const deleted = JSON.parse(localStorage.getItem('deleted_item_ids') || '[]');
+    const newDeleted = deleted.filter((dId: string) => dId !== id);
+    localStorage.setItem('deleted_item_ids', JSON.stringify(newDeleted));
+
     const targetType = editCategoryValue.trim().toUpperCase(); // 'SOFTWARE', 'ANIME', 'GAMES', 'TUTORIALS', or 'TOOL'
     const originalType = type.trim().toUpperCase(); // 'SOFTWARE', 'ANIME', 'GAMES', 'TUTORIALS', or 'TOOL'
 
@@ -2797,7 +2831,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                           <option value="SOFTWARE" className="bg-neutral-950 text-white">SOFTWARE DIRECTORY [01]</option>
                           <option value="ANIME" className="bg-neutral-950 text-white">ANIME DIRECTORY [02]</option>
                           <option value="TUTORIALS" className="bg-neutral-950 text-white">TUTORIALS DIRECTORY [03]</option>
-                          <option value="TOOLS" className="bg-neutral-950 text-white">END-USER UTILITIES [04]</option>
+                          <option value="TOOLS" className="bg-neutral-950 text-white">TOOLS DIRECTORY [04]</option>
                           <option value="GAMES" className="bg-neutral-950 text-white">GAMES DIRECTORY [05]</option>
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-purple-400">
@@ -3001,7 +3035,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                         <LinkIcon className="text-neutral-500 w-10 h-10 mb-2" />
                         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 font-mono">No active links registered</span>
                         <p className="text-[9px] uppercase tracking-wider text-neutral-400 mt-1 max-w-xs font-mono">
-                          Uplink a software directory program or end-user utility to populate terminal memory.
+                          Uplink a software directory program or tool to populate terminal memory.
                         </p>
                       </div>
                     ) : (
@@ -3060,7 +3094,7 @@ export default function ShadowProject({ onEnter, hasPlayed, onShowShadowLore, is
                                       <option value="SOFTWARE" className="bg-neutral-950 text-white">SOFTWARE DIRECTORY [01]</option>
                                       <option value="ANIME" className="bg-neutral-950 text-white">ANIME DIRECTORY [02]</option>
                                       <option value="TUTORIALS" className="bg-neutral-950 text-white">TUTORIALS DIRECTORY [03]</option>
-                                      <option value="TOOL" className="bg-neutral-950 text-white">END-USER UTILITIES [04]</option>
+                                      <option value="TOOL" className="bg-neutral-950 text-white">TOOLS DIRECTORY [04]</option>
                                       <option value="GAMES" className="bg-neutral-950 text-white">GAMES DIRECTORY [05]</option>
                                     </select>
                                   </div>

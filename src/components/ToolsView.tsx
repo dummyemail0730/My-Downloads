@@ -54,18 +54,20 @@ export default function ToolsView() {
   const [tools] = useState<Tool[]>(() => {
     const saved = localStorage.getItem('custom_tools');
     let loaded = saved ? JSON.parse(saved) : [...STATIC_TOOLS];
+    const deletedIds = JSON.parse(localStorage.getItem('deleted_item_ids') || '[]');
     
     // Ensure new static tools (e.g. newly added IDs 5 and 6) are merged even if custom_tools exists
     if (saved && Array.isArray(loaded)) {
       const loadedIds = new Set(loaded.map((t: any) => t.id));
       for (const staticTool of STATIC_TOOLS) {
-        if (!loadedIds.has(staticTool.id)) {
+        if (!loadedIds.has(staticTool.id) && !deletedIds.includes(staticTool.id)) {
           loaded.push(staticTool);
         }
       }
     }
 
     return loaded
+      .filter((tool: Tool) => !deletedIds.includes(tool.id))
       .map((tool: Tool) => {
         const staticTool = STATIC_TOOLS.find(t => t.id === tool.id);
         if (staticTool) {
