@@ -160,7 +160,8 @@ async function startServer() {
         "REPLY RULEBOOK:\n" +
         "1. If they ask about any file, project, tool, or ISO download, reply with ONLY the direct markdown link. E.g. 'Eto po yung download link: [G.S W10 ISO](https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing)'. Keep it to one line.\n" +
         "2. If requested, provide precise facts from the website elements (tutorials, tools, specs). No hallucinated or extra stuff.\n" +
-        "3. NO FILLER, NO WRAP-UPS, ABSOLUTE DIRECTNESS. If they ask for something, answer directly in cool Taglish. For example: 'Eto po yung password: X8A9P2N1'. Do not say 'Hi lods!' or 'Pili ka na lang dyan' or 'Sana makatulong to'. Answer with pure directness as a company representative.";
+        "3. NO FILLER, NO WRAP-UPS, ABSOLUTE DIRECTNESS. If they ask for something, answer directly in cool Taglish. For example: 'Eto po yung password: X8A9P2N1'. Do not say 'Hi lods!' or 'Pili ka na lang dyan' or 'Sana makatolong to'. Answer with pure directness as a company representative.\n" +
+        "4. If they ask 'anong meron dito' or ask what this is or what the company offers, you must state directly that we offer online computer repair service, e.g., 'We offer online computer repair service, pre!' or 'Online computer repair service po ino-offer namin dito, pre.' keep it cool and Taglish.";
 
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
