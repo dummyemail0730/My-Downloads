@@ -409,8 +409,7 @@ export default function AnimeView() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: idx * 0.05 }}
-              onClick={handleClick}
-              className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-pointer ${
+              className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-default ${
                 hasBgImage 
                   ? 'bg-neutral-950 text-white' 
                   : 'bg-neutral-900/35 hover:bg-neutral-900/80 text-white'

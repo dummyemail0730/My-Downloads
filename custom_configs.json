@@ -1,0 +1,53 @@
+{
+  "admin_console_link": "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing",
+  "custom_projects": [
+    {
+      "id": "1",
+      "title": "G.S. W11 ISO",
+      "description": "Ghost spectre windows 11 ISO",
+      "tags": ["RUST"],
+      "link": "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing"
+    },
+    {
+      "id": "2",
+      "title": "G.S W10 ISO",
+      "description": "Ghost Spectre ISO",
+      "tags": ["OS"],
+      "link": "https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing"
+    },
+    {
+      "id": "3",
+      "title": "MICROSOFT OFFICE",
+      "description": "Microsoft office 365",
+      "tags": ["EXT"],
+      "link": "https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing"
+    }
+  ],
+  "custom_anime": [
+    {
+      "id": "anime-shadow-ep1-s1",
+      "title": "SHADOW EP1 S1",
+      "description": "The Eminence in Shadow Season 1 Episode 1 Decoded Stream",
+      "protocol": "EXT",
+      "link": "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing"
+    },
+    {
+      "id": "anime-shadow-ep2-s1",
+      "title": "SHADOW EP2 S1",
+      "description": "The Eminence in Shadow Season 1 Episode 2 Decoded Stream",
+      "protocol": "EXT",
+      "link": "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing"
+    },
+    {
+      "id": "anime-shadow-ep3-s1",
+      "title": "SHADOW EP3 S1",
+      "description": "The Eminence in Shadow Season 1 Episode 3 Decoded Stream",
+      "protocol": "EXT",
+      "link": "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing"
+    }
+  ],
+  "custom_games": [],
+  "shadow_master_tutorials": [],
+  "custom_tools": [],
+  "deleted_item_ids": []
+}

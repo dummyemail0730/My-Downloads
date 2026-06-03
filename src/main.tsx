@@ -75,11 +75,50 @@ fetch('/api/configs')
         'custom_tools',
         'deleted_item_ids'
       ];
+
+      const payloadToUpload: Record<string, any> = {};
+      let needsUpload = false;
+
       for (const key of syncKeys) {
-        if (data[key] !== undefined && data[key] !== null) {
-          const strVal = typeof data[key] === 'string' ? data[key] : JSON.stringify(data[key]);
-          origSetItem.call(localStorage, key, strVal);
+        const localValStr = localStorage.getItem(key);
+        let localVal: any = null;
+        try {
+          if (localValStr && (localValStr.startsWith('[') || localValStr.startsWith('{'))) {
+            localVal = JSON.parse(localValStr);
+          }
+        } catch (e) {}
+
+        const serverVal = data[key];
+
+        if (serverVal !== undefined && serverVal !== null) {
+          const isServerEmpty = Array.isArray(serverVal) && serverVal.length === 0;
+          const isLocalEmpty = !localVal || (Array.isArray(localVal) && localVal.length === 0);
+
+          if (isServerEmpty && !isLocalEmpty) {
+            // Server has no values but the browser local storage already contains custom entries.
+            // Push the browser data up to populate the server config instead of erasing it.
+            payloadToUpload[key] = localVal;
+            needsUpload = true;
+          } else {
+            // Respect the server's data
+            const strVal = typeof serverVal === 'string' ? serverVal : JSON.stringify(serverVal);
+            origSetItem.call(localStorage, key, strVal);
+          }
+        } else if (localVal && (!Array.isArray(localVal) || localVal.length > 0)) {
+          // Server doesn't track this key yet but local storage does. Sync it up.
+          payloadToUpload[key] = localVal;
+          needsUpload = true;
         }
+      }
+
+      if (needsUpload) {
+        fetch('/api/configs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payloadToUpload)
+        }).catch(err => console.error('Failed to sync local state back to server on start:', err));
       }
     }
   })

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft, Eye, EyeOff, Clock, ArrowRight } from 'lucide-react';
 import Sidebar from './components/Sidebar';
@@ -14,174 +14,11 @@ import ShadowLoreView from './components/ShadowLoreView';
 import RedirectLoader from './components/RedirectLoader';
 import shadowBg from './assets/images/shadow_master_atomic_1779279129608.png';
 import ownerIdPhoto from './assets/images/owner_id_photo_1779279731967.png';
+import shadowChibiAvatar from './assets/images/shadow_eminence_chibi_1779532936009.png';
+import shadowChibiSticker from './assets/images/shadow_chibi_avatar_1779438320279.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from './constants';
 
-// Automatically merge custom duplicates on startup
-try {
-  // 1. Process custom_projects
-  const saved = localStorage.getItem('custom_projects');
-  let projectsList = saved ? JSON.parse(saved) : [...STATIC_PROJECTS];
-  if (Array.isArray(projectsList)) {
-    // Clean specific W11 duplicates
-    let w11CustomIdx = projectsList.findIndex((p: any) => 
-      p.title && p.id !== '1' && (
-        p.title.toLowerCase().includes('custom os') || 
-        p.title.toLowerCase().includes('w11 custom') ||
-        p.title.toLowerCase().includes('tinycore') ||
-        p.title.toLowerCase().includes('tiny11') ||
-        p.title.toLowerCase().includes('tiny core')
-      )
-    );
-    while (w11CustomIdx !== -1) {
-      const customLink = projectsList[w11CustomIdx].link;
-      const customDesc = projectsList[w11CustomIdx].description;
-      const targetIdx = projectsList.findIndex((p: any) => p.id === '1' || p.title === 'G.S. W11 ISO');
-      
-      if (targetIdx !== -1) {
-        if (customLink) projectsList[targetIdx].link = customLink;
-        if (customDesc) projectsList[targetIdx].description = customDesc;
-        // Merge the title to indicate it represents both
-        projectsList[targetIdx].title = 'G.S. W11 ISO / TINYCORE11';
-      } else {
-        projectsList.push({
-          id: '1',
-          title: 'G.S. W11 ISO / TINYCORE11',
-          description: customDesc || 'all-in-one, bootable Windows Preinstallation Environment (WinPE)',
-          link: customLink || 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing'
-        });
-      }
-      projectsList.splice(w11CustomIdx, 1);
-      w11CustomIdx = projectsList.findIndex((p: any) => 
-        p.title && p.id !== '1' && (
-          p.title.toLowerCase().includes('custom os') || 
-          p.title.toLowerCase().includes('w11 custom') ||
-          p.title.toLowerCase().includes('tinycore') ||
-          p.title.toLowerCase().includes('tiny11') ||
-          p.title.toLowerCase().includes('tiny core')
-        )
-      );
-    }
-
-    // Clean specific W10 duplicates
-    let w10CustomIdx = projectsList.findIndex((p: any) => 
-      p.title && p.id !== '2' && (
-        p.title.toLowerCase().replace(/[\s\.]/g, '').includes('w10')
-      )
-    );
-    while (w10CustomIdx !== -1) {
-      const customLink = projectsList[w10CustomIdx].link;
-      const customDesc = projectsList[w10CustomIdx].description;
-      const customTags = projectsList[w10CustomIdx].tags;
-      const targetIdx = projectsList.findIndex((p: any) => p.id === '2' || p.title === 'G.S W10 ISO');
-      
-      if (targetIdx !== -1) {
-        if (customLink) projectsList[targetIdx].link = customLink;
-        if (customDesc) projectsList[targetIdx].description = customDesc;
-        if (customTags) projectsList[targetIdx].tags = customTags;
-      } else {
-        projectsList.push({
-          id: '2',
-          title: 'G.S W10 ISO',
-          description: customDesc || 'Ghost Spectre ISO',
-          link: customLink || '',
-          tags: customTags || ['OS', 'Utility', 'Windows']
-        });
-      }
-      projectsList.splice(w10CustomIdx, 1);
-      w10CustomIdx = projectsList.findIndex((p: any) => 
-        p.title && p.id !== '2' && (
-          p.title.toLowerCase().replace(/[\s\.]/g, '').includes('w10')
-        )
-      );
-    }
-
-    // Generic Name-Based Deduplication for Software/Projects
-    for (const staticProj of STATIC_PROJECTS) {
-      const dupIdx = projectsList.findIndex((p: any) => 
-        p.id !== staticProj.id && 
-        p.title && 
-        p.title.toLowerCase().trim() === staticProj.title.toLowerCase().trim()
-      );
-      
-      if (dupIdx !== -1) {
-        const dupItem = projectsList[dupIdx];
-        const targetIdx = projectsList.findIndex((p: any) => p.id === staticProj.id);
-        if (targetIdx !== -1) {
-          if (dupItem.link) projectsList[targetIdx].link = dupItem.link;
-          if (dupItem.description) projectsList[targetIdx].description = dupItem.description;
-          if (dupItem.tags) projectsList[targetIdx].tags = dupItem.tags;
-          if (dupItem.image) projectsList[targetIdx].image = dupItem.image;
-        } else {
-          projectsList.push({
-            ...staticProj,
-            link: dupItem.link || '',
-            description: dupItem.description || staticProj.description,
-            tags: dupItem.tags || staticProj.tags
-          });
-        }
-        projectsList.splice(dupIdx, 1);
-      }
-    }
-
-    // Ensure Microsoft Office (id '3') has its permanent correct link in local storage
-    const msofficeIdx = projectsList.findIndex((p: any) => p.id === '3' || (p.title && p.title.toLowerCase().includes('microsoft office')));
-    if (msofficeIdx !== -1) {
-      if (!projectsList[msofficeIdx].link) {
-        projectsList[msofficeIdx].link = 'https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing';
-      }
-    }
-
-    // Ensure G.S W10 ISO (id '2') has its permanent correct link in local storage
-    const w10Idx = projectsList.findIndex((p: any) => p.id === '2' || (p.title && p.title.toLowerCase().includes('w10')));
-    if (w10Idx !== -1) {
-      if (!projectsList[w10Idx].link) {
-        projectsList[w10Idx].link = 'https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing';
-      }
-    }
-
-    localStorage.setItem('custom_projects', JSON.stringify(projectsList));
-  }
-
-  // 2. Process custom_tools generic duplicate detection & automatic consolidation
-  const savedTools = localStorage.getItem('custom_tools');
-  let toolsList = savedTools ? JSON.parse(savedTools) : [...STATIC_TOOLS];
-  if (Array.isArray(toolsList)) {
-    let hasMadeChanges = false;
-    for (const staticTool of STATIC_TOOLS) {
-      const dupIdx = toolsList.findIndex((t: any) => 
-        t.id !== staticTool.id && 
-        t.name && 
-        t.name.toLowerCase().trim() === staticTool.name.toLowerCase().trim()
-      );
-      
-      if (dupIdx !== -1) {
-        const dupItem = toolsList[dupIdx];
-        const targetIdx = toolsList.findIndex((t: any) => t.id === staticTool.id);
-        if (targetIdx !== -1) {
-          if (dupItem.link) toolsList[targetIdx].link = dupItem.link;
-          if (dupItem.description) toolsList[targetIdx].description = dupItem.description;
-          if (dupItem.category) toolsList[targetIdx].category = dupItem.category;
-        } else {
-          toolsList.push({
-            ...staticTool,
-            link: dupItem.link || '',
-            description: dupItem.description || staticTool.description,
-            category: dupItem.category || staticTool.category
-          });
-        }
-        toolsList.splice(dupIdx, 1);
-        hasMadeChanges = true;
-      }
-    }
-    if (hasMadeChanges) {
-      localStorage.setItem('custom_tools', JSON.stringify(toolsList));
-    }
-  }
-
-} catch (e) {
-  console.error('Migration error:', e);
-}
-
+// TABS config for sidebar tabs
 const TABS = [
   { id: 'SOFTWARE', label: 'Software' },
   { id: 'ANIME', label: 'Anime' },
@@ -198,6 +35,34 @@ export default function App() {
   const [showGuestPopup, setShowGuestPopup] = useState(false);
   const [guestPasscode, setGuestPasscode] = useState('');
   const [guestAuthError, setGuestAuthError] = useState('');
+  
+  // Custom Chatbox for NBN States
+  const [chatMessages, setChatMessages] = useState<Array<{
+    id: string;
+    sender: 'user' | 'bot';
+    text: string;
+    timestamp: Date;
+  }>>([
+    {
+      id: 'welcome',
+      sender: 'bot',
+      text: "Yo! Ako si Shadow, official rep of the company. Chat me up if you need tools, files, or guest logins. Got you covered, pre! 😎",
+      timestamp: new Date()
+    }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+
+  // Chat scroll anchor ref
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll chat window when new messages arrive
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, chatLoading]);
+
   const [generatedGuestPasscode, setGeneratedGuestPasscode] = useState<string | null>(() => {
     return localStorage.getItem('generated_guest_passcode') || null;
   });
@@ -223,6 +88,177 @@ export default function App() {
 
   // Sync session structures
   useEffect(() => {
+    try {
+      // 1. Process custom_projects
+      const saved = localStorage.getItem('custom_projects');
+      let projectsList = saved ? JSON.parse(saved) : [...STATIC_PROJECTS];
+      if (Array.isArray(projectsList)) {
+        // Merge static projects if they are not in projectsList to prevent blank initialization
+        const existingIds = new Set(projectsList.map((p: any) => p.id));
+        for (const staticProj of STATIC_PROJECTS) {
+          if (!existingIds.has(staticProj.id)) {
+            projectsList.push(staticProj);
+          }
+        }
+
+        // Clean specific W11 duplicates
+        let w11CustomIdx = projectsList.findIndex((p: any) => 
+          p.title && p.id !== '1' && (
+            p.title.toLowerCase().includes('custom os') || 
+            p.title.toLowerCase().includes('w11 custom') ||
+            p.title.toLowerCase().includes('tinycore') ||
+            p.title.toLowerCase().includes('tiny11') ||
+            p.title.toLowerCase().includes('tiny core')
+          )
+        );
+        while (w11CustomIdx !== -1) {
+          const customLink = projectsList[w11CustomIdx].link;
+          const customDesc = projectsList[w11CustomIdx].description;
+          const targetIdx = projectsList.findIndex((p: any) => p.id === '1' || p.title === 'G.S. W11 ISO');
+          
+          if (targetIdx !== -1) {
+            if (customLink) projectsList[targetIdx].link = customLink;
+            if (customDesc) projectsList[targetIdx].description = customDesc;
+            projectsList[targetIdx].title = 'G.S. W11 ISO / TINYCORE11';
+          } else {
+            projectsList.push({
+              id: '1',
+              title: 'G.S. W11 ISO / TINYCORE11',
+              description: customDesc || 'all-in-one, bootable Windows Preinstallation Environment (WinPE)',
+              link: customLink || 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing'
+            });
+          }
+          projectsList.splice(w11CustomIdx, 1);
+          w11CustomIdx = projectsList.findIndex((p: any) => 
+            p.title && p.id !== '1' && (
+              p.title.toLowerCase().includes('custom os') || 
+              p.title.toLowerCase().includes('w11 custom') ||
+              p.title.toLowerCase().includes('tinycore') ||
+              p.title.toLowerCase().includes('tiny11') ||
+              p.title.toLowerCase().includes('tiny core')
+            )
+          );
+        }
+
+        // Clean specific W10 duplicates
+        let w10CustomIdx = projectsList.findIndex((p: any) => 
+          p.title && p.id !== '2' && (
+            p.title.toLowerCase().replace(/[\s\.]/g, '').includes('w10')
+          )
+        );
+        while (w10CustomIdx !== -1) {
+          const customLink = projectsList[w10CustomIdx].link;
+          const customDesc = projectsList[w10CustomIdx].description;
+          const customTags = projectsList[w10CustomIdx].tags;
+          const targetIdx = projectsList.findIndex((p: any) => p.id === '2' || p.title === 'G.S W10 ISO');
+          
+          if (targetIdx !== -1) {
+            if (customLink) projectsList[targetIdx].link = customLink;
+            if (customDesc) projectsList[targetIdx].description = customDesc;
+            if (customTags) projectsList[targetIdx].tags = customTags;
+          } else {
+            projectsList.push({
+              id: '2',
+              title: 'G.S W10 ISO',
+              description: customDesc || 'Ghost Spectre ISO',
+              link: customLink || '',
+              tags: customTags || ['OS', 'Utility', 'Windows']
+            });
+          }
+          projectsList.splice(w10CustomIdx, 1);
+          w10CustomIdx = projectsList.findIndex((p: any) => 
+            p.title && p.id !== '2' && (
+              p.title.toLowerCase().replace(/[\s\.]/g, '').includes('w10')
+            )
+          );
+        }
+
+        // Generic Name-Based Deduplication for Software/Projects
+        for (const staticProj of STATIC_PROJECTS) {
+          const dupIdx = projectsList.findIndex((p: any) => 
+            p.id !== staticProj.id && 
+            p.title && 
+            p.title.toLowerCase().trim() === staticProj.title.toLowerCase().trim()
+          );
+          
+          if (dupIdx !== -1) {
+            const dupItem = projectsList[dupIdx];
+            const targetIdx = projectsList.findIndex((p: any) => p.id === staticProj.id);
+            if (targetIdx !== -1) {
+              if (dupItem.link) projectsList[targetIdx].link = dupItem.link;
+              if (dupItem.description) projectsList[targetIdx].description = dupItem.description;
+              if (dupItem.tags) projectsList[targetIdx].tags = dupItem.tags;
+              if (dupItem.image) projectsList[targetIdx].image = dupItem.image;
+            } else {
+              projectsList.push({
+                ...staticProj,
+                link: dupItem.link || '',
+                description: dupItem.description || staticProj.description,
+                tags: dupItem.tags || staticProj.tags
+              });
+            }
+            projectsList.splice(dupIdx, 1);
+          }
+        }
+
+        // Ensure Microsoft Office (id '3') has its permanent correct link in local storage
+        const msofficeIdx = projectsList.findIndex((p: any) => p.id === '3' || (p.title && p.title.toLowerCase().includes('microsoft office')));
+        if (msofficeIdx !== -1) {
+          if (!projectsList[msofficeIdx].link) {
+            projectsList[msofficeIdx].link = 'https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing';
+          }
+        }
+
+        // Ensure G.S W10 ISO (id '2') has its permanent correct link in local storage
+        const w10Idx = projectsList.findIndex((p: any) => p.id === '2' || (p.title && p.title.toLowerCase().includes('w10')));
+        if (w10Idx !== -1) {
+          if (!projectsList[w10Idx].link) {
+            projectsList[w10Idx].link = 'https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing';
+          }
+        }
+
+        localStorage.setItem('custom_projects', JSON.stringify(projectsList));
+      }
+
+      // 2. Process custom_tools generic duplicate detection & automatic consolidation
+      const savedTools = localStorage.getItem('custom_tools');
+      let toolsList = savedTools ? JSON.parse(savedTools) : [...STATIC_TOOLS];
+      if (Array.isArray(toolsList)) {
+        let hasMadeChanges = false;
+        for (const staticTool of STATIC_TOOLS) {
+          const dupIdx = toolsList.findIndex((t: any) => 
+            t.id !== staticTool.id && 
+            t.name && 
+            t.name.toLowerCase().trim() === staticTool.name.toLowerCase().trim()
+          );
+          
+          if (dupIdx !== -1) {
+            const dupItem = toolsList[dupIdx];
+            const targetIdx = toolsList.findIndex((t: any) => t.id === staticTool.id);
+            if (targetIdx !== -1) {
+              if (dupItem.link) toolsList[targetIdx].link = dupItem.link;
+              if (dupItem.description) toolsList[targetIdx].description = dupItem.description;
+              if (dupItem.category) toolsList[targetIdx].category = dupItem.category;
+            } else {
+              toolsList.push({
+                ...staticTool,
+                link: dupItem.link || '',
+                description: dupItem.description || staticTool.description,
+                category: dupItem.category || staticTool.category
+              });
+            }
+            toolsList.splice(dupIdx, 1);
+            hasMadeChanges = true;
+          }
+        }
+        if (hasMadeChanges) {
+          localStorage.setItem('custom_tools', JSON.stringify(toolsList));
+        }
+      }
+    } catch (e) {
+      console.error('Migration error:', e);
+    }
+
     if (guestLoginTime) {
       localStorage.setItem('guest_login_time', guestLoginTime.toString());
     } else {
@@ -484,7 +520,7 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+              className="fixed inset-0 bg-black/60 backdrop-blur-[4px] z-[100] flex items-center justify-center p-4"
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -526,13 +562,47 @@ export default function App() {
                     const enteredLower = enteredOriginal.toLowerCase();
                     const isGeneratedMatch = generatedGuestPasscode && (enteredOriginal === generatedGuestPasscode || enteredLower === generatedGuestPasscode.toLowerCase());
                     
-                    if (enteredLower === 'guest' || isGeneratedMatch) {
+                    // Retrieve/validate any passwords generated dynamically by the chatbot
+                    let isChatbotMatch = false;
+                    let matchedChatbotCode: string | null = null;
+                    try {
+                      const chatbotRaw = localStorage.getItem('chatbot_generated_passwords');
+                      if (chatbotRaw) {
+                        const chatbotCodes: string[] = JSON.parse(chatbotRaw);
+                        const found = chatbotCodes.find(code =>
+                          code && (enteredOriginal === code || enteredLower === code.toLowerCase())
+                        );
+                        if (found) {
+                          isChatbotMatch = true;
+                          matchedChatbotCode = found;
+                        }
+                      }
+                    } catch (err) {
+                      console.error("Failed to parse chatbot_generated_passwords", err);
+                    }
+
+                    if (enteredLower === 'guest' || isGeneratedMatch || isChatbotMatch) {
                       setIsAuthorized(true);
                       setIsGuestMode(true);
-                      if (isGeneratedMatch) {
+                      if (isGeneratedMatch || isChatbotMatch) {
                         const now = Date.now();
                         setGuestLoginTime(now);
                       }
+                      
+                      // Consume (remove) the used chatbot password so it cannot be used again
+                      if (isChatbotMatch && matchedChatbotCode) {
+                        try {
+                          const chatbotRaw = localStorage.getItem('chatbot_generated_passwords');
+                          if (chatbotRaw) {
+                            const chatbotCodes: string[] = JSON.parse(chatbotRaw);
+                            const updatedList = chatbotCodes.filter(c => c !== matchedChatbotCode);
+                            localStorage.setItem('chatbot_generated_passwords', JSON.stringify(updatedList));
+                          }
+                        } catch (err) {
+                          console.error("Failed to update chatbot_generated_passwords after login", err);
+                        }
+                      }
+
                       setShowGuestPopup(false);
                       setGuestAuthError('');
                     } else {
@@ -655,65 +725,33 @@ export default function App() {
 
         <div className="w-full max-w-lg relative z-20 flex flex-col items-center">
           <AnimatePresence mode="wait">
-            {!showOverrideInput ? (
-              <motion.div
-                key="maintenance-card"
-                initial={{ opacity: 0, scale: 0.96, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: -15 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-                className="w-full bg-[#0f0b21]/80 border border-purple-500/25 rounded-[2.2rem] p-8 md:p-10 shadow-[0_0_60px_rgba(147,51,234,0.15)] backdrop-blur-xl relative overflow-hidden flex flex-col items-center justify-center text-center"
-              >
-                {/* Wrench Icon wrapped in a glowing violet Hexagon */}
-                <div className="relative w-24 h-24 flex items-center justify-center mb-6">
-                  <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-purple-500/35 fill-purple-950/20 filter drop-shadow-[0_0_12px_rgba(168,85,247,0.5)]">
-                    <polygon points="50,5 93,25 93,75 50,95 7,75 7,25" stroke="currentColor" strokeWidth="2.5" />
-                  </svg>
-                  <Wrench className="w-9 h-9 text-purple-300 relative z-10 animate-pulse" strokeWidth={1.5} />
-                </div>
-
-                {/* Display Title */}
-                <h2 className="text-xl md:text-2xl font-bold font-sans text-white tracking-wide mb-1 select-none">
-                  System Under Maintenance
-                </h2>
-
-                {/* Symmetrical divider with a center circle */}
-                <div className="flex items-center justify-center w-full gap-2 my-5 opacity-50">
-                  <div className="h-[1px] bg-gradient-to-r from-transparent via-purple-500/30 to-purple-500/30 flex-1" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500/60 shadow-[0_0_6px_rgba(168,85,247,0.8)]" />
-                  <div className="h-[1px] bg-gradient-to-l from-transparent via-purple-500/30 to-purple-500/30 flex-1" />
-                </div>
-
-                {/* Main description matching original typography */}
-                <p className="text-[12px] md:text-xs text-neutral-300 font-sans leading-relaxed text-center mb-8 font-medium">
-                  We are currently performing scheduled maintenance to improve your experience. <br className="hidden sm:inline" />Please check back later.
-                </p>
-
-                {/* OK Button with nice purple styling - clicking OK keep user on maintenance state */}
-                <button
-                  onClick={() => {
-                    // Do nothing or notify standby mode when admin console link is hidden
-                    setAuthError('');
-                  }}
-                  className="px-12 py-2.5 bg-purple-700/80 hover:bg-purple-600 border border-purple-500/30 hover:border-purple-400/55 text-white font-sans text-xs font-semibold tracking-wider rounded-xl transition-all duration-300 shadow-[0_4px_15px_rgba(147,51,234,0.2)] hover:shadow-[0_4px_22px_rgba(147,51,234,0.35)] active:scale-95 cursor-pointer"
-                >
-                  OK
-                </button>
-              </motion.div>
-            ) : (
+            {showOverrideInput && (
               <motion.div
                 key="access-card"
                 initial={{ opacity: 0, scale: 0.96, y: -15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 15 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="w-full bg-[#0f0b21]/80 border border-purple-500/30 rounded-[2.2rem] p-8 md:p-10 shadow-[0_0_60px_rgba(147,51,234,0.2)] backdrop-blur-xl relative overflow-hidden"
+                className="w-full bg-[#0f0b21]/85 border border-purple-500/35 rounded-[2.2rem] p-8 md:p-10 shadow-[0_0_60px_rgba(147,51,234,0.25)] backdrop-blur-xl relative overflow-hidden"
               >
                 {/* Active Corner Brackets */}
                 <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-purple-500/40 rounded-tl-xl" />
                 <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-purple-500/40 rounded-tr-xl" />
                 <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-purple-500/40 rounded-bl-xl" />
                 <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-purple-500/40 rounded-br-xl" />
+
+                {/* X Close top-right button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOverrideInput(false);
+                    setAuthError('');
+                  }}
+                  className="absolute top-4 right-4 text-neutral-400 hover:text-white p-1.5 hover:bg-white/5 rounded-xl transition-colors cursor-pointer z-50"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
 
                 {/* Lock icon */}
                 <div className="flex justify-center mb-6">
@@ -729,7 +767,7 @@ export default function App() {
                   DECRYPT HARDWARE LINK
                 </h2>
 
-                <p className="text-[10px] md:text-[11px] text-neutral-400 tracking-wide leading-relaxed text-center mb-6">
+                <p className="text-[10px] md:text-[11px] text-neutral-400 tracking-wide leading-relaxed text-center mb-6 font-mono">
                   Type in your secure verification passcode. If authentic, the root system loading screen will be initiated.
                 </p>
 
@@ -792,8 +830,6 @@ export default function App() {
                     </div>
                   </div>
 
-
-
                   {authError && (
                     <motion.p 
                       initial={{ opacity: 0, y: -5 }}
@@ -822,10 +858,296 @@ export default function App() {
                       className="w-full py-2 bg-transparent border border-neutral-900 hover:border-neutral-800 hover:bg-neutral-900/30 text-neutral-500 hover:text-neutral-300 font-mono text-[9px] uppercase font-bold tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
                     >
                       <ChevronLeft size={10} />
-                      <span>BACK TO ALERT</span>
+                      <span>CLOSE</span>
                     </button>
                   </div>
                 </form>
+              </motion.div>
+            )}
+
+            {!showOverrideInput && (
+              <motion.div
+                key="chatbot-card"
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -15 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="w-full max-w-[350px] sm:max-w-[380px] h-[520px] bg-[#1d1f2b] border border-purple-500/20 rounded-[2rem] shadow-[0_15px_50px_rgba(147,51,234,0.15)] flex flex-col overflow-visible relative font-sans text-white backdrop-blur-md"
+              >
+                {/* Chatbot Header */}
+                <div className="bg-[#151722] p-4 flex items-center justify-between border-b border-[#252838] select-none shrink-0 rounded-t-[2rem] relative">
+                  <div className="flex items-center">
+                    {/* Floating Circular Chathead character that goes beyond the chatbox with clean rounded-full overflow-hidden */}
+                    <div className="absolute -top-[35px] -left-4 z-30 select-none group">
+                      <div className="relative flex items-center justify-center">
+                        {/* Outer shining border frame of the avatar (glowing circle matching design mockups perfectly) */}
+                        <div className="w-[82px] h-[82px] rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-500 to-indigo-500 p-[3px] shadow-[0_4px_22px_rgba(168,85,247,0.6)] relative">
+                          <div className="w-full h-full rounded-full bg-[#12101e] border-2 border-white overflow-hidden flex items-center justify-center relative shadow-inner">
+                            {/* The Circular Shadow Chibi (Sticker) perfectly clipped to absolute circle, dropping white corners */}
+                            <img
+                              src={shadowChibiSticker}
+                              alt="Shadow Avatar Circular"
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover scale-[1.05] transform group-hover:scale-112 transition-transform duration-300"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Online Status Badge sitting on the bottom-right of the circular ring */}
+                        <span className="absolute bottom-1 right-1 w-4.5 h-4.5 bg-[#42b783] border-2 border-[#151722] rounded-full flex items-center justify-center shadow-lg">
+                          <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-75" />
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Chatbot Title and online label, indented generously to match the floating avatar */}
+                    <div className="pl-20 sm:pl-24 text-left">
+                      <h3 className="text-sm sm:text-base font-extrabold text-white uppercase tracking-widest leading-none font-sans filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                        Shadow
+                      </h3>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
+                        <span className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest font-mono">Online</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Option to clear chat */}
+                  <button 
+                    onClick={() => {
+                      setChatMessages([
+                        {
+                          id: 'welcome',
+                          sender: 'bot',
+                          text: "Yo! Shadow here, official rep. Let's start fresh. Chat me up, pre! 😎",
+                          timestamp: new Date()
+                        }
+                      ]);
+                    }}
+                    title="Reload Chat"
+                    className="p-1.5 text-zinc-500 hover:text-emerald-400 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw size={13} />
+                  </button>
+                </div>
+
+                {/* Messages Body Scroll Area */}
+                <div className="flex-1 bg-[#101119] p-4 overflow-y-auto space-y-4 scroll-smooth">
+                  {chatMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      {msg.sender === 'bot' && (
+                        <div className="w-7 h-7 rounded-full overflow-hidden border border-purple-500/40 bg-[#12101e] shrink-0 mt-0.5 shadow-sm flex items-center justify-center">
+                          <img
+                            src={shadowChibiSticker}
+                            alt="Shadow Chathead"
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover transform scale-[1.05]"
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="relative max-w-[80%] select-text">
+                        <div
+                          className={`p-3 rounded-2xl text-[11.5px] leading-relaxed font-medium tracking-wide ${
+                            msg.sender === 'user'
+                              ? 'bg-gradient-to-r from-teal-400 via-indigo-500 to-purple-600 text-white rounded-tr-none shadow-md'
+                              : 'bg-[#1b1c25] border border-[#262835] text-slate-100 rounded-tl-none shadow-sm'
+                          }`}
+                        >
+                          {msg.text}
+                        </div>
+                        
+                        {/* Golden coin emoji next to user bubbles as in reference image */}
+                        {msg.sender === 'user' && (
+                          <div className="absolute -right-2 top-2 bg-[#fcd34d] text-neutral-900 rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm select-none">
+                            🪙
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Typing Indicator */}
+                  {chatLoading && (
+                    <div className="flex items-start gap-2.5 justify-start">
+                      <div className="w-7 h-7 rounded-full overflow-hidden border border-purple-500/40 bg-[#12101e] shrink-0 mt-0.5 shadow-sm flex items-center justify-center animate-pulse">
+                        <img
+                          src={shadowChibiSticker}
+                          alt="Shadow Chathead typing"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover transform scale-[1.05]"
+                        />
+                      </div>
+                      <div className="bg-[#1b1c25] border border-[#262835] p-3 rounded-2xl rounded-tl-none text-[11px] text-zinc-400 flex items-center gap-1 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty Element for Auto-Scroller Pin */}
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* Suggestions / Hot Chips for easier interactive navigation */}
+                {chatMessages.length === 1 && (
+                  <div className="px-4 py-2 bg-[#101119] flex flex-wrap gap-1.5 justify-center border-t border-[#181a24] shrink-0">
+                    {[
+                      "Sino si Shadow?",
+                      "Anong mayroon dito?",
+                      "Sabihin mo: Hello"
+                    ].map((chip, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setChatInput(chip);
+                        }}
+                        className="px-2.5 py-1 bg-[#1b1c25] hover:bg-purple-950/40 border border-[#262835] hover:border-purple-500/30 text-zinc-300 hover:text-white rounded-lg text-[10px] font-medium transition-all duration-200 cursor-pointer"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Form Input Footer */}
+                <div className="bg-[#151722] p-3 border-t border-[#252838] flex flex-col gap-2 shrink-0 rounded-b-[2rem]">
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!chatInput.trim() || chatLoading) return;
+
+                      const userMsgText = chatInput;
+                      setChatInput('');
+
+                      // Append user message
+                      const userMsg = {
+                        id: `user-${Date.now()}`,
+                        sender: 'user' as const,
+                        text: userMsgText,
+                        timestamp: new Date()
+                      };
+                      setChatMessages((prev) => [...prev, userMsg]);
+                      setChatLoading(true);
+
+                      try {
+                        const response = await fetch('/api/shadow-chat', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify({ message: userMsgText })
+                        });
+                        const data = await response.json();
+                        
+                        // Dynamically discover and cache chatbot-generated passwords
+                        const discoveredCodes = new Set<string>();
+                        if (data.generatedPasscodes && Array.isArray(data.generatedPasscodes)) {
+                          data.generatedPasscodes.forEach((code: any) => {
+                            if (code && typeof code === 'string') {
+                              discoveredCodes.add(code);
+                            }
+                          });
+                        }
+                        if (data.text) {
+                          // Extract backticked expressions (e.g. `code`)
+                          const backtickRegex = /`([^`]+)`/g;
+                          let match;
+                          while ((match = backtickRegex.exec(data.text)) !== null) {
+                            if (match[1] && match[1].trim()) {
+                              discoveredCodes.add(match[1].trim());
+                            }
+                          }
+
+                          // Regex extraction fallback for plain words following password/passcode/key/code
+                          const lines = data.text.split('\n');
+                          lines.forEach((line: string) => {
+                            const pwMatch = line.match(/(?:password|passcode|key|code):\s*(\S+)/i);
+                            if (pwMatch && pwMatch[1]) {
+                              // clean backticks, quotes, punctuation, or spaces
+                              const candidate = pwMatch[1]
+                                .replace(/[`'".,\/#!$%\^&\*;:{}=\-_~()?\s]+$/, '')
+                                .replace(/^[`'"]+/, '');
+                              if (candidate && candidate.length >= 6) {
+                                discoveredCodes.add(candidate);
+                              }
+                            }
+                          });
+                        }
+
+                        if (discoveredCodes.size > 0) {
+                          try {
+                            const savedRaw = localStorage.getItem('chatbot_generated_passwords');
+                            let savedList: string[] = [];
+                            if (savedRaw) {
+                              savedList = JSON.parse(savedRaw);
+                            }
+                            discoveredCodes.forEach(code => {
+                              if (!savedList.includes(code)) {
+                                savedList.push(code);
+                              }
+                            });
+                            localStorage.setItem('chatbot_generated_passwords', JSON.stringify(savedList));
+                          } catch (err) {
+                            console.error("Error storing chatbot-generated passwords:", err);
+                          }
+                        }
+                        
+                        // Append bot reply
+                        setChatMessages((prev) => [
+                          ...prev,
+                          {
+                            id: `bot-${Date.now()}`,
+                            sender: 'bot' as const,
+                            text: data.text || `Yo! Chat is a bit busy, but you said: "${userMsgText}"`,
+                            timestamp: new Date()
+                          }
+                        ]);
+                      } catch (err) {
+                        console.error("Chatback Proxy Error:", err);
+                        // Standard fallback matching image layout exactly
+                        setChatMessages((prev) => [
+                          ...prev,
+                          {
+                            id: `bot-err-${Date.now()}`,
+                            sender: 'bot' as const,
+                            text: `Yo! Chat is a bit busy, but you said: "${userMsgText}"`,
+                            timestamp: new Date()
+                          }
+                        ]);
+                      } finally {
+                        setChatLoading(false);
+                      }
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="Type your message..."
+                      className="flex-1 bg-[#101119] border border-[#242938] text-[11.5px] text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-purple-500/40 placeholder:text-zinc-500 font-sans tracking-wide"
+                    />
+                    <button
+                      type="submit"
+                      disabled={chatLoading}
+                      className="px-5 py-2.5 bg-[#42b783] hover:bg-[#52d399] active:scale-98 disabled:opacity-50 text-white font-bold text-xs rounded-xl tracking-wider transition-all duration-150 cursor-pointer shadow-[0_3px_10px_rgba(66,183,131,0.2)] flex items-center justify-center shrink-0 uppercase"
+                    >
+                      Send
+                    </button>
+                  </form>
+                  {/* Credits alignment matching Silver Techpx */}
+                  <div className="text-center select-none pt-0.5">
+                    <span className="text-[9px] font-bold tracking-widest text-[#42b783]/85 font-mono">
+                      DEVELOPED BY <span className="text-[#52d399] uppercase">Silver Techpx</span>
+                    </span>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

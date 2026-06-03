@@ -7,8 +7,19 @@ import { Project } from '../types';
 export default function SoftwareView() {
   const [projects] = useState<Project[]>(() => {
     const saved = localStorage.getItem('custom_projects');
-    const loaded = saved ? JSON.parse(saved) : STATIC_PROJECTS;
+    let loaded = saved ? JSON.parse(saved) : [...STATIC_PROJECTS];
     const deletedIds = JSON.parse(localStorage.getItem('deleted_item_ids') || '[]');
+    
+    // Ensure static projects are always merged even if custom_projects exists
+    if (saved && Array.isArray(loaded)) {
+      const loadedIds = new Set(loaded.map((p: any) => p.id));
+      for (const staticProj of STATIC_PROJECTS) {
+        if (!loadedIds.has(staticProj.id) && !deletedIds.includes(staticProj.id)) {
+          loaded.push(staticProj);
+        }
+      }
+    }
+
     return loaded
       .filter((proj: Project) => !deletedIds.includes(proj.id))
       .map((proj: Project) => {

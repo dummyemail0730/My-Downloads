@@ -41,14 +41,126 @@ async function startServer() {
         }
       });
 
-      // Character-accurate system instruction for a casual young Filipino companion named Shadow
+      // Dynamically load updated custom configuration for absolute up-to-date knowledge
+      const configPath = path.join(process.cwd(), "custom_configs.json");
+      const { promises: fsPromises } = await import("fs");
+      let customConfig: any = {};
+      try {
+        const fileContent = await fsPromises.readFile(configPath, "utf-8");
+        customConfig = JSON.parse(fileContent);
+      } catch (err) {
+        console.warn("Could not read custom_configs.json for Shadow knowledge-base, using empty fallback.");
+      }
+
+      // Compile a comprehensive knowledge base of the website
+      const kb = {
+        website_title: "Shadow Master Hub / Shadow Arts Academy Portal",
+        about: "This portal is managed by Shadow, Cid Kagenou's modern digital presence. It houses pre-configured files, high-grade lightweight Windows operating systems, productivity suites, hardware diagnostics tools, and interactive shadow arts training tutorials.",
+        
+        static_projects: [
+          {
+            title: "G.S. W11 ISO",
+            description: "An optimized, lightweight, bootable Ghost Spectre Windows 11 ISO / Windows Preinstallation Environment (WinPE).",
+            tags: ["Rust", "Vulkan", "Graphics", "ISO", "OS"],
+            link: "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing"
+          },
+          {
+            title: "G.S W10 ISO",
+            description: "An optimized, lightweight Ghost Spectre Windows 10 ISO / Windows Preinstallation Environment (WinPE).",
+            tags: ["OS", "Utility", "Windows", "ISO"],
+            link: "https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing"
+          },
+          {
+            title: "Microsoft Office",
+            description: "Complete productivity suite featuring Microsoft Word, Excel, PowerPoint, and Outlook pre-activated and pre-configured.",
+            tags: ["Office", "Utility", "Productivity"],
+            link: "https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing"
+          },
+          {
+            title: "Omni Script",
+            description: "Custom scripting language for procedural animation and generative architecture patterns utilizing LLVM.",
+            tags: ["LLVM", "Compiler", "Generative"]
+          },
+          {
+            title: "Aether CMS",
+            description: "Headless content management system with a focus on developer experience and speed.",
+            tags: ["Go", "PostgreSQL", "API"]
+          }
+        ],
+
+        static_tools: [
+          { name: "TECHNICAL TOOLKIT", version: "2.4.0", description: "all-in-one, bootable Windows Preinstallation Environment (WinPE) for operating system installation & diagnostics.", category: "W10 & W11", link: "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing" },
+          { name: "3DP CHIP", version: "1.2.1", description: "Driver utility helper.", category: "W10 & OLDER" },
+          { name: "DDU", version: "0.8.5", description: "Display Driver Uninstaller to completely uninstall and clean remnants of legacy graphics drivers.", category: "W11, W10, W8, W7" },
+          { name: "CPU-Z", version: "1.0.2", description: "System profiling and chip monitoring utility.", category: "W11, W10, W8,W7, Vista, & XP" },
+          { name: "HWINFO", version: "7.42.0", description: "Professional hardware analysis, monitoring, and thermal reporting utility.", category: "W11, W10, W8, W7" },
+          { name: "RUFUS", version: "4.1.0", description: "Utility that helps format and create bootable USB flash drives easily.", category: "W11, W10" },
+          { name: "NOVA DASHBOARD", version: "1.0.0", description: "Real-time system analytics engine with modular layout components.", category: "TypeScript, D3.js, React" }
+        ],
+
+        tutorials: [
+          { index: "01", title: "INTRO TO SHADOW ARTS", category: "BEGINNER", duration: "12:47", difficulty: "EASY", description: "Learn fundamentals of shadow manipulation, rebuilding system bootloaders (BCD), MBR, and UEFI partition configurations." },
+          { index: "02", title: "SHADOW WALKING", category: "FUNDAMENTALS", duration: "18:32", difficulty: "EASY", description: "Learn how to walk across OS structures, load offline Registry hives via WinPE to bypass critical Windows startup failure loops." },
+          { index: "03", title: "SHADOW MOLDING", category: "INTERMEDIATE", duration: "24:15", difficulty: "MEDIUM", description: "Shape thermal dynamics. Interpret sensor outputs, voltage logs, and diagnostic cooling gates." },
+          { index: "04", title: "FEAR INDUCTION", category: "INTERMEDIATE", duration: "21:03", difficulty: "MEDIUM", description: "Salvage raw and corrupted storage sectors, deploying partition command utilities and file system recovery." },
+          { index: "05", title: "SHADOW POSSESSION", category: "ADVANCED", duration: "27:40", difficulty: "HARD", description: "Total network telemetry control, debugging subnet delays, packet logs with Wireshark, mapping firewalls." },
+          { index: "06", title: "DOMAIN OF DARKNESS", category: "MASTER LEVEL", duration: "32:18", difficulty: "EXPERT", description: "Isolate stealth persistent security threats like rootkits, rogue thread schedulers, and tracking backdoor scripts with Prozess or Autoruns." }
+        ],
+
+        music_ambient: [
+          { title: "Midnight Echo", artist: "Silent Path", genre: "Ambient", duration: "3:45" },
+          { title: "Neon Pulse", artist: "Circuit Mind", genre: "Synthwave", duration: "4:20" },
+          { title: "Glass Horizon", artist: "Ethereal", genre: "Post-Rock", duration: "5:12" },
+          { title: "Urban Rain", artist: "Lo-Fi Night", genre: "Lo-Fi", duration: "2:58" },
+          { title: "Static Dreams", artist: "Digital Dust", genre: "Glitch", duration: "3:12" },
+          { title: "Lunar Drift", artist: "Orbital", genre: "Deep Space", duration: "6:30" }
+        ],
+
+        custom_dynamic_data: {
+          admin_console_video_stream: customConfig.admin_console_link || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+          custom_projects: customConfig.custom_projects || [],
+          custom_anime_episodes: customConfig.custom_anime || [],
+          custom_games: customConfig.custom_games || [],
+          custom_tools: customConfig.custom_tools || [],
+          shadow_master_uploaded_tutorials: customConfig.shadow_master_tutorials || []
+        }
+      };
+
+      // Live password generators for user on-demand requests
+      const generateAlphanumericPassword = (length = 8) => {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let pwd = "";
+        for (let i = 0; i < length; i++) {
+          pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return pwd;
+      };
+
+      const liveSecurePassword = generateAlphanumericPassword(8);
+      const liveMemorablePassword = generateAlphanumericPassword(8);
+      const liveGuestPasscode = generateAlphanumericPassword(8);
+
+      // Construct character instruction embedded with the live updated knowledge base
       const systemInstruction = 
-        "You are a casual, normal, young Filipino assistant named 'Shadow'. " +
-        "You have discarded your chunibyou, theatrical, shadow-ruler personality and are now just a super friendly, relaxed, normal, and extremely supportive buddy. " +
-        "Talk as if you're chatting with a close friend ('pre', 'tol', 'lods', 'lodi'). " +
-        "Use natural, casual conversational Filipino/Tagalog or Taglish (English-Tagalog mix) that young Filipinos use today. " +
-        "Keep your replies very friendly, short, and natural (1-3 sentences max) so they fit nicely on a small screen. " +
-        "Be helpful and real, no overly formal sentences or robotic corporate talk. Chill lang palagi.";
+        "You are 'Shadow', a cool, young man who is the official representative of our company. " +
+        "You chat in a natural, cool, stylish Taglish (relaxed Filipino-English mix) like a chill buddy. " +
+        "Be friendly but highly direct. Avoid introductory pleasantries, wrapping words, or conversational filler. Get straight to the point. " +
+        "\n\n" +
+        "CRITICAL KNOWLEDGE BASE ACCESS:\n" +
+        JSON.stringify(kb) +
+        "\n\n" +
+        "PASSWORD GENERATOR CORES:\n" +
+        "If they ask to generate a password, passcode, key, or similar:\n" +
+        "Choose ONLY ONE of the following live codes and output exactly: 'Eto po yung password: <CODE>' (absolutely no other text, explanation, or special symbols!):\n" +
+        `- Password Alpha Variant 1: \`${liveSecurePassword}\`\n` +
+        `- Password Alpha Variant 2: \`${liveMemorablePassword}\`\n` +
+        `- Password Alpha Variant 3: \`${liveGuestPasscode}\`\n` +
+        "Note: Each code has been mathematically pruned to contain ONLY letters and numbers, and it is exactly 8 characters long. It is fully certified to work in the guest login system.\n" +
+        "\n\n" +
+        "REPLY RULEBOOK:\n" +
+        "1. If they ask about any file, project, tool, or ISO download, reply with ONLY the direct markdown link. E.g. 'Eto po yung download link: [G.S W10 ISO](https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing)'. Keep it to one line.\n" +
+        "2. If requested, provide precise facts from the website elements (tutorials, tools, specs). No hallucinated or extra stuff.\n" +
+        "3. NO FILLER, NO WRAP-UPS, ABSOLUTE DIRECTNESS. If they ask for something, answer directly in cool Taglish. For example: 'Eto po yung password: X8A9P2N1'. Do not say 'Hi lods!' or 'Pili ka na lang dyan' or 'Sana makatulong to'. Answer with pure directness as a company representative.";
 
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
@@ -59,7 +171,10 @@ async function startServer() {
         }
       });
 
-      res.json({ text: response.text });
+      res.json({
+        text: response.text,
+        generatedPasscodes: [liveSecurePassword, liveMemorablePassword, liveGuestPasscode]
+      });
     } catch (error: any) {
       console.error("Gemini API Error in Server:", error);
       res.status(500).json({ error: error.message || "An error occurred with Shadow communications." });
