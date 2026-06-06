@@ -999,7 +999,7 @@ export default function App() {
                     {[
                       "Sino si Shadow?",
                       "Anong mayroon dito?",
-                      "Sabihin mo: Hello"
+                      "Hingi ng passcode, pre"
                     ].map((chip, idx) => (
                       <button
                         key={idx}
@@ -1104,19 +1104,112 @@ export default function App() {
                           {
                             id: `bot-${Date.now()}`,
                             sender: 'bot' as const,
-                            text: data.text || `Yo! Chat is a bit busy, but you said: "${userMsgText}"`,
+                            text: data.text || data.error || `Yo! Chat is a bit busy, but you said: "${userMsgText}"`,
                             timestamp: new Date()
                           }
                         ]);
-                      } catch (err) {
-                        console.error("Chatback Proxy Error:", err);
-                        // Standard fallback matching image layout exactly
+                      } catch (err: any) {
+                        console.error("Chatback Proxy Error, running client-side offline brain fallback:", err);
+                        
+                        // Run identical offline responder fallback
+                        const norm = userMsgText.toLowerCase().trim();
+                        let replyText = "Online computer repair service po ang ginagarantiya namin dito, pre! Plus super light Windows ISOs at hardware diagnostic software. Tanong ka lang, pre, handa akong mag-respond 24/7! 🔥";
+                        
+                        if (
+                          norm.includes("password") ||
+                          norm.includes("passcode") ||
+                          norm.includes("key") ||
+                          norm.includes("login") ||
+                          norm.includes("generate") ||
+                          norm.includes("code")
+                        ) {
+                          const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                          let code = "";
+                          for (let i = 0; i < 8; i++) {
+                            code += chars.charAt(Math.floor(Math.random() * chars.length));
+                          }
+                          replyText = `Eto po yung password: \`${code}\``;
+                          
+                          // Save generated code to guest's valid passcode list
+                          try {
+                            const savedRaw = localStorage.getItem('chatbot_generated_passwords');
+                            let savedList: string[] = [];
+                            if (savedRaw) {
+                              savedList = JSON.parse(savedRaw);
+                            }
+                            if (!savedList.includes(code)) {
+                              savedList.push(code);
+                            }
+                            localStorage.setItem('chatbot_generated_passwords', JSON.stringify(savedList));
+                          } catch (e) {
+                            console.error("Client fallback save secret err", e);
+                          }
+                        } else if (
+                          norm.includes("anong meron") ||
+                          norm.includes("anong mayroon") ||
+                          norm.includes("what is this") ||
+                          norm.includes("what do you do") ||
+                          norm.includes("what does this") ||
+                          norm.includes("offer") ||
+                          norm.includes("service") ||
+                          norm.includes("services") ||
+                          norm.includes("repair") ||
+                          norm.includes("computer")
+                        ) {
+                          replyText = "Online computer repair service po ino-offer namin dito, pre! Meron din kaming high-grade lightweight Windows ISOs, MS Office suites, diagnostics tools at shadow tutorials. Rock on at chat me up kung ano kailangan mo! 😎";
+                        } else if (
+                          norm.includes("sino ka") ||
+                          norm.includes("sino si shadow") ||
+                          norm.includes("who is shadow") ||
+                          norm.includes("who are you") ||
+                          norm.includes("identity")
+                        ) {
+                          replyText = "Ako pala si Shadow, ang cool at official representative ng company, pre! Nandito ako to handle online computer repair services, software tools, and system guides 24/7. Tanong ka lang anytime! ⚡";
+                        } else if (
+                          norm.includes("w10") ||
+                          norm.includes("windows 10") ||
+                          norm.includes("win 10") ||
+                          norm.includes("win10")
+                        ) {
+                          replyText = "Eto po yung direct download link ng G.S W10 ISO natin, pre: [G.S W10 ISO](https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing). Sobrang magaan and pre-optimized para sa recovery!";
+                        } else if (
+                          norm.includes("w11") ||
+                          norm.includes("windows 11") ||
+                          norm.includes("win 11") ||
+                          norm.includes("win11")
+                        ) {
+                          replyText = "Eto naman yung bootable G.S W11 ISO download link natin, pre: [G.S W11 ISO](https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing). Mabilis at optimized para sa safe system setups!";
+                        } else if (
+                          norm.includes("office") ||
+                          norm.includes("msoffice") ||
+                          norm.includes("word") ||
+                          norm.includes("excel") ||
+                          norm.includes("powerpoint")
+                        ) {
+                          replyText = "Need ng office apps? Don't worry, eto po yung pre-configured Microsoft Office collection link natin: [Microsoft Office](https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing). Ready-to-go na yan pre!";
+                        } else if (
+                          norm.includes("tutorial") ||
+                          norm.includes("lesson") ||
+                          norm.includes("training") ||
+                          norm.includes("shadow arts")
+                        ) {
+                          replyText = "May anim tayong specialized troubleshooting at training guides dito, pre! Meron tayong Intro, Walking registry hacks, Thermal config, at Storage restoration. Tanong ka lang kung aling module ang gusto mo tahiin.";
+                        } else if (
+                          norm.includes("hello") ||
+                          norm.includes("hi") ||
+                          norm.includes("yo") ||
+                          norm.includes("hey") ||
+                          norm.includes("hoy")
+                        ) {
+                          replyText = "Yo, pre! Welcome sa aming site. Ako si Shadow, ang andyan para sa online computer repair resources natin. Tanong ka lang kung kailangan mo ng quick systems repair downloads! 👊";
+                        }
+
                         setChatMessages((prev) => [
                           ...prev,
                           {
-                            id: `bot-err-${Date.now()}`,
+                            id: `bot-fallback-${Date.now()}`,
                             sender: 'bot' as const,
-                            text: `Yo! Chat is a bit busy, but you said: "${userMsgText}"`,
+                            text: replyText,
                             timestamp: new Date()
                           }
                         ]);

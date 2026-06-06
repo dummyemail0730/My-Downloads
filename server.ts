@@ -16,6 +16,137 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  // Rules-based smart 24/7 backup brain for Shadow offline/unkey situations
+  function shadowOfflineBrain(message: string) {
+    const normalized = (message || "").toLowerCase().trim();
+
+    // 1. Password generation check
+    if (
+      normalized.includes("password") ||
+      normalized.includes("passcode") ||
+      normalized.includes("key") ||
+      normalized.includes("login") ||
+      normalized.includes("generate") ||
+      normalized.includes("code")
+    ) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let code = "";
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return {
+        text: `Eto po yung password: \`${code}\``,
+        generatedPasscodes: [code]
+      };
+    }
+
+    // 2. Services or information about what the company does/offers
+    if (
+      normalized.includes("anong meron") ||
+      normalized.includes("anong mayroon") ||
+      normalized.includes("what is this") ||
+      normalized.includes("what do you do") ||
+      normalized.includes("what does this") ||
+      normalized.includes("offer") ||
+      normalized.includes("service") ||
+      normalized.includes("services") ||
+      normalized.includes("repair") ||
+      normalized.includes("computer")
+    ) {
+      return {
+        text: "Online computer repair service po ino-offer namin dito, pre! Meron din kaming high-grade lightweight Windows ISOs, MS Office suites, diagnostics tools at shadow tutorials. Rock on at chat me up kung ano kailangan mo! 😎",
+        generatedPasscodes: []
+      };
+    }
+
+    // 3. Who is shadow / representative status
+    if (
+      normalized.includes("sino ka") ||
+      normalized.includes("sino si shadow") ||
+      normalized.includes("who is shadow") ||
+      normalized.includes("who are you") ||
+      normalized.includes("identity")
+    ) {
+      return {
+        text: "Ako pala si Shadow, ang cool at official representative ng company, pre! Nandito ako to handle online computer repair services, software tools, and system guides 24/7. Tanong ka lang anytime! ⚡",
+        generatedPasscodes: []
+      };
+    }
+
+    // 4. Windows 10
+    if (
+      normalized.includes("w10") ||
+      normalized.includes("windows 10") ||
+      normalized.includes("win 10") ||
+      normalized.includes("win10")
+    ) {
+      return {
+        text: "Eto po yung direct download link ng G.S W10 ISO natin, pre: [G.S W10 ISO](https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing). Sobrang magaan and pre-optimized para sa recovery!",
+        generatedPasscodes: []
+      };
+    }
+
+    // 5. Windows 11
+    if (
+      normalized.includes("w11") ||
+      normalized.includes("windows 11") ||
+      normalized.includes("win 11") ||
+      normalized.includes("win11")
+    ) {
+      return {
+        text: "Eto naman yung bootable G.S W11 ISO download link natin, pre: [G.S W11 ISO](https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing). Mabilis at optimized para sa safe system setups!",
+        generatedPasscodes: []
+      };
+    }
+
+    // 6. Microsoft Office
+    if (
+      normalized.includes("office") ||
+      normalized.includes("msoffice") ||
+      normalized.includes("word") ||
+      normalized.includes("excel") ||
+      normalized.includes("powerpoint")
+    ) {
+      return {
+        text: "Need ng office apps? Don't worry, eto po yung pre-configured Microsoft Office collection link natin: [Microsoft Office](https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing). Ready-to-go na yan pre!",
+        generatedPasscodes: []
+      };
+    }
+
+    // 7. Tutorial / Lesson query
+    if (
+      normalized.includes("tutorial") ||
+      normalized.includes("lesson") ||
+      normalized.includes("training") ||
+      normalized.includes("shadow arts")
+    ) {
+      return {
+        text: "May anim tayong specialized troubleshooting at training guides dito, pre! Meron tayong Intro, Walking registry hacks, Thermal config, at Storage restoration. Tanong ka lang kung aling module ang gusto mo tahiin.",
+        generatedPasscodes: []
+      };
+    }
+
+    // 8. Hello greetings
+    if (
+      normalized.includes("hello") ||
+      normalized.includes("hi") ||
+      normalized.includes("yo") ||
+      normalized.includes("hey") ||
+      normalized.includes("hoy")
+    ) {
+      return {
+        text: "Yo, pre! Welcome sa aming site. Ako si Shadow, ang andyan para sa online computer repair resources natin. Tanong ka lang kung kailangan mo ng quick systems repair downloads! 👊",
+        generatedPasscodes: []
+      };
+    }
+
+    // 9. Default
+    return {
+      text: "Online computer repair service po ang ginagarantiya namin dito, pre! Plus super light Windows ISOs at hardware diagnostic software. Tanong ka lang, pre, handa akong mag-respond 24/7! 🔥",
+      generatedPasscodes: []
+    };
+  }
+
   // API Route - Shadow Interactive Chat
   app.post("/api/shadow-chat", async (req, res) => {
     const { message } = req.body;
@@ -26,10 +157,9 @@ async function startServer() {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
-        console.warn("GEMINI_API_KEY is not defined in process.env.");
-        return res.json({
-          text: "I operate in the shadows, waiting for the decrypting cipher... Send your encrypted query once the GEMINI_API_KEY is established in Secrets."
-        });
+        console.warn("GEMINI_API_KEY is not defined in process.env. Running offline brain fallback.");
+        const fallback = shadowOfflineBrain(message);
+        return res.json(fallback);
       }
 
       const ai = new GoogleGenAI({
@@ -177,8 +307,9 @@ async function startServer() {
         generatedPasscodes: [liveSecurePassword, liveMemorablePassword, liveGuestPasscode]
       });
     } catch (error: any) {
-      console.error("Gemini API Error in Server:", error);
-      res.status(500).json({ error: error.message || "An error occurred with Shadow communications." });
+      console.error("Gemini API Error in Server. Running offline brain fallback. Error:", error);
+      const fallback = shadowOfflineBrain(message);
+      res.json(fallback);
     }
   });
 
