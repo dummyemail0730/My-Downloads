@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft, Eye, EyeOff, Clock, ArrowRight } from 'lucide-react';
+import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft, Eye, EyeOff, Clock, ArrowRight, ShieldCheck, Clipboard } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
 import AnimeView from './components/AnimeView';
@@ -26,15 +26,161 @@ const TABS = [
   { id: 'TOOLS', label: 'Tools' }
 ];
 
+// Helper to extract passcode from messages for guest auto-login shortcut
+const extractPasscode = (text: string): string | null => {
+  if (!text) return null;
+  // 1. Check for text inside backticks first, e.g. `ABC12345`
+  const backtickMatch = text.match(/`([^`]+)`/);
+  if (backtickMatch && backtickMatch[1]) {
+    return backtickMatch[1].trim();
+  }
+  // 2. Look for pattern like "password: CODE" or "passcode: CODE" or "G.S-..."
+  const codeLabelMatch = text.match(/(?:password|passcode|key|code):\s*([a-zA-Z0-9\-]+)/i);
+  if (codeLabelMatch && codeLabelMatch[1]) {
+    return codeLabelMatch[1].trim();
+  }
+  // 3. Look for 8-char uppercase alphanumeric sequence
+  const wordMatch = text.match(/\b([A-Z0-9]{8})\b/);
+  if (wordMatch && wordMatch[1]) {
+    return wordMatch[1].trim();
+  }
+  return null;
+};
+
+// A small interactive button component to copy code to clipboard with success feedback
+const CopyCodeButton = ({ code }: { code: string }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: any) => {
+    e.stopPropagation();
+    try {
+      navigator.clipboard.writeText(code);
+    } catch (err) {
+      console.warn("Clipboard copy blocked:", err);
+    }
+    try {
+      (window as any).lastShadowCopiedText = code;
+      localStorage.setItem('copied_passcode_buffer', code);
+    } catch (err) {
+      console.error("Cache copy error:", err);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      title={copied ? "Copied!" : "Copy passcode to clipboard"}
+      className="ml-1 p-1 hover:bg-purple-900/45 text-purple-400 hover:text-purple-200 rounded transition-all cursor-pointer inline-flex items-center justify-center active:scale-90"
+    >
+      {copied ? (
+        <Check size={10.5} className="text-emerald-400" />
+      ) : (
+        <Copy size={10.5} />
+      )}
+    </button>
+  );
+};
+
+// Render the chat bubbles inserting the copy button right next to the detected passcode
+const renderMessageContent = (msgText: string, sender: string) => {
+  if (sender !== 'bot') return msgText;
+  const code = extractPasscode(msgText);
+  if (!code) return msgText;
+
+  const index = msgText.indexOf(code);
+  if (index === -1) return msgText;
+
+  const before = msgText.substring(0, index);
+  const after = msgText.substring(index + code.length);
+
+  return (
+    <span>
+      {before}
+      <span className="inline-flex items-center gap-0.5 bg-[#0e0a24] border border-purple-500/40 text-purple-300 px-1.5 py-0.5 rounded-md font-mono text-[11px] font-bold select-all shadow-[0_0_8px_rgba(168,85,247,0.25)]">
+        {code}
+        <CopyCodeButton code={code} />
+      </span>
+      {after}
+    </span>
+  );
+};
+
 export default function App() {
   const [audioApproved, setAudioApproved] = useState<boolean | null>(null);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [passcode, setPasscode] = useState('');
   const [authError, setAuthError] = useState('');
   const [showOverrideInput, setShowOverrideInput] = useState(false);
   const [showGuestPopup, setShowGuestPopup] = useState(false);
   const [guestPasscode, setGuestPasscode] = useState('');
   const [guestAuthError, setGuestAuthError] = useState('');
+  
+  const [availablePasscodes, setAvailablePasscodes] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem('chatbot_generated_passwords');
+      return raw ? JSON.parse(raw) : [];
+    } catch (_) {
+      return [];
+    }
+  });
+
+  const handleDirectGuestLogin = (code: string) => {
+    const enteredOriginal = code.trim();
+    const enteredLower = enteredOriginal.toLowerCase();
+    
+    // Check match criteria
+    const isGeneratedMatch = generatedGuestPasscode && (enteredOriginal === generatedGuestPasscode || enteredLower === generatedGuestPasscode.toLowerCase());
+    
+    let isChatbotMatch = false;
+    let matchedChatbotCode: string | null = null;
+    try {
+      const chatbotRaw = localStorage.getItem('chatbot_generated_passwords');
+      if (chatbotRaw) {
+        const chatbotCodes: string[] = JSON.parse(chatbotRaw);
+        const found = chatbotCodes.find(c => 
+          c && (enteredOriginal === c || enteredLower === c.toLowerCase())
+        );
+        if (found) {
+          isChatbotMatch = true;
+          matchedChatbotCode = found;
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
+    if (enteredLower === 'guest' || isGeneratedMatch || isChatbotMatch) {
+      setIsAuthorized(true);
+      setIsGuestMode(true);
+      const now = Date.now();
+      setGuestLoginTime(now);
+      localStorage.setItem('guest_login_time', now.toString());
+      localStorage.setItem('is_guest_mode', 'true');
+
+      // Consume (remove) the used chatbot password so it cannot be used again
+      if (isChatbotMatch && matchedChatbotCode) {
+        try {
+          const chatbotRaw = localStorage.getItem('chatbot_generated_passwords');
+          if (chatbotRaw) {
+            const chatbotCodes: string[] = JSON.parse(chatbotRaw);
+            const updatedList = chatbotCodes.filter(c => c !== matchedChatbotCode);
+            localStorage.setItem('chatbot_generated_passwords', JSON.stringify(updatedList));
+            setAvailablePasscodes(updatedList);
+          }
+        } catch (err) {
+          console.error("Failed to update chatbot_generated_passwords after login", err);
+        }
+      }
+
+      setShowGuestPopup(false);
+      setGuestAuthError('');
+      return true;
+    }
+    return false;
+  };
   
   // Custom Chatbox for NBN States
   const [chatMessages, setChatMessages] = useState<Array<{
@@ -66,9 +212,7 @@ export default function App() {
   const [generatedGuestPasscode, setGeneratedGuestPasscode] = useState<string | null>(() => {
     return localStorage.getItem('generated_guest_passcode') || null;
   });
-  const [isGuestMode, setIsGuestMode] = useState<boolean>(() => {
-    return localStorage.getItem('is_guest_mode') === 'true';
-  });
+  const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
   const [showAdminPasscode, setShowAdminPasscode] = useState(false);
   const [showGuestPasscode, setShowGuestPasscode] = useState(false);
 
@@ -299,18 +443,28 @@ export default function App() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleSessionExpiredLogout = () => {
+  const handleLogout = () => {
     setIsAuthorized(false);
     setIsGuestMode(false);
     setGuestLoginTime(null);
     setGuestSessionExpired(false);
     localStorage.removeItem('guest_login_time');
     localStorage.setItem('is_guest_mode', 'false');
+    sessionStorage.removeItem('is_authorized');
+    sessionStorage.removeItem('is_admin_mode');
   };
 
-  // Clear any legacy authorized states or stored session marks
+  const handleSessionExpiredLogout = () => {
+    handleLogout();
+  };
+
+  // Clear any legacy authorized states or stored session marks on mount to require guest and admin login on every reset / re-entry
   useEffect(() => {
     localStorage.removeItem('shadow_sys_authorized');
+    localStorage.removeItem('guest_login_time');
+    localStorage.setItem('is_guest_mode', 'false');
+    sessionStorage.removeItem('is_authorized');
+    sessionStorage.removeItem('is_admin_mode');
   }, []);
 
   const handleSetGeneratedGuestPasscode = (code: string | null) => {
@@ -415,7 +569,7 @@ export default function App() {
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.45, ease: "easeOut" }}
-            className="w-full bg-[#110c26]/90 border border-purple-500/25 rounded-[1.8rem] shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(147,51,234,0.12)] backdrop-blur-xl overflow-hidden p-6 md:p-10"
+            className="w-full bg-[#110c26]/90 border-2 border-purple-500/80 rounded-[1.8rem] shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_60px_rgba(168,85,247,0.55),0_0_20px_rgba(139,92,246,0.3)] backdrop-blur-xl overflow-hidden p-6 md:p-10"
           >
             <div className="flex flex-col md:flex-row gap-6 items-start">
               
@@ -527,19 +681,19 @@ export default function App() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -15 }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="w-full max-w-sm bg-[#0d091e]/95 border border-purple-500/40 rounded-[2rem] p-6 md:p-8 shadow-[0_0_80px_rgba(147,51,234,0.35)] relative overflow-hidden"
+                className="w-full max-w-sm bg-[#0d091e]/95 border-2 border-purple-500/85 rounded-[2rem] p-6 md:p-8 shadow-[0_0_90px_rgba(168,85,247,0.75),0_0_30px_rgba(139,92,246,0.4)] relative overflow-hidden"
               >
                 {/* Active Corner Brackets to match style */}
-                <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-purple-500/40 rounded-tl-xl" />
-                <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-purple-500/40 rounded-tr-xl" />
-                <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-purple-500/40 rounded-bl-xl" />
-                <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-purple-500/40 rounded-br-xl" />
+                <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-tl-xl" />
+                <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-tr-xl" />
+                <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-bl-xl" />
+                <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-br-xl" />
 
                 <div className="flex justify-between items-center mb-5 pb-3 border-b border-purple-950/40">
                   <div className="flex items-center gap-2">
                     <User size={14} className="text-purple-400" />
                     <h3 className="text-xs font-black tracking-[0.2em] uppercase font-mono text-purple-200">
-                      GUEST REGISTRATION
+                      GUEST LOGIN
                     </h3>
                   </div>
                   <button
@@ -551,18 +705,16 @@ export default function App() {
                   </button>
                 </div>
 
-                <p className="text-[10px] md:text-[11px] text-neutral-400 tracking-wide leading-relaxed mb-6 font-mono text-center">
-                  Gaining limited guest privileges requires standard terminal validation.
-                </p>
+
 
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
                     const enteredOriginal = guestPasscode.trim();
                     const enteredLower = enteredOriginal.toLowerCase();
                     const isGeneratedMatch = generatedGuestPasscode && (enteredOriginal === generatedGuestPasscode || enteredLower === generatedGuestPasscode.toLowerCase());
                     
-                    // Retrieve/validate any passwords generated dynamically by the chatbot
+                    // Retrieve/validate any passwords generated dynamically by the chatbot internally/regionally
                     let isChatbotMatch = false;
                     let matchedChatbotCode: string | null = null;
                     try {
@@ -581,15 +733,33 @@ export default function App() {
                       console.error("Failed to parse chatbot_generated_passwords", err);
                     }
 
-                    if (enteredLower === 'guest' || isGeneratedMatch || isChatbotMatch) {
+                    // Query our backend to see if this code was registered globally on the server (works across all browsers and outside the studio)
+                    let isServerMatch = false;
+                    try {
+                      const apiResponse = await fetch('/api/validate-passcode', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ passcode: enteredOriginal })
+                      });
+                      const apiData = await apiResponse.json();
+                      if (apiData.valid) {
+                        isServerMatch = true;
+                      }
+                    } catch (err) {
+                      console.error("Failed to validate passcode on server-side", err);
+                    }
+
+                    if (enteredLower === 'guest' || isGeneratedMatch || isChatbotMatch || isServerMatch) {
                       setIsAuthorized(true);
                       setIsGuestMode(true);
-                      if (isGeneratedMatch || isChatbotMatch) {
+                      if (isGeneratedMatch || isChatbotMatch || isServerMatch) {
                         const now = Date.now();
                         setGuestLoginTime(now);
                       }
                       
-                      // Consume (remove) the used chatbot password so it cannot be used again
+                      // Consume (remove) the used chatbot password locally
                       if (isChatbotMatch && matchedChatbotCode) {
                         try {
                           const chatbotRaw = localStorage.getItem('chatbot_generated_passwords');
@@ -597,6 +767,7 @@ export default function App() {
                             const chatbotCodes: string[] = JSON.parse(chatbotRaw);
                             const updatedList = chatbotCodes.filter(c => c !== matchedChatbotCode);
                             localStorage.setItem('chatbot_generated_passwords', JSON.stringify(updatedList));
+                            setAvailablePasscodes(updatedList);
                           }
                         } catch (err) {
                           console.error("Failed to update chatbot_generated_passwords after login", err);
@@ -606,7 +777,7 @@ export default function App() {
                       setShowGuestPopup(false);
                       setGuestAuthError('');
                     } else {
-                      setGuestAuthError('INVALID GUEST PASSPHRASE. DECRYPTION FAILED.');
+                      setGuestAuthError('INVALID GUEST PASSPHRASE. LOGIN FAILED.');
                       setGuestPasscode('');
                     }
                   }}
@@ -626,8 +797,60 @@ export default function App() {
                           setGuestPasscode(e.target.value);
                           if (guestAuthError) setGuestAuthError('');
                         }}
-                        className="w-full text-center text-sm font-mono bg-black hover:bg-neutral-900/45 focus:bg-black border border-neutral-800 focus:border-purple-500/60 text-purple-400 p-3 pr-11 rounded-xl outline-none transition-all placeholder:text-neutral-800/60 tracking-widest font-bold"
+                        className="w-full text-center text-sm font-mono bg-black hover:bg-neutral-900/45 focus:bg-black border border-neutral-800 focus:border-purple-500/60 text-purple-400 p-3 pr-20 rounded-xl outline-none transition-all placeholder:text-neutral-800/60 tracking-widest font-bold"
                       />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          let pastedText = '';
+                          try {
+                            // Try the standard clipboard API
+                            pastedText = await navigator.clipboard.readText();
+                          } catch (err) {
+                            console.warn("Clipboard paste API blocked or denied inside iframe, using ultra-reliable memory & cache buffers.", err);
+                          }
+
+                          // 1. Fallback to global window copy-buffer if populated
+                          if (!pastedText && (window as any).lastShadowCopiedText) {
+                            pastedText = (window as any).lastShadowCopiedText;
+                          }
+
+                          // 2. Fallback to local storage copy-buffer if populated
+                          if (!pastedText) {
+                            const cached = localStorage.getItem('copied_passcode_buffer');
+                            if (cached) pastedText = cached;
+                          }
+
+                          // 3. Fallback to parsing latest active passcode from the chatbot registry
+                          if (!pastedText) {
+                            try {
+                              const chatbotRaw = localStorage.getItem('chatbot_generated_passwords');
+                              if (chatbotRaw) {
+                                const chatbotCodes: string[] = JSON.parse(chatbotRaw);
+                                if (chatbotCodes && chatbotCodes.length > 0) {
+                                  pastedText = chatbotCodes[chatbotCodes.length - 1];
+                                }
+                              }
+                            } catch (_) {}
+                          }
+
+                          // 4. Fallback to generatedGuestPasscode variable
+                          if (!pastedText && generatedGuestPasscode) {
+                            pastedText = generatedGuestPasscode;
+                          }
+
+                          if (pastedText && pastedText.trim()) {
+                            setGuestPasscode(pastedText.trim());
+                            if (guestAuthError) setGuestAuthError('');
+                          } else {
+                            setGuestAuthError("NO CODE FOUND IN CLIPBOARD OR MEMORY. PLEASE COPY FIRST FROM SHADOW CHAT.");
+                          }
+                        }}
+                        className="absolute right-10 text-neutral-500 hover:text-purple-400 transition-colors p-1.5 rounded cursor-pointer z-10"
+                        title="Paste passcode"
+                      >
+                        <Clipboard size={14} />
+                      </button>
                       <button
                         type="button"
                         onClick={() => setShowGuestPasscode(!showGuestPasscode)}
@@ -637,15 +860,7 @@ export default function App() {
                         {showGuestPasscode ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                     </div>
-                    <div className="text-[8px] uppercase font-bold tracking-[0.12em] text-neutral-500 mt-2 text-center">
-                      HINT: <span className="text-purple-400 select-all font-mono">guest</span>
-                      {generatedGuestPasscode && (
-                        <>
-                          {' '}OR{' '}
-                          <span className="text-purple-400 select-all font-mono">{generatedGuestPasscode}</span>
-                        </>
-                      )}
-                    </div>
+
                   </div>
 
                   {guestAuthError && (
@@ -658,20 +873,13 @@ export default function App() {
                     </motion.p>
                   )}
 
-                  <div className="pt-2 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowGuestPopup(false)}
-                      className="flex-1 py-2.5 bg-transparent border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/30 text-neutral-400 hover:text-neutral-200 font-mono text-[9px] uppercase font-bold tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      CANCEL
-                    </button>
+                  <div className="pt-2">
                     <button
                       type="submit"
-                      className="flex-1 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-98 text-white font-mono text-[9px] font-extrabold tracking-widest rounded-xl flex items-center justify-center gap-1.5 shadow-lg transition-all cursor-pointer"
+                      className="w-full py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-98 text-white font-mono text-[9px] font-extrabold tracking-widest rounded-xl flex items-center justify-center gap-1.5 shadow-lg transition-all cursor-pointer"
                     >
                       <Unlock size={10} />
-                      DECRYPT ACCESS
+                      GUEST LOGIN
                     </button>
                   </div>
                 </form>
@@ -680,7 +888,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Absolute ADMIN LOG IN & GUEST LOGIN Buttons at the bottom left corner as requested */}
+        {/* Absolute ADMIN LOG IN Button at the bottom left corner as requested */}
         <div className="absolute bottom-6 left-6 z-50 ml-4 mb-2 flex items-center gap-3">
           <button
             onClick={() => {
@@ -691,18 +899,6 @@ export default function App() {
           >
             <Lock size={11} className="text-purple-400" />
             <span>ADMIN LOG IN</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setGuestAuthError('');
-              setGuestPasscode('');
-              setShowGuestPopup(true);
-            }}
-            className="px-4 py-2.5 bg-purple-700/80 hover:bg-purple-600 border border-purple-500/30 hover:border-purple-400/55 text-white rounded-xl font-mono text-[9px] uppercase font-bold tracking-[0.18em] flex items-center gap-2 transition-all duration-300 backdrop-blur-md shadow-[0_4px_15px_rgba(147,51,234,0.15)] hover:shadow-[0_4px_22px_rgba(147,51,234,0.35)] cursor-pointer"
-          >
-            <User size={11} className="text-purple-200" />
-            <span>GUEST LOGIN</span>
           </button>
         </div>
 
@@ -732,13 +928,13 @@ export default function App() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 15 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="w-full bg-[#0f0b21]/85 border border-purple-500/35 rounded-[2.2rem] p-8 md:p-10 shadow-[0_0_60px_rgba(147,51,234,0.25)] backdrop-blur-xl relative overflow-hidden"
+                className="w-full bg-[#0f0b21]/85 border-2 border-purple-500/80 rounded-[2.2rem] p-8 md:p-10 shadow-[0_0_80px_rgba(168,85,247,0.75),0_0_30px_rgba(139,92,246,0.4)] backdrop-blur-xl relative overflow-hidden"
               >
                 {/* Active Corner Brackets */}
-                <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-purple-500/40 rounded-tl-xl" />
-                <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-purple-500/40 rounded-tr-xl" />
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-purple-500/40 rounded-bl-xl" />
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-purple-500/40 rounded-br-xl" />
+                <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-tl-xl" />
+                <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-tr-xl" />
+                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-bl-xl" />
+                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-br-xl" />
 
                 {/* X Close top-right button */}
                 <button
@@ -785,6 +981,8 @@ export default function App() {
                         setIsAuthorized(true);
                         setIsGuestMode(false);
                         setAuthError('');
+                        sessionStorage.setItem('is_authorized', 'true');
+                        sessionStorage.setItem('is_admin_mode', 'true');
                       } else {
                         setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
                         setPasscode('');
@@ -795,6 +993,8 @@ export default function App() {
                         setIsAuthorized(true);
                         setIsGuestMode(false);
                         setAuthError('');
+                        sessionStorage.setItem('is_authorized', 'true');
+                        sessionStorage.setItem('is_admin_mode', 'true');
                       } else {
                         setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
                         setPasscode('');
@@ -872,13 +1072,21 @@ export default function App() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -15 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="w-full max-w-[350px] sm:max-w-[380px] h-[520px] bg-[#1d1f2b] border border-purple-500/20 rounded-[2rem] shadow-[0_15px_50px_rgba(147,51,234,0.15)] flex flex-col overflow-visible relative font-sans text-white backdrop-blur-md"
+                className="w-full max-w-[350px] sm:max-w-[380px] h-[520px] bg-[#1d1f2b] border-2 border-purple-500/70 rounded-[2rem] shadow-[0_0_60px_rgba(168,85,247,0.65),0_0_20px_rgba(139,92,246,0.35),0_15px_50px_rgba(147,51,234,0.25)] flex flex-col overflow-visible relative font-sans text-white backdrop-blur-md"
               >
+                {/* Micro Helper Note Above Chatbox */}
+                <div className="absolute -top-10 left-0 right-0 text-center pointer-events-none select-none z-10 animate-pulse">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-[0.25em] text-purple-200 font-black filter drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]">
+                    <Key size={11} className="text-purple-400 stroke-[3]" />
+                    Ask the bot for the password
+                  </span>
+                </div>
+
                 {/* Chatbot Header */}
                 <div className="bg-[#151722] p-4 flex items-center justify-between border-b border-[#252838] select-none shrink-0 rounded-t-[2rem] relative">
                   <div className="flex items-center">
                     {/* Floating Circular Chathead character that goes beyond the chatbox with clean rounded-full overflow-hidden */}
-                    <div className="absolute -top-[35px] -left-4 z-30 select-none group">
+                    <div className="absolute -top-4 -left-4 z-30 select-none group">
                       <div className="relative flex items-center justify-center">
                         {/* Outer shining border frame of the avatar (glowing circle matching design mockups perfectly) */}
                         <div className="w-[82px] h-[82px] rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-500 to-indigo-500 p-[3px] shadow-[0_4px_22px_rgba(168,85,247,0.6)] relative">
@@ -912,23 +1120,25 @@ export default function App() {
                     </div>
                   </div>
                   
-                  {/* Option to clear chat */}
-                  <button 
-                    onClick={() => {
-                      setChatMessages([
-                        {
-                          id: 'welcome',
-                          sender: 'bot',
-                          text: "Yo! Shadow here, official rep. Let's start fresh. Chat me up, pre! 😎",
-                          timestamp: new Date()
-                        }
-                      ]);
-                    }}
-                    title="Reload Chat"
-                    className="p-1.5 text-zinc-500 hover:text-emerald-400 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
-                  >
-                    <RotateCcw size={13} />
-                  </button>
+                  {/* Option to clear chat & Guest Login trigger */}
+                  <div className="flex items-center gap-1.5">
+                    <button 
+                      onClick={() => {
+                        setChatMessages([
+                          {
+                            id: 'welcome',
+                            sender: 'bot',
+                            text: "Yo! Shadow here, official rep. Let's start fresh. Chat me up, pre! 😎",
+                            timestamp: new Date()
+                          }
+                        ]);
+                      }}
+                      title="Reload Chat"
+                      className="p-1.5 text-zinc-500 hover:text-emerald-400 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                    >
+                      <RotateCcw size={13} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Messages Body Scroll Area */}
@@ -949,16 +1159,38 @@ export default function App() {
                         </div>
                       )}
                       
-                      <div className="relative max-w-[80%] select-text">
+                      <div className="relative max-w-[80%] select-text flex flex-col items-start">
                         <div
-                          className={`p-3 rounded-2xl text-[11.5px] leading-relaxed font-medium tracking-wide ${
+                          className={`p-3 rounded-2xl text-[11.5px] leading-relaxed font-medium tracking-wide w-full ${
                             msg.sender === 'user'
                               ? 'bg-gradient-to-r from-teal-400 via-indigo-500 to-purple-600 text-white rounded-tr-none shadow-md'
                               : 'bg-[#1b1c25] border border-[#262835] text-slate-100 rounded-tl-none shadow-sm'
                           }`}
                         >
-                          {msg.text}
+                          {renderMessageContent(msg.text, msg.sender)}
                         </div>
+
+                        {/* Interactive Autofill/Login Shortcut right inside the shadow chat bubble */}
+                        {msg.sender === 'bot' && (() => {
+                          const code = extractPasscode(msg.text);
+                          if (code) {
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setGuestAuthError('');
+                                  setGuestPasscode('');
+                                  setShowGuestPopup(true);
+                                }}
+                                className="mt-2.5 flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 border border-purple-400/35 hover:border-purple-300 text-white font-sans text-[10px] uppercase font-bold tracking-wider rounded-xl shadow-[0_4px_12px_rgba(147,51,234,0.35)] transition-all transform hover:translate-y-[-1px] active:translate-y-0 active:scale-98 cursor-pointer select-none"
+                              >
+                                <Unlock size={11} className="text-purple-200 animate-pulse" />
+                                <span>GUEST LOGIN</span>
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()}
                         
                         {/* Golden coin emoji next to user bubbles as in reference image */}
                         {msg.sender === 'user' && (
@@ -993,27 +1225,29 @@ export default function App() {
                   <div ref={chatEndRef} />
                 </div>
 
-                {/* Suggestions / Hot Chips for easier interactive navigation */}
-                {chatMessages.length === 1 && (
-                  <div className="px-4 py-2 bg-[#101119] flex flex-wrap gap-1.5 justify-center border-t border-[#181a24] shrink-0">
-                    {[
-                      "Sino si Shadow?",
-                      "Anong mayroon dito?",
-                      "Hingi ng passcode, pre"
-                    ].map((chip, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          setChatInput(chip);
-                        }}
-                        className="px-2.5 py-1 bg-[#1b1c25] hover:bg-purple-950/40 border border-[#262835] hover:border-purple-500/30 text-zinc-300 hover:text-white rounded-lg text-[10px] font-medium transition-all duration-200 cursor-pointer"
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                  </div>
-                )}
+
+
+
+
+                {/* Suggestions / Hot Chips for easier interactive navigation - Always visible */}
+                <div className="px-4 pb-2.5 pt-1 bg-[#101119] flex flex-wrap gap-1.5 justify-center shrink-0">
+                  {[
+                    "Sino si Shadow?",
+                    "Anong mayroon dito?",
+                    "Hingi ng passcode, pre"
+                  ].map((chip, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setChatInput(chip);
+                      }}
+                      className="px-2.5 py-1 bg-[#1b1c25] hover:bg-purple-950/40 border border-[#262835] hover:border-purple-500/30 text-zinc-300 hover:text-white rounded-lg text-[10px] font-medium transition-all duration-200 cursor-pointer"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
 
                 {/* Form Input Footer */}
                 <div className="bg-[#151722] p-3 border-t border-[#252838] flex flex-col gap-2 shrink-0 rounded-b-[2rem]">
@@ -1093,6 +1327,7 @@ export default function App() {
                               }
                             });
                             localStorage.setItem('chatbot_generated_passwords', JSON.stringify(savedList));
+                            setAvailablePasscodes(savedList);
                           } catch (err) {
                             console.error("Error storing chatbot-generated passwords:", err);
                           }
@@ -1141,6 +1376,7 @@ export default function App() {
                               savedList.push(code);
                             }
                             localStorage.setItem('chatbot_generated_passwords', JSON.stringify(savedList));
+                            setAvailablePasscodes(savedList);
                           } catch (e) {
                             console.error("Client fallback save secret err", e);
                           }
@@ -1306,7 +1542,7 @@ export default function App() {
               setShowShadowLoreOnly(true);
             }}
             isAudioAllowed={audioApproved === true}
-            onLogout={() => setIsAuthorized(false)}
+            onLogout={handleLogout}
             onSupportClick={() => {
               setShowSupportPage(true);
             }}
@@ -1317,6 +1553,7 @@ export default function App() {
               setGeneratedGuestPasscodeDuration(duration);
               localStorage.setItem('generated_guest_passcode_duration', duration.toString());
             }}
+            isAdmin={!isGuestMode}
           />
         </div>
       </div>
@@ -1345,10 +1582,15 @@ export default function App() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xs sm:text-lg md:text-xl font-black uppercase tracking-tighter leading-none text-white">Digital Archive</h1>
-                {isGuestMode && (
+                {isGuestMode ? (
                   <div className="px-2 py-0.5 bg-purple-950/80 border border-purple-500/50 rounded-md flex items-center gap-1.5 animate-pulse text-[8px] sm:text-[9px] font-mono text-purple-300 font-bold shadow-[0_0_10px_rgba(168,85,247,0.2)]">
                     <Clock size={10} className="text-purple-400" />
                     <span>GUEST ACCESS: ACTIVE</span>
+                  </div>
+                ) : (
+                  <div className="px-2 py-0.5 bg-emerald-950/80 border border-emerald-500/50 rounded-md flex items-center gap-1.5 text-[8px] sm:text-[9px] font-mono text-emerald-300 font-bold shadow-[0_0_10px_rgba(16,185,129,0.2)] animate-pulse">
+                    <ShieldCheck size={10} className="text-emerald-400" />
+                    <span>ADMIN PRIVILEGES // MASTER</span>
                   </div>
                 )}
               </div>
@@ -1357,7 +1599,10 @@ export default function App() {
           </div>
           <div className="flex flex-col items-end pointer-events-auto">
             <button 
-              onClick={() => setShowArchive(false)}
+              onClick={() => {
+                handleLogout();
+                setShowArchive(false);
+              }}
               className="flex items-center gap-2 md:gap-3 group transition-all duration-300 text-purple-400 hover:text-white"
             >
               <div className="w-16 h-16 rounded-xl bg-purple-950/20 border border-purple-500/40 flex items-center justify-center text-purple-400 group-hover:text-purple-300 group-hover:border-purple-500/80 transition-all shadow-[0_0_15px_rgba(168,85,247,0.25)] group-hover:shadow-[0_0_25px_rgba(168,85,247,0.55)] shrink-0">
@@ -1377,7 +1622,10 @@ export default function App() {
             activeTab={activeTab} 
             setActiveTab={setActiveTab} 
             tabs={TABS} 
-            onHomeClick={() => setShowArchive(false)}
+            onHomeClick={() => {
+              handleLogout();
+              setShowArchive(false);
+            }}
             onShowOwnerClick={() => setShowOwnerDetails(true)}
             onSupportClick={() => setShowSupportPage(true)}
           />

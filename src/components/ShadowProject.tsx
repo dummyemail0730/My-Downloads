@@ -28,7 +28,8 @@ export default function ShadowProject({
   generatedGuestPasscode,
   setGeneratedGuestPasscode,
   generatedGuestPasscodeDuration = 90,
-  setGeneratedGuestPasscodeDuration
+  setGeneratedGuestPasscodeDuration,
+  isAdmin = false,
 }: { 
   onEnter: () => void; 
   hasPlayed?: boolean; 
@@ -40,6 +41,7 @@ export default function ShadowProject({
   setGeneratedGuestPasscode?: (code: string | null) => void;
   generatedGuestPasscodeDuration?: number;
   setGeneratedGuestPasscodeDuration?: (duration: number) => void;
+  isAdmin?: boolean;
 }) {
   const skip = hasPlayed;
   
@@ -190,7 +192,15 @@ export default function ShadowProject({
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return isAdmin === true;
+  });
+
+  useEffect(() => {
+    if (isAdmin) {
+      setIsAuthenticated(true);
+    }
+  }, [isAdmin]);
 
   // Security Lockout and Authentication State trackers
   const [passwordAttempts, setPasswordAttempts] = useState(() => {
@@ -2136,29 +2146,29 @@ export default function ShadowProject({
         initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={skip ? { duration: 0 } : { delay: 1.0, duration: 0.6, ease: "easeOut" }}
-        className="absolute top-8 right-8 md:top-12 md:right-12 z-30 flex items-center gap-2 flex-wrap justify-end max-w-[95vw]"
+        className="absolute top-3 left-3 right-3 md:top-12 md:right-12 md:left-auto z-30 flex items-center justify-between md:justify-end gap-1 md:gap-2 flex-row md:flex-wrap max-w-[calc(100%-24px)] md:max-w-[80vw]"
       >
         <button
           onClick={() => {
             setIsAppointmentModalOpen(true);
             setAptStep(1);
           }}
-          className="flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
+          className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-0.5 py-1.5 md:px-4 md:py-2 font-mono text-[7px] min-[350px]:text-[8px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-full md:w-auto"
           id="appointment-scheduler-btn"
         >
-          <Calendar size={11} className="text-purple-450 animate-pulse" />
-          <span>Appointment</span>
+          <Calendar size={10} className="text-purple-450 animate-pulse shrink-0" />
+          <span className="truncate">Appointment</span>
         </button>
 
         <button
           onClick={() => {
             setIsSuggestionModalOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
+          className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-0.5 py-1.5 md:px-4 md:py-2 font-mono text-[7px] min-[350px]:text-[8px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-full md:w-auto"
           id="suggestion-system-btn"
         >
-          <Sparkles size={11} className="text-purple-450 animate-pulse" />
-          <span>Suggestions DB</span>
+          <Sparkles size={10} className="text-purple-450 animate-pulse shrink-0" />
+          <span className="truncate">Suggestions DB</span>
         </button>
 
         <button
@@ -2167,11 +2177,11 @@ export default function ShadowProject({
             setNameValidationError(null);
             setIsNamePromptOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
+          className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-0.5 py-1.5 md:px-4 md:py-2 font-mono text-[7px] min-[350px]:text-[8px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-full md:w-auto"
           id="shout-box-toggle-btn"
         >
-          <MessageSquare size={11} className="text-purple-450 animate-pulse" />
-          <span>Shout Out Box</span>
+          <MessageSquare size={10} className="text-purple-450 animate-pulse shrink-0" />
+          <span className="truncate">Shout Out Box</span>
         </button>
 
         <button 
@@ -2182,7 +2192,7 @@ export default function ShadowProject({
               setShowPasswordModal(true);
             }
           }}
-          className={`flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none ${
+          className={`flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-0.5 py-1.5 md:px-4 md:py-2 font-mono text-[7px] min-[350px]:text-[8px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none w-full md:w-auto ${
             isAuthenticated 
               ? 'bg-neutral-900 border-emerald-500/50 text-emerald-400 hover:bg-neutral-850 hover:border-emerald-400' 
               : 'bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400'
@@ -2190,26 +2200,27 @@ export default function ShadowProject({
           id="google-drive-link-btn"
         >
           {isAuthenticated ? (
-            <Unlock size={11} className="text-emerald-400 animate-pulse" />
+            <Unlock size={10} className="text-emerald-400 animate-pulse shrink-0" />
           ) : (
-            <Lock size={11} className="text-purple-450 animate-pulse" />
+            <Lock size={10} className="text-purple-450 animate-pulse shrink-0" />
           )}
-          <span>Admin Console</span>
-          <ExternalLink size={10} className="opacity-60" />
+          <span className="truncate">Admin Console</span>
+          <ExternalLink size={10} className="opacity-60 hidden min-[380px]:inline shrink-0" />
         </button>
 
-        {isAuthenticated && (
+        {isAuthenticated && !isAdmin && (
           <button 
             onClick={() => {
               setIsAuthenticated(false);
               setIsModalOpen(false);
             }}
-            className="p-2 bg-red-950/20 border border-red-500/20 hover:bg-red-950/40 text-red-400 font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded transition-colors cursor-pointer"
+            className="p-1 md:p-2 bg-red-950/20 border border-red-500/20 hover:bg-red-950/40 text-red-400 font-mono text-[7px] min-[350px]:text-[8px] md:text-[9px] uppercase tracking-wider font-bold transition-all rounded cursor-pointer shrink-0"
             title="Lock Console"
           >
             Lock
           </button>
         )}
+
       </motion.div>
 
       {/* Secure Passcode Decryption Modal */}
@@ -2534,7 +2545,7 @@ export default function ShadowProject({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-[#0b061a] border-2 border-purple-500/30 w-full max-w-sm rounded-[1.8rem] shadow-[0_0_40px_rgba(168,85,247,0.25)] relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
+              className="bg-[#0b061a] border-2 border-purple-500/80 w-full max-w-sm rounded-[1.8rem] shadow-[0_0_75px_rgba(168,85,247,0.7),0_0_30px_rgba(139,92,246,0.4)] relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono"
             >
               {/* Grid overlay decoration */}
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-35" />
@@ -4616,12 +4627,12 @@ export default function ShadowProject({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="bg-neutral-950 border border-purple-500/50 w-full max-w-sm rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.3)] p-6 text-white relative flex flex-col"
+              className="bg-neutral-950 border-2 border-purple-500/80 w-full max-w-sm rounded-2xl shadow-[0_0_80px_rgba(168,85,247,0.7),0_0_30px_rgba(139,92,246,0.4)] p-6 text-white relative flex flex-col"
             >
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-purple-500/30 rounded-tl-xl pointer-events-none" />
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-purple-500/30 rounded-tr-xl pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-purple-500/30 rounded-bl-xl pointer-events-none" />
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-500/30 rounded-br-xl pointer-events-none" />
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-tl-xl pointer-events-none" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-tr-xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-bl-xl pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-br-xl pointer-events-none" />
 
               {/* Title Header */}
               <div className="flex items-center gap-2 mb-4 pb-2 border-b border-purple-950/40">
@@ -5367,18 +5378,38 @@ export default function ShadowProject({
                 <span className="text-purple-500">Tech.</span>
               </motion.h2>
 
-              <motion.div 
-                initial={skip ? { opacity: 1, x: 0 } : { opacity: 0, x: -100 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={skip ? { duration: 0 } : { 
-                  duration: 0.8,
-                  delay: 0.8,
-                  ease: "easeOut"
-                }}
-                className="inline-block self-start px-3 py-1 bg-neutral-900 border border-neutral-800 text-purple-400 font-mono text-[10px] uppercase tracking-[0.3em] mb-3 md:mb-5 font-bold"
-              >
-                By: Cid Kagenou // V.1.0
-              </motion.div>
+              <div className="flex flex-wrap items-center gap-2 mb-3 md:mb-5">
+                <motion.div 
+                  initial={skip ? { opacity: 1, x: 0 } : { opacity: 0, x: -100 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={skip ? { duration: 0 } : { 
+                    duration: 0.8,
+                    delay: 0.8,
+                    ease: "easeOut"
+                  }}
+                  className="inline-block px-3 py-1 bg-neutral-900 border border-neutral-800 text-purple-400 font-mono text-[10px] uppercase tracking-[0.3em] font-bold"
+                >
+                  By: Cid Kagenou // V.1.0
+                </motion.div>
+
+                {isAdmin ? (
+                  <motion.div 
+                    initial={skip ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="inline-block px-3 py-1 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-mono text-[10px] uppercase tracking-[0.25em] font-bold shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse"
+                  >
+                    ✦ ADMINISTRATOR ACTIVE ✦
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    initial={skip ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="inline-block px-3 py-1 bg-purple-950/40 border border-purple-500/20 text-purple-400 font-mono text-[10px] uppercase tracking-[0.25em] font-bold animate-pulse"
+                  >
+                    ✦ VISITOR MODE ✦
+                  </motion.div>
+                )}
+              </div>
 
               <motion.div 
                 initial={skip ? "visible" : "hidden"}
@@ -5562,6 +5593,23 @@ export default function ShadowProject({
             </div>
 
           </div>
+        </div>
+
+        {/* Elegant vertical Scroll Down indicator */}
+        <div className="absolute right-4 md:right-8 bottom-6 md:bottom-12 z-20 flex flex-col items-center gap-3 select-none pointer-events-none">
+          <motion.span 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 0.45, y: 0 }}
+            transition={{ delay: 2.0, duration: 1 }}
+            className="text-[9px] font-mono font-black uppercase tracking-[0.4em] text-purple-400 [writing-mode:vertical-lr]"
+          >
+            SCROLL DOWN
+          </motion.span>
+          <motion.div 
+            animate={{ y: [0, 8, 0] }}
+            transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+            className="w-[1px] h-12 bg-gradient-to-b from-purple-500/80 to-transparent" 
+          />
         </div>
       </div>
 

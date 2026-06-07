@@ -71,7 +71,7 @@ export default function GamesView() {
     <div className="h-full flex flex-col bg-neutral-950 text-neutral-200 font-sans select-none relative overflow-hidden">
       <AnimatePresence mode="wait">
         {selectedGame === null ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-full border-b border-neutral-900 bg-neutral-950">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 min-h-full border-b border-neutral-900 bg-neutral-950">
             {gamesList.map((game, idx) => {
               const hasBgImage = !!game.image;
               const Tag = motion.div;
@@ -100,7 +100,7 @@ export default function GamesView() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: idx * 0.05 }}
-                  className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-default ${
+                  className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-default min-h-[200px] md:min-h-[240px] ${
                     hasBgImage 
                       ? 'bg-neutral-950 text-white' 
                       : 'bg-neutral-900/35 hover:bg-neutral-900/80 text-white'

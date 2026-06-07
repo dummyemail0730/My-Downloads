@@ -147,6 +147,73 @@ async function startServer() {
     };
   }
 
+  // Helper to persist generated passcodes to custom_configs.json
+  async function savePasscodesToConfig(codes: string[]) {
+    try {
+      const configPath = path.join(process.cwd(), "custom_configs.json");
+      const { promises: fsPromises } = await import("fs");
+      let config: any = {};
+      try {
+        const existingData = await fsPromises.readFile(configPath, "utf-8");
+        config = JSON.parse(existingData);
+      } catch (e) {}
+
+      if (!config.chatbot_passcodes) {
+        config.chatbot_passcodes = [];
+      }
+
+      let updated = false;
+      codes.forEach(code => {
+        if (code && typeof code === 'string') {
+          const cleanCode = code.trim();
+          if (cleanCode && !config.chatbot_passcodes.includes(cleanCode)) {
+            config.chatbot_passcodes.push(cleanCode);
+            updated = true;
+          }
+        }
+      });
+
+      if (updated) {
+        await fsPromises.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
+      }
+    } catch (err) {
+      console.warn("Failed to persist passcodes to custom_configs.json:", err);
+    }
+  }
+
+  // API Route - Validate Passcode globally (works outside the studio across tabs and browsers)
+  app.post("/api/validate-passcode", async (req, res) => {
+    const { passcode } = req.body;
+    if (!passcode) {
+      return res.json({ valid: false });
+    }
+    const entered = passcode.trim();
+    const enteredLower = entered.toLowerCase();
+
+    try {
+      const configPath = path.join(process.cwd(), "custom_configs.json");
+      const { promises: fsPromises } = await import("fs");
+      let config: any = {};
+      try {
+        const existingData = await fsPromises.readFile(configPath, "utf-8");
+        config = JSON.parse(existingData);
+      } catch (e) {}
+
+      const passcodesList: string[] = config.chatbot_passcodes || [];
+      const found = passcodesList.find(c => 
+        c && (entered === c || enteredLower === c.toLowerCase())
+      );
+
+      if (found) {
+        return res.json({ valid: true, matchedCode: found });
+      }
+    } catch (err) {
+      console.warn("Error reading custom_configs.json for passcode validation:", err);
+    }
+
+    return res.json({ valid: false });
+  });
+
   // API Route - Shadow Interactive Chat
   app.post("/api/shadow-chat", async (req, res) => {
     const { message } = req.body;
@@ -159,6 +226,9 @@ async function startServer() {
       if (!apiKey) {
         console.warn("GEMINI_API_KEY is not defined in process.env. Running offline brain fallback.");
         const fallback = shadowOfflineBrain(message);
+        if (fallback.generatedPasscodes && fallback.generatedPasscodes.length > 0) {
+          await savePasscodesToConfig(fallback.generatedPasscodes);
+        }
         return res.json(fallback);
       }
 
@@ -217,7 +287,7 @@ async function startServer() {
             tags: ["Go", "PostgreSQL", "API"]
           }
         ],
-
+        
         static_tools: [
           { name: "TECHNICAL TOOLKIT", version: "2.4.0", description: "all-in-one, bootable Windows Preinstallation Environment (WinPE) for operating system installation & diagnostics.", category: "W10 & W11", link: "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing" },
           { name: "3DP CHIP", version: "1.2.1", description: "Driver utility helper.", category: "W10 & OLDER" },
@@ -227,7 +297,7 @@ async function startServer() {
           { name: "RUFUS", version: "4.1.0", description: "Utility that helps format and create bootable USB flash drives easily.", category: "W11, W10" },
           { name: "NOVA DASHBOARD", version: "1.0.0", description: "Real-time system analytics engine with modular layout components.", category: "TypeScript, D3.js, React" }
         ],
-
+        
         tutorials: [
           { index: "01", title: "INTRO TO SHADOW ARTS", category: "BEGINNER", duration: "12:47", difficulty: "EASY", description: "Learn fundamentals of shadow manipulation, rebuilding system bootloaders (BCD), MBR, and UEFI partition configurations." },
           { index: "02", title: "SHADOW WALKING", category: "FUNDAMENTALS", duration: "18:32", difficulty: "EASY", description: "Learn how to walk across OS structures, load offline Registry hives via WinPE to bypass critical Windows startup failure loops." },
@@ -236,7 +306,7 @@ async function startServer() {
           { index: "05", title: "SHADOW POSSESSION", category: "ADVANCED", duration: "27:40", difficulty: "HARD", description: "Total network telemetry control, debugging subnet delays, packet logs with Wireshark, mapping firewalls." },
           { index: "06", title: "DOMAIN OF DARKNESS", category: "MASTER LEVEL", duration: "32:18", difficulty: "EXPERT", description: "Isolate stealth persistent security threats like rootkits, rogue thread schedulers, and tracking backdoor scripts with Prozess or Autoruns." }
         ],
-
+        
         music_ambient: [
           { title: "Midnight Echo", artist: "Silent Path", genre: "Ambient", duration: "3:45" },
           { title: "Neon Pulse", artist: "Circuit Mind", genre: "Synthwave", duration: "4:20" },
@@ -245,7 +315,7 @@ async function startServer() {
           { title: "Static Dreams", artist: "Digital Dust", genre: "Glitch", duration: "3:12" },
           { title: "Lunar Drift", artist: "Orbital", genre: "Deep Space", duration: "6:30" }
         ],
-
+        
         custom_dynamic_data: {
           admin_console_video_stream: customConfig.admin_console_link || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
           custom_projects: customConfig.custom_projects || [],
@@ -302,13 +372,31 @@ async function startServer() {
         }
       });
 
+      const codesToSave = [liveSecurePassword, liveMemorablePassword, liveGuestPasscode];
+
+      // Extract from response text too, just in case Gemini came up with its own custom code
+      if (response.text) {
+        const backtickRegex = /`([^`]+)`/g;
+        let match;
+        while ((match = backtickRegex.exec(response.text)) !== null) {
+          if (match[1] && match[1].trim() && match[1].trim().length >= 6) {
+            codesToSave.push(match[1].trim());
+          }
+        }
+      }
+
+      await savePasscodesToConfig(codesToSave);
+
       res.json({
         text: response.text,
-        generatedPasscodes: [liveSecurePassword, liveMemorablePassword, liveGuestPasscode]
+        generatedPasscodes: codesToSave
       });
     } catch (error: any) {
-      console.error("Gemini API Error in Server. Running offline brain fallback. Error:", error);
+      console.warn("Gemini API status check: Offline fallback engaged. Detail:", error?.message || error);
       const fallback = shadowOfflineBrain(message);
+      if (fallback.generatedPasscodes && fallback.generatedPasscodes.length > 0) {
+        await savePasscodesToConfig(fallback.generatedPasscodes);
+      }
       res.json(fallback);
     }
   });
