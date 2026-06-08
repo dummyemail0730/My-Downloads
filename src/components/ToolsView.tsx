@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { TOOLS as STATIC_TOOLS } from '../constants';
 import { Terminal, Cpu, Database, ExternalLink, Download } from 'lucide-react';
@@ -51,7 +51,7 @@ const getIcon = (category: string) => {
 };
 
 export default function ToolsView() {
-  const [tools] = useState<Tool[]>(() => {
+  const loadTools = () => {
     const saved = localStorage.getItem('custom_tools');
     let loaded = saved ? JSON.parse(saved) : [...STATIC_TOOLS];
     const deletedIds = JSON.parse(localStorage.getItem('deleted_item_ids') || '[]');
@@ -80,7 +80,17 @@ export default function ToolsView() {
         }
         return tool;
       });
-  });
+  };
+
+  const [tools, setTools] = useState<Tool[]>(loadTools);
+
+  useEffect(() => {
+    const handleSync = () => {
+      setTools(loadTools());
+    };
+    window.addEventListener('shadow_sync_update', handleSync);
+    return () => window.removeEventListener('shadow_sync_update', handleSync);
+  }, []);
 
   const defaultToolLinks: { [key: string]: string } = {
     '1': 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing',

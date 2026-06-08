@@ -82,84 +82,251 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
 
         <div className="w-full max-w-lg flex flex-col items-center justify-center relative z-10 scale-90 sm:scale-100">
           
-          {/* Main Ring Area */}
-          <div className="relative w-80 h-80 flex items-center justify-center mb-8">
+          {/* Intricate Purple Magic Circle (From Image 2, 3, 4) - Minimal, Beautiful Loading Arc */}
+          <div className="relative w-72 h-72 sm:w-80 sm:h-80 md:w-[340px] md:h-[340px] flex items-center justify-center mb-6">
+            {/* Outer pulsating purple plasma fog glow */}
+            <div className="absolute inset-6 rounded-full bg-purple-950/20 blur-[50px] animate-pulse" />
             
-            {/* Outer segmented ring (Ticks) - Image 1 */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative w-72 h-72 flex items-center justify-center">
-                {Array.from({ length: ticksCount }).map((_, i) => {
-                  const angle = (i * 360) / ticksCount;
-                  // Calculate if tick should be highlighted based on progress percentage
-                  const isLith = i / ticksCount <= progress / 100;
-                  return (
-                    <div
-                      key={i}
-                      className="absolute w-[8px] h-[4px] rounded-[1px] transition-all duration-300"
-                      style={{
-                        transform: `rotate(${angle}deg) translateY(-135px)`,
-                        backgroundColor: isLith ? '#c084fc' : '#1e1b4b', // lit purple vs deep raw dark
-                        boxShadow: isLith ? '0 0 10px rgba(168, 85, 247, 0.95), 0 0 4px rgba(255, 255, 255, 1)' : 'none',
-                        opacity: isLith ? 1 : 0.45,
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Inner rotating gradient arc or circle - Image 1 */}
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-              className="absolute w-[230px] h-[230px] rounded-full border-2 border-transparent"
-              style={{
-                borderTopColor: '#ffffff',
-                borderRightColor: 'rgba(168, 85, 247, 1)',
-                borderBottomColor: 'rgba(168, 85, 247, 0.1)',
-                borderLeftColor: 'rgba(255, 255, 255, 0.2)',
-                boxShadow: 'inset 0 0 15px rgba(168, 85, 247, 0.15)',
-              }}
-            />
-
-            {/* Concentric Dot Ring spinning opposite direction - Image 1 */}
-            <motion.div
-              animate={{ rotate: -360 }}
-              transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-              className="absolute w-[180px] h-[180px] rounded-full border border-dashed border-white/20 flex items-center justify-center"
-              style={{
-                borderWidth: '2px',
-                borderColor: 'rgba(255, 255, 255, 0.35)',
-                borderStyle: 'dotted',
-              }}
-            />
-
-            {/* Innermost pulsing soft purple backing shadow */}
-            <div className="absolute w-[140px] h-[140px] rounded-full bg-black border border-purple-500/20 shadow-[0_0_35px_rgba(168,85,247,0.15)] flex flex-col items-center justify-center p-4 text-center">
+            <svg viewBox="0 0 200 200" className="w-full h-full text-purple-500 drop-shadow-[0_0_25px_rgba(168,85,247,0.9)]">
+              {/* Outer boundary ring */}
+              <circle cx="100" cy="100" r="95" fill="none" stroke="rgba(168, 85, 247, 0.2)" strokeWidth="0.8" strokeDasharray="1 3" />
               
-              {/* Spinning progress text */}
-              <span className="text-3xl font-black text-white tracking-widest drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]">
+              {/* Outer dotted track rotating clockwise */}
+              <motion.circle 
+                cx="100" 
+                cy="100" 
+                r="90" 
+                fill="none" 
+                stroke="#a855f7" 
+                strokeWidth="1.8" 
+                strokeDasharray="1 6"
+                filter="url(#neonGlowPurple)"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
+                style={{ transformOrigin: 'center' }}
+              />
+
+              {/* Progress gauge arc around the seal (From Image 1 structure) */}
+              <circle
+                cx="100"
+                cy="100"
+                r="84"
+                fill="none"
+                stroke="rgba(168, 85, 247, 0.08)"
+                strokeWidth="4"
+              />
+              <motion.circle
+                cx="100"
+                cy="100"
+                r="84"
+                fill="none"
+                stroke="url(#loaderProgressGradPurple)"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 84}
+                strokeDashoffset={2 * Math.PI * 84 * (1 - progress / 100)}
+                transform="rotate(-90 100 100)"
+                style={{ transformOrigin: 'center' }}
+              />
+
+              {/* Concentric solid bounds */}
+              <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(168, 85, 247, 0.6)" strokeWidth="0.8" />
+              <circle cx="100" cy="100" r="76" fill="none" stroke="rgba(168, 85, 247, 0.3)" strokeWidth="0.5" />
+
+              {/* Runes Ring - rotates counter-clockwise with ancient runic text */}
+              <motion.g
+                animate={{ rotate: -360 }}
+                transition={{ duration: 32, repeat: Infinity, ease: "linear" }}
+                style={{ transformOrigin: 'center' }}
+              >
+                <path id="loaderRunePath" d="M 100,100 m -71,0 a 71,71 0 1,1 142,0 a 71,71 0 1,1 -142,0" fill="none" stroke="none" />
+                <text className="font-mono text-[5.8px] tracking-[0.22em] fill-purple-300 font-extrabold select-none">
+                  <textPath href="#loaderRunePath">
+                    ᚛ ᛖᛗᛁᚾᛖᚾᚲᛖ ᛁᚾ ᛋᚻᚨᛚᛟᚹ ᚜ ᛁ ᚨᛗ ᚨᛏᛟᛗᛁᚲ ᚛ ᛋᚻᚨᛚᛟᚹ ᚜ ᚛ ᛖᛗᛁᚾᛖᚾᚲᛖ ᛁᚾ ᛋᚻᚨᛚᛟᚹ ᚜ ᛁ ᚨᛗ ᚨᛏᛟᛗᛁᚲ ᚛
+                  </textPath>
+                </text>
+              </motion.g>
+
+              {/* Rotating 6-Pointed Magic Star and Vertex Orbs assembly */}
+              <motion.g
+                animate={{ rotate: 360 }}
+                transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                style={{ transformOrigin: 'center' }}
+              >
+                {/* Upward equilateral triangle */}
+                <polygon 
+                  points="100,44 148.5,128 51.5,128" 
+                  fill="none" 
+                  stroke="#a855f7" 
+                  strokeWidth="1.6" 
+                  filter="url(#neonGlowPurple)"
+                />
+                
+                {/* Downward equilateral triangle (together forms the Hexagram star) */}
+                <polygon 
+                  points="100,156 148.5,72 51.5,72" 
+                  fill="none" 
+                  stroke="#a855f7" 
+                  strokeWidth="1.6" 
+                  filter="url(#neonGlowPurple)"
+                />
+
+                {/* Highly bright glowing plasma orbs focused on the 6 vertices */}
+                {/* Vertex 1: Top (Upward star tip) */}
+                <circle 
+                  cx="100" 
+                  cy="44" 
+                  r="7.5" 
+                  fill="url(#nodeOrbColorPurple)" 
+                  stroke="#ffffff" 
+                  strokeWidth="1"
+                  filter="url(#orbGlowPurple)"
+                />
+                <circle cx="100" cy="44" r="3" fill="#ffffff" />
+
+                {/* Vertex 2: Right-center (Downward star top-right tip) */}
+                <circle 
+                  cx="148.5" 
+                  cy="72" 
+                  r="7.5" 
+                  fill="url(#nodeOrbColorPurple)" 
+                  stroke="#ffffff" 
+                  strokeWidth="1"
+                  filter="url(#orbGlowPurple)"
+                />
+                <circle cx="148.5" cy="72" r="3" fill="#ffffff" />
+
+                {/* Vertex 3: Bottom-right (Upward star bottom-right tip) */}
+                <circle 
+                  cx="148.5" 
+                  cy="128" 
+                  r="7.5" 
+                  fill="url(#nodeOrbColorPurple)" 
+                  stroke="#ffffff" 
+                  strokeWidth="1"
+                  filter="url(#orbGlowPurple)"
+                />
+                <circle cx="148.5" cy="128" r="3" fill="#ffffff" />
+
+                {/* Vertex 4: Bottom (Downward star bottom tip) */}
+                <circle 
+                  cx="100" 
+                  cy="156" 
+                  r="7.5" 
+                  fill="url(#nodeOrbColorPurple)" 
+                  stroke="#ffffff" 
+                  strokeWidth="1"
+                  filter="url(#orbGlowPurple)"
+                />
+                <circle cx="100" cy="156" r="3" fill="#ffffff" />
+
+                {/* Vertex 5: Bottom-left (Upward star bottom-left tip) */}
+                <circle 
+                  cx="51.5" 
+                  cy="128" 
+                  r="7.5" 
+                  fill="url(#nodeOrbColorPurple)" 
+                  stroke="#ffffff" 
+                  strokeWidth="1"
+                  filter="url(#orbGlowPurple)"
+                />
+                <circle cx="51.5" cy="128" r="3" fill="#ffffff" />
+
+                {/* Vertex 6: Left-center (Downward star top-left tip) */}
+                <circle 
+                  cx="51.5" 
+                  cy="72" 
+                  r="7.5" 
+                  fill="url(#nodeOrbColorPurple)" 
+                  stroke="#ffffff" 
+                  strokeWidth="1"
+                  filter="url(#orbGlowPurple)"
+                />
+                <circle cx="51.5" cy="72" r="3" fill="#ffffff" />
+              </motion.g>
+
+              {/* Inner concentric layout rings */}
+              <circle cx="100" cy="100" r="39" fill="none" stroke="rgba(168, 85, 247, 0.45)" strokeWidth="0.8" strokeDasharray="6 2 2 2" />
+              <circle cx="100" cy="100" r="34" fill="none" stroke="rgba(168, 85, 247, 0.25)" strokeWidth="0.5" />
+
+              {/* Central Core Dark Shield */}
+              <circle cx="100" cy="100" r="28" fill="#000000" stroke="#a855f7" strokeWidth="1.2" filter="url(#neonGlowPurple)" />
+              
+              {/* Centre hot core plasma ball */}
+              <motion.circle
+                cx="100"
+                cy="100"
+                r="24"
+                fill="url(#loaderCoreGlowPurple)"
+                animate={{ opacity: [0.65, 0.95, 0.65], scale: [0.97, 1.05, 0.97] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                style={{ transformOrigin: 'center' }}
+              />
+
+              {/* Dynamic Percentage in center */}
+              <text
+                x="100"
+                y="98"
+                textAnchor="middle"
+                className="font-mono text-[12px] font-black fill-white tracking-wider select-none drop-shadow-[0_0_8px_rgba(255,255,255,0.95)]"
+              >
                 {progress}%
-              </span>
-              
-              {/* Tiny system stats */}
-              <span className="text-[8px] text-purple-400 font-extrabold uppercase tracking-widest mt-1">
+              </text>
+              <text
+                x="100"
+                y="108"
+                textAnchor="middle"
+                className="font-mono text-[3.8px] font-black fill-purple-200 tracking-[0.2em] uppercase select-none animate-pulse"
+              >
                 DL ENGINE
-              </span>
-            </div>
+              </text>
 
+              {/* High precision definitions of gradients and glowing SVG filters */}
+              <defs>
+                <filter id="neonGlowPurple" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="2.5" result="blur1" />
+                  <feGaussianBlur stdDeviation="5" result="blur2" />
+                  <feMerge>
+                    <feMergeNode in="blur2" />
+                    <feMergeNode in="blur1" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+
+                <filter id="orbGlowPurple" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="3.5" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+
+                <radialGradient id="loaderCoreGlowPurple" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+                  <stop offset="35%" stopColor="#a855f7" stopOpacity="0.85" />
+                  <stop offset="70%" stopColor="#6366f1" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+                </radialGradient>
+
+                <radialGradient id="nodeOrbColorPurple" cx="40%" cy="40%" r="50%">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="45%" stopColor="#e9d5ff" />
+                  <stop offset="85%" stopColor="#a855f7" />
+                  <stop offset="100%" stopColor="#6b21a8" />
+                </radialGradient>
+                
+                <linearGradient id="loaderProgressGradPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="50%" stopColor="#d946ef" />
+                  <stop offset="100%" stopColor="#a855f7" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
 
           {/* Interactive display tags */}
           <div className="text-center space-y-3 px-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-purple-950/40 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.1)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-ping" />
-              <span className="text-[10px] font-bold text-neutral-300 uppercase tracking-widest">
-                TARGET: {itemTitle || 'SECURE CONTAINER'}
-              </span>
-            </div>
-
-            <h3 className="text-sm font-black uppercase text-white tracking-[0.2em] leading-tight select-none">
+            <h3 className="text-[11px] font-extrabold uppercase text-purple-300 tracking-[0.25em] leading-tight select-none animate-pulse">
               {statusText}
             </h3>
 

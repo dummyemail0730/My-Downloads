@@ -11,7 +11,7 @@ type SelectedGame = 'CLICKER' | 'MEMORY' | 'DODGER' | null;
 export default function GamesView() {
   const [selectedGame, setSelectedGame] = useState<SelectedGame>(null);
 
-  const [gamesList] = useState<any[]>(() => {
+  const loadGames = () => {
     const saved = localStorage.getItem('custom_games');
     let loaded = [];
     try {
@@ -65,7 +65,17 @@ export default function GamesView() {
       ...customList,
       ...defaultGames.filter(def => !customList.some((l: any) => l.title.toLowerCase().trim() === def.title.toLowerCase().trim()))
     ];
-  });
+  };
+
+  const [gamesList, setGamesList] = useState<any[]>(loadGames);
+
+  useEffect(() => {
+    const handleSync = () => {
+      setGamesList(loadGames());
+    };
+    window.addEventListener('shadow_sync_update', handleSync);
+    return () => window.removeEventListener('shadow_sync_update', handleSync);
+  }, []);
 
   return (
     <div className="h-full flex flex-col bg-neutral-950 text-neutral-200 font-sans select-none relative overflow-hidden">

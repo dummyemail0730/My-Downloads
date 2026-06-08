@@ -1,6 +1,121 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'motion/react';
 import shadowLogoMain from '../assets/images/shadow_computer_services_logo_1779535416403.png';
+
+function MatrixRain() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝ";
+    const charArr = chars.split("");
+    const fontSize = 14;
+
+    let columns = 0;
+    let drops: number[] = [];
+
+    const resizeCanvas = () => {
+      const parentWidth = canvas.parentElement?.clientWidth || 300;
+      const parentHeight = canvas.parentElement?.clientHeight || 800;
+      canvas.width = parentWidth;
+      canvas.height = parentHeight;
+
+      const newColumns = Math.ceil(parentWidth / (fontSize - 1));
+      if (newColumns !== columns) {
+        const newDrops = Array.from({ length: newColumns }, (_, i) => {
+          return i < drops.length ? drops[i] : Math.random() * -100;
+        });
+        drops = newDrops;
+        columns = newColumns;
+      }
+    };
+
+    resizeCanvas();
+
+    // Use ResizeObserver to respond instantly to any size or layout change
+    const resizeObserver = new ResizeObserver(() => {
+      resizeCanvas();
+    });
+    if (canvas.parentElement) {
+      resizeObserver.observe(canvas.parentElement);
+    }
+
+    const handleResize = () => {
+      resizeCanvas();
+    };
+    window.addEventListener('resize', handleResize);
+
+    let animationFrameId: number;
+    let lastTime = 0;
+    const fps = 24; // Smooth classic green digital rain
+    const interval = 1000 / fps;
+
+    const draw = (timestamp: number) => {
+      animationFrameId = requestAnimationFrame(draw);
+
+      if (!lastTime) lastTime = timestamp;
+      const elapsed = timestamp - lastTime;
+
+      if (elapsed > interval) {
+        lastTime = timestamp - (elapsed % interval);
+
+        // Fill background with a very soft opacity black for trailing effect
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.font = `bold ${fontSize}px monospace`;
+
+        for (let i = 0; i < drops.length; i++) {
+          const char = charArr[Math.floor(Math.random() * charArr.length)];
+          const x = i * (fontSize - 1);
+          const y = drops[i] * fontSize;
+
+          if (y > 0) {
+            // Bright white/cyan-blue-green for heading characters, emerald-green for trailing tail
+            const isHead = Math.random() > 0.95;
+            
+            if (isHead) {
+              ctx.fillStyle = '#ffffff';
+              ctx.shadowColor = '#e9d5ff';
+              ctx.shadowBlur = 10;
+            } else {
+              // Vibrant neon violet style to match the theme
+              ctx.fillStyle = '#bc52ff';
+              ctx.shadowColor = '#bc52ff';
+              ctx.shadowBlur = 4;
+            }
+
+            ctx.fillText(char, x, y);
+            ctx.shadowBlur = 0; // Reset shadow for efficiency
+          }
+
+          drops[i] += 0.85; // Speed speed of descent
+
+          // Reset drop once it goes beyond window height
+          if (y > canvas.height) {
+            if (Math.random() > 0.975 || y > canvas.height + 150) {
+              drops[i] = -5; // slightly above screen
+            }
+          }
+        }
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(draw);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="w-full h-full block bg-black/40" style={{ mixBlendMode: 'screen' }} />;
+}
 
 interface LoadingScreenProps {
   onComplete: () => void;
@@ -175,6 +290,11 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
         }}
       />
       
+      {/* Fullscreen Matrix Digital Rain flowing across the entire screen behind the central UI (Visible on both desktop & mobile) */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-55">
+        <MatrixRain />
+      </div>
+      
 
 
       <div className="w-full max-w-md flex flex-col items-center justify-center relative z-10">
@@ -212,10 +332,6 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
         {/* Text Area */}
         <div className="text-center w-full space-y-4 mb-4">
           <div className="flex flex-col items-center">
-            {/* Elegant Subtitle */}
-            <span className="text-[9px] uppercase tracking-[0.4em] text-neutral-400 font-semibold mb-1">
-              DECIDED BY THE SHADOWS
-            </span>
             <h2 className="text-sm uppercase tracking-[0.25em] font-black text-white flex items-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-white animate-ping" />
               SHADOW SYSTEM INTRUSION

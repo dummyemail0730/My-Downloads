@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary, Key } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary, Key, Database } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import shadowChibiSticker from '../assets/images/shadow_chibi_avatar_1779438320279.png';
@@ -17,6 +17,8 @@ import shadowMysteriousAura from '../assets/images/shadow_mysterious_aura_177925
 import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
 import shadowTechMagic from '../assets/images/shadow_tech_magic_1780090755590.png';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
+
+
 
 export default function ShadowProject({ 
   onEnter, 
@@ -44,6 +46,15 @@ export default function ShadowProject({
   isAdmin?: boolean;
 }) {
   const skip = hasPlayed;
+
+  const handleItemLinkClick = (e: React.MouseEvent, url: string, name: string) => {
+    e.preventDefault();
+    if (typeof window !== 'undefined' && (window as any).triggerRedirectLoader) {
+      (window as any).triggerRedirectLoader(url, name);
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
   
   // Custom Google Drive / File link state
   const [consoleLink, setConsoleLink] = useState(() => {
@@ -87,6 +98,15 @@ export default function ShadowProject({
       setIsPlaying(true);
     }
   }, [isAudioAllowed]);
+
+  // Sync console link when sync event fires from background poll
+  useEffect(() => {
+    const handleSync = () => {
+      setConsoleLink(localStorage.getItem('admin_console_link') || 'https://drive.google.com');
+    };
+    window.addEventListener('shadow_sync_update', handleSync);
+    return () => window.removeEventListener('shadow_sync_update', handleSync);
+  }, []);
 
   const activeTrack = playlist[currentTrackIndex] || playlist[0] || STATIC_PLAYLIST[0];
 
@@ -181,12 +201,23 @@ export default function ShadowProject({
   const [linkType, setLinkType] = useState('EXT'); // GITHUB | FB | EXT
   const [successStatus, setSuccessStatus] = useState<string | null>(null);
 
-  // Google Drive Accounts dropdown list - strictly Primary G-Drive and Secondary G-Drive Mirror
+  // Google Drive Accounts dropdown list - strictly Primary G-Drive, Secondary G-Drive Mirror and Tertiary G-Drive
   const driveAccounts = [
     { name: 'PRIMARY G-DRIVE // MAIN CLOUD', url: 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing' },
     { name: 'SECONDARY G-DRIVE // CLOUD MIRROR', url: 'https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing' },
+    { name: 'TERTIARY G-DRIVE // RECOVERY MIRROR', url: 'https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing' },
   ];
   const [selectedDriveUrl, setSelectedDriveUrl] = useState<string>('CUSTOM_URL');
+
+  const [syncVersion, setSyncVersion] = useState(0);
+
+  useEffect(() => {
+    const handleSync = () => {
+      setSyncVersion(v => v + 1);
+    };
+    window.addEventListener('shadow_sync_update', handleSync);
+    return () => window.removeEventListener('shadow_sync_update', handleSync);
+  }, []);
 
   // Decryption Passcode states
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -1510,6 +1541,7 @@ export default function ShadowProject({
   };
 
   const getLinkedItems = () => {
+    const _dummy = syncVersion; // force dependency-tracking
     // Read from localStorage with fallback to predefined list
     const savedProjects = localStorage.getItem('custom_projects');
     const projectsList = savedProjects ? JSON.parse(savedProjects) : STATIC_PROJECTS;
@@ -2271,6 +2303,8 @@ export default function ShadowProject({
                   Enter admin passcode to authorize tactical cog-uplink connection.
                 </p>
               </div>
+
+
 
               {/* Password submission form */}
               <form 
@@ -3177,14 +3211,13 @@ export default function ShadowProject({
                                 </div>
                               </div>
                             ) : (
-                              <a 
-                                href={item.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[9px] text-purple-400 hover:text-purple-350 hover:underline cursor-pointer break-all block font-medium font-mono"
+                              <button 
+                                type="button"
+                                onClick={(e) => handleItemLinkClick(e, item.link, item.name)}
+                                className="text-[9px] text-left text-purple-400 hover:text-purple-350 hover:underline cursor-pointer break-all block font-medium font-mono bg-transparent border-none p-0 outline-none text-left"
                               >
                                 {item.link}
-                              </a>
+                              </button>
                             )}
                           </div>
                           
@@ -3206,15 +3239,14 @@ export default function ShadowProject({
                                 >
                                   <Pencil size={10} /> Edit
                                 </button>
-                                <a
-                                  href={item.link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-3 py-1.5 bg-neutral-900 border border-neutral-850 hover:bg-neutral-800 text-neutral-300 hover:text-white font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded-lg cursor-pointer flex items-center gap-1 no-underline"
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleItemLinkClick(e, item.link, item.name)}
+                                  className="px-3 py-1.5 bg-neutral-900 border border-neutral-850 hover:bg-neutral-800 text-neutral-300 hover:text-white font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded-lg cursor-pointer flex items-center gap-1"
                                   title="Go to file destination"
                                 >
                                   Open <ExternalLink size={10} />
-                                </a>
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => handleUnlink(item.id, item.type as any)}
@@ -5358,7 +5390,7 @@ export default function ShadowProject({
       {/* Section 1: Hero Entry Lounge (Takes min-h-screen) */}
       <div className="min-h-screen w-full relative z-10 flex flex-col justify-between">
         {/* Centered text container to constraint screen stretch */}
-        <div className="max-w-7xl xl:max-w-[1360px] mx-auto w-full px-6 md:px-12 pt-16 pb-20 md:pt-24 md:pb-24 flex-1 flex flex-col justify-center">
+        <div className="max-w-7xl xl:max-w-[1360px] mx-auto w-full pl-10 pr-6 md:pl-14 md:pr-12 lg:pl-16 xl:pl-20 pt-16 pb-20 md:pt-24 md:pb-24 flex-1 flex flex-col justify-center relative">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center w-full my-auto">
             
             {/* Main Column: Shadow Project Info */}
@@ -5593,23 +5625,48 @@ export default function ShadowProject({
             </div>
 
           </div>
-        </div>
 
-        {/* Elegant vertical Scroll Down indicator */}
-        <div className="absolute right-4 md:right-8 bottom-6 md:bottom-12 z-20 flex flex-col items-center gap-3 select-none pointer-events-none">
-          <motion.span 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 0.45, y: 0 }}
-            transition={{ delay: 2.0, duration: 1 }}
-            className="text-[9px] font-mono font-black uppercase tracking-[0.4em] text-purple-400 [writing-mode:vertical-lr]"
-          >
-            SCROLL DOWN
-          </motion.span>
-          <motion.div 
-            animate={{ y: [0, 8, 0] }}
-            transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-            className="w-[1px] h-12 bg-gradient-to-b from-purple-500/80 to-transparent" 
-          />
+          {/* Elegant vertical Scroll Down indicator in Left Gutter */}
+          <div className="absolute left-2 md:left-3 lg:left-4 bottom-8 md:bottom-14 z-20 flex flex-col items-center gap-6 select-none pointer-events-none">
+            <div className="flex flex-col items-center gap-1.5 md:gap-2">
+              {"SCROLL DOWN".split("").map((char, index) => {
+                if (char === " ") {
+                  return <div key={index} className="h-4 md:h-6" />;
+                }
+                return (
+                  <motion.span
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ 
+                      opacity: [0.35, 1, 0.35],
+                      scale: [0.95, 1.15, 0.95],
+                      textShadow: [
+                        "0 0 2px rgba(188,82,255,0.2)",
+                        "0 0 16px rgba(188,82,255,0.95), 0 0 24px rgba(188,82,255,0.6)",
+                        "0 0 2px rgba(188,82,255,0.2)"
+                      ],
+                      color: ["#c084fc", "#ffffff", "#c084fc"]
+                    }}
+                    transition={{
+                      opacity: { repeat: Infinity, duration: 2.5, delay: index * 0.12, ease: "easeInOut" },
+                      scale: { repeat: Infinity, duration: 2.5, delay: index * 0.12, ease: "easeInOut" },
+                      textShadow: { repeat: Infinity, duration: 2.5, delay: index * 0.12, ease: "easeInOut" },
+                      color: { repeat: Infinity, duration: 2.5, delay: index * 0.12, ease: "easeInOut" },
+                      initial: { delay: 1.5 + index * 0.05, duration: 0.5 }
+                    }}
+                    className="text-[16px] md:text-[20px] font-mono font-black uppercase text-purple-400 select-none inline-block leading-none"
+                  >
+                    {char}
+                  </motion.span>
+                );
+              })}
+            </div>
+            <motion.div 
+              animate={{ y: [0, 12, 0] }}
+              transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+              className="w-[2px] h-24 md:h-28 bg-gradient-to-b from-purple-500 to-transparent" 
+            />
+          </div>
         </div>
       </div>
 

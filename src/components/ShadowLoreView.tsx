@@ -119,7 +119,7 @@ export default function ShadowLoreView() {
     }
   }, [activeVideo]);
 
-  const [tutorials] = useState<TutorialVideo[]>(() => {
+  const loadTutorials = (): TutorialVideo[] => {
     const staticTutorials: TutorialVideo[] = [
       {
         index: "01",
@@ -253,7 +253,17 @@ export default function ShadowLoreView() {
     }
 
     return staticTutorials;
-  });
+  };
+
+  const [tutorials, setTutorials] = useState<TutorialVideo[]>(loadTutorials);
+
+  useEffect(() => {
+    const handleSync = () => {
+      setTutorials(loadTutorials());
+    };
+    window.addEventListener('shadow_sync_update', handleSync);
+    return () => window.removeEventListener('shadow_sync_update', handleSync);
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -478,6 +488,7 @@ export default function ShadowLoreView() {
                     src={`/api/video-proxy?id=${getGoogleDriveId(activeVideo.url)}`}
                     controls
                     autoPlay
+                    playsInline
                     className="w-full h-full object-contain"
                     referrerPolicy="no-referrer"
                   />

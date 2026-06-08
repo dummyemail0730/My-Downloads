@@ -230,6 +230,103 @@ export default function App() {
   });
   const [guestSessionExpired, setGuestSessionExpired] = useState(false);
 
+  // Periodic background polling for configurations to synchronize data dynamically across tabs and devices
+  useEffect(() => {
+    const fetchConfigs = () => {
+      fetch('/api/configs')
+        .then(res => {
+          if (!res.ok) throw new Error('Response error');
+          return res.json();
+        })
+        .then(data => {
+          if (!data) return;
+          
+          let hasAnyDiff = false;
+          
+          // Verify and sync console link if different
+          if (data.admin_console_link) {
+            const currentVal = localStorage.getItem('admin_console_link');
+            if (currentVal !== data.admin_console_link) {
+              if ((window as any)._origSetItem) {
+                (window as any)._origSetItem.call(localStorage, 'admin_console_link', data.admin_console_link);
+              } else {
+                localStorage.setItem('admin_console_link', data.admin_console_link);
+              }
+              hasAnyDiff = true;
+            }
+          }
+
+          const syncKeys = [
+            'custom_projects',
+            'custom_anime',
+            'custom_games',
+            'shadow_master_tutorials',
+            'custom_tools',
+            'deleted_item_ids'
+          ];
+
+          const payloadToUpload: Record<string, any> = {};
+          let needsUpload = false;
+
+          syncKeys.forEach(key => {
+            const serverVal = data[key];
+            if (serverVal !== undefined && serverVal !== null) {
+              const currentLocalStr = localStorage.getItem(key);
+              
+              let localVal: any = null;
+              try {
+                if (currentLocalStr && (currentLocalStr.startsWith('[') || currentLocalStr.startsWith('{'))) {
+                  localVal = JSON.parse(currentLocalStr);
+                }
+              } catch (e) {}
+
+              const isServerEmpty = Array.isArray(serverVal) && serverVal.length === 0;
+              const isLocalEmpty = !localVal || (Array.isArray(localVal) && localVal.length === 0);
+
+              if (isServerEmpty && !isLocalEmpty) {
+                // Keep local values and schedule an upload to re-seed the restarted/reset server
+                payloadToUpload[key] = localVal;
+                needsUpload = true;
+              } else {
+                const serverValStr = typeof serverVal === 'string' ? serverVal : JSON.stringify(serverVal);
+                if (currentLocalStr !== serverValStr) {
+                  if ((window as any)._origSetItem) {
+                    (window as any)._origSetItem.call(localStorage, key, serverValStr);
+                  } else {
+                    localStorage.setItem(key, serverValStr);
+                  }
+                  hasAnyDiff = true;
+                }
+              }
+            }
+          });
+
+          if (needsUpload) {
+            fetch('/api/configs', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payloadToUpload)
+            }).catch(err => console.error('Failed to restore configs to server:', err));
+          }
+
+          if (hasAnyDiff) {
+            // Dispatch dynamic update event to tell all mount instances to reload from localStorage
+            window.dispatchEvent(new Event('shadow_sync_update'));
+          }
+        })
+        .catch(err => {
+          // Silent fallback for transient fetch errors during background polling
+        });
+    };
+
+    fetchConfigs();
+    const pollInterval = setInterval(fetchConfigs, 4000); // Check every 4 seconds
+
+    return () => clearInterval(pollInterval);
+  }, []);
+
   // Sync session structures
   useEffect(() => {
     try {
@@ -888,19 +985,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Absolute ADMIN LOG IN Button at the bottom left corner as requested */}
-        <div className="absolute bottom-6 left-6 z-50 ml-4 mb-2 flex items-center gap-3">
-          <button
-            onClick={() => {
-              setAuthError('');
-              setShowOverrideInput(!showOverrideInput);
-            }}
-            className="px-4 py-2.5 bg-neutral-900/40 hover:bg-[#1f1a40]/60 border border-neutral-800 hover:border-purple-500/40 text-neutral-400 hover:text-white rounded-xl font-mono text-[9px] uppercase font-bold tracking-[0.18em] flex items-center gap-2 transition-all duration-300 backdrop-blur-md shadow-lg cursor-pointer"
-          >
-            <Lock size={11} className="text-purple-400" />
-            <span>ADMIN LOG IN</span>
-          </button>
-        </div>
+
 
         {/* Immersive background matching the theme */}
         <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
@@ -919,7 +1004,7 @@ export default function App() {
         {/* Outer glowing ambient atmosphere */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-900/10 rounded-full blur-[140px] pointer-events-none z-10" />
 
-        <div className="w-full max-w-lg relative z-20 flex flex-col items-center">
+        <div className="w-full max-w-lg relative z-20 flex flex-col items-center gap-3 sm:gap-4 px-4">
           <AnimatePresence mode="wait">
             {showOverrideInput && (
               <motion.div
@@ -1072,14 +1157,141 @@ export default function App() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -15 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="w-full max-w-[350px] sm:max-w-[380px] h-[520px] bg-[#1d1f2b] border-2 border-purple-500/70 rounded-[2rem] shadow-[0_0_60px_rgba(168,85,247,0.65),0_0_20px_rgba(139,92,246,0.35),0_15px_50px_rgba(147,51,234,0.25)] flex flex-col overflow-visible relative font-sans text-white backdrop-blur-md"
+                className="w-[74%] min-[360px]:w-[78%] min-[400px]:w-[80%] sm:w-full max-w-[245px] min-[360px]:max-w-[275px] min-[400px]:max-w-[315px] sm:max-w-[380px] h-[430px] min-[360px]:h-[455px] min-[400px]:h-[485px] sm:h-[515px] bg-[#1d1f2b] border-2 border-purple-500/70 rounded-[2rem] shadow-[0_0_60px_rgba(168,85,247,0.65),0_0_20px_rgba(139,92,246,0.35),0_15px_50px_rgba(147,51,234,0.25)] flex flex-col overflow-visible relative font-sans text-white backdrop-blur-md"
               >
-                {/* Micro Helper Note Above Chatbox */}
-                <div className="absolute -top-10 left-0 right-0 text-center pointer-events-none select-none z-10 animate-pulse">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-[0.25em] text-purple-200 font-black filter drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]">
-                    <Key size={11} className="text-purple-400 stroke-[3]" />
-                    Ask the bot for the password
-                  </span>
+                {/* Left Side vertical glowing banner (Visible on Mobile + Desktop) */}
+                <div className="absolute -left-6 min-[350px]:-left-8 sm:-left-12 lg:-left-16 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 sm:gap-3 select-none pointer-events-none z-30 w-8">
+                  {/* Ambient Cyber Light Nodes travelling vertically */}
+                  <div className="absolute inset-x-0 h-40 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden flex items-center justify-center">
+                    <motion.div
+                      animate={{ y: [-80, 80] }}
+                      transition={{ duration: 3.5, repeat: Infinity, ease: "linear" }}
+                      className="w-1.5 h-1.5 rounded-full bg-gradient-to-t from-fuchsia-400 to-purple-500 blur-[1px] absolute"
+                    />
+                    <motion.div
+                      animate={{ y: [80, -80] }}
+                      transition={{ duration: 5, repeat: Infinity, ease: "linear", delay: 1.5 }}
+                      className="w-1 h-1 rounded-full bg-pink-400 blur-[0.5px] absolute"
+                    />
+                  </div>
+
+                  {/* Behind-the-line Rotating Cyber Magic Seal */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 w-28 h-28 lg:w-36 lg:h-36 flex items-center justify-center opacity-40 select-none pointer-events-none">
+                    <motion.svg
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                      className="w-full h-full text-purple-500/40 drop-shadow-[0_0_12px_rgba(168,85,247,0.35)]"
+                      viewBox="0 0 100 100"
+                    >
+                      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="0.75" strokeDasharray="4, 4" />
+                      <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                      <line x1="50" y1="5" x2="50" y2="15" stroke="currentColor" strokeWidth="0.75" />
+                      <line x1="50" y1="85" x2="50" y2="95" stroke="currentColor" strokeWidth="0.75" />
+                      <line x1="5" y1="50" x2="15" y2="50" stroke="currentColor" strokeWidth="0.75" />
+                      <line x1="85" y1="50" x2="95" y2="50" stroke="currentColor" strokeWidth="0.75" />
+                      <polygon points="50,18 78,68 22,68" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                      <polygon points="50,82 78,32 22,32" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                      <circle cx="50" cy="50" r="8" fill="none" stroke="currentColor" strokeWidth="0.75" />
+                    </motion.svg>
+                  </div>
+
+                  <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-purple-500 shadow-[0_0_12px_#a855f7] animate-ping" />
+                  <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-b from-purple-500/20 via-purple-500 to-pink-500/80 animate-pulse" />
+                  
+                  {/* Vertically gliding banner - Eminence in Shadow Slime magic style */}
+                  <motion.div
+                    animate={{ 
+                      y: [-120, -80, 80, 120],
+                      opacity: [0, 1, 1, 0]
+                    }}
+                    transition={{ 
+                      duration: 5.5, 
+                      repeat: Infinity, 
+                      ease: "easeInOut"
+                    }}
+                    className="flex flex-col items-center"
+                  >
+                    <div 
+                      className="flex items-center gap-1 sm:gap-2 py-1.5 sm:py-2" 
+                      style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
+                    >
+                      <span className="text-[8.5px] min-[360px]:text-[10.5px] sm:text-[13px] lg:text-[15px] font-mono font-black tracking-[0.25em] min-[360px]:tracking-[0.35em] bg-gradient-to-b from-white via-purple-300 to-fuchsia-400 bg-clip-text text-transparent uppercase whitespace-nowrap drop-shadow-[0_0_12px_rgba(168,85,247,0.95)] animate-[pulse_1.5s_infinite]">
+                        ASK THE BOT FOR THE PASSWORD
+                      </span>
+                      <Key className="text-fuchsia-400 rotate-90 stroke-[3] drop-shadow-[0_0_10px_rgba(244,63,94,0.9)] animate-bounce w-3 h-3 sm:w-4 sm:h-4" />
+                    </div>
+                  </motion.div>
+
+                  <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-t from-purple-500/20 via-purple-500 to-pink-500/80 animate-pulse" />
+                  <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-pink-500 shadow-[0_0_12px_#ec4899] animate-ping" />
+                </div>
+
+                {/* Right Side vertical glowing banner (Visible on Mobile + Desktop) */}
+                <div className="absolute -right-6 min-[350px]:-right-8 sm:-right-12 lg:-right-16 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 sm:gap-3 select-none pointer-events-none z-30 w-8">
+                  {/* Ambient Cyber Light Nodes travelling vertically */}
+                  <div className="absolute inset-x-0 h-40 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden flex items-center justify-center">
+                    <motion.div
+                      animate={{ y: [80, -80] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                      className="w-1.5 h-1.5 rounded-full bg-gradient-to-t from-pink-400 to-purple-500 blur-[1px] absolute"
+                    />
+                    <motion.div
+                      animate={{ y: [-80, 80] }}
+                      transition={{ duration: 5.5, repeat: Infinity, ease: "linear", delay: 1 }}
+                      className="w-1 h-1 rounded-full bg-fuchsia-400 blur-[0.5px] absolute"
+                    />
+                  </div>
+
+                  {/* Behind-the-line Rotating Cyber Magic Seal (Counter Rotating) */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 w-28 h-28 lg:w-36 lg:h-36 flex items-center justify-center opacity-40 select-none pointer-events-none">
+                    <motion.svg
+                      animate={{ rotate: -360 }}
+                      transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                      className="w-full h-full text-pink-500/40 drop-shadow-[0_0_12px_rgba(236,72,153,0.35)]"
+                      viewBox="0 0 100 100"
+                    >
+                      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="0.75" strokeDasharray="3, 3" />
+                      <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                      <circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="12, 4" />
+                      <line x1="50" y1="5" x2="50" y2="15" stroke="currentColor" strokeWidth="0.75" />
+                      <line x1="50" y1="85" x2="50" y2="95" stroke="currentColor" strokeWidth="0.75" />
+                      <line x1="5" y1="50" x2="15" y2="50" stroke="currentColor" strokeWidth="0.75" />
+                      <line x1="85" y1="50" x2="95" y2="50" stroke="currentColor" strokeWidth="0.75" />
+                      <polygon points="50,22 76,41 66,73 34,73 24,41" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                      <circle cx="50" cy="50" r="6" fill="none" stroke="currentColor" strokeWidth="0.75" />
+                    </motion.svg>
+                  </div>
+
+                  <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-pink-500 shadow-[0_0_12px_#ec4899] animate-ping" />
+                  <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-b from-pink-500/20 via-pink-500 to-purple-500/80 animate-pulse" />
+                  
+                  {/* Vertically gliding banner - Eminence in Shadow Slime magic style (Staggered) */}
+                  <motion.div
+                    animate={{ 
+                      y: [-120, -80, 80, 120],
+                      opacity: [0, 1, 1, 0]
+                    }}
+                    transition={{ 
+                      duration: 5.5, 
+                      repeat: Infinity, 
+                      ease: "easeInOut",
+                      delay: 0.8
+                    }}
+                    className="flex flex-col items-center"
+                  >
+                    <div 
+                      className="flex items-center gap-1 sm:gap-2 py-1.5 sm:py-2" 
+                      style={{ writingMode: 'vertical-lr' }}
+                    >
+                      <span className="text-[8.5px] min-[360px]:text-[10.5px] sm:text-[13px] lg:text-[15px] font-mono font-black tracking-[0.25em] min-[360px]:tracking-[0.35em] bg-gradient-to-b from-white via-purple-300 to-fuchsia-400 bg-clip-text text-transparent uppercase whitespace-nowrap drop-shadow-[0_0_12px_rgba(168,85,247,0.95)] animate-[pulse_1.5s_infinite]">
+                        ASK THE BOT FOR THE PASSWORD
+                      </span>
+                      <Key className="text-fuchsia-400 -rotate-90 stroke-[3] drop-shadow-[0_0_10px_rgba(244,63,94,0.9)] animate-bounce w-3 h-3 sm:w-4 sm:h-4" />
+                    </div>
+                  </motion.div>
+
+                  <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-t from-pink-500/20 via-pink-500 to-purple-500/80 animate-pulse" />
+                  <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-purple-500 shadow-[0_0_12px_#a855f7] animate-ping" />
                 </div>
 
                 {/* Chatbot Header */}
@@ -1120,25 +1332,7 @@ export default function App() {
                     </div>
                   </div>
                   
-                  {/* Option to clear chat & Guest Login trigger */}
-                  <div className="flex items-center gap-1.5">
-                    <button 
-                      onClick={() => {
-                        setChatMessages([
-                          {
-                            id: 'welcome',
-                            sender: 'bot',
-                            text: "Yo! Shadow here, official rep. Let's start fresh. Chat me up, pre! 😎",
-                            timestamp: new Date()
-                          }
-                        ]);
-                      }}
-                      title="Reload Chat"
-                      className="p-1.5 text-zinc-500 hover:text-emerald-400 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
-                    >
-                      <RotateCcw size={13} />
-                    </button>
-                  </div>
+                  {/* Option to clear chat & Guest Login trigger removed */}
                 </div>
 
                 {/* Messages Body Scroll Area */}
@@ -1232,7 +1426,6 @@ export default function App() {
                 {/* Suggestions / Hot Chips for easier interactive navigation - Always visible */}
                 <div className="px-4 pb-2.5 pt-1 bg-[#101119] flex flex-wrap gap-1.5 justify-center shrink-0">
                   {[
-                    "Sino si Shadow?",
                     "Anong mayroon dito?",
                     "Hingi ng passcode, pre"
                   ].map((chip, idx) => (
@@ -1473,13 +1666,35 @@ export default function App() {
                   {/* Credits alignment matching Silver Techpx */}
                   <div className="text-center select-none pt-0.5">
                     <span className="text-[9px] font-bold tracking-widest text-[#42b783]/85 font-mono">
-                      DEVELOPED BY <span className="text-[#52d399] uppercase">Silver Techpx</span>
+                      POWERED BY <span className="text-[#52d399] uppercase">Gemini 3.5</span>
                     </span>
                   </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Integrated Admin Login button positioned strictly beneath the cards in-flow */}
+          {!showOverrideInput && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.3 }}
+              className="z-40 select-none pb-2 mt-1 sm:mt-2 shrink-0"
+            >
+              <button
+                onClick={() => {
+                  setAuthError('');
+                  setShowOverrideInput(true);
+                }}
+                className="px-4 py-2.5 bg-neutral-900/60 hover:bg-[#1f1a40]/60 border border-neutral-800 hover:border-purple-500/40 text-neutral-400 hover:text-white rounded-xl font-mono text-[9px] uppercase font-bold tracking-[0.18em] flex items-center gap-2 transition-all duration-300 backdrop-blur-md shadow-lg cursor-pointer"
+              >
+                <Lock size={11} className="text-purple-400" />
+                <span>ADMIN LOG IN</span>
+              </button>
+            </motion.div>
+          )}
         </div>
       </div>
     );
@@ -1600,7 +1815,6 @@ export default function App() {
           <div className="flex flex-col items-end pointer-events-auto">
             <button 
               onClick={() => {
-                handleLogout();
                 setShowArchive(false);
               }}
               className="flex items-center gap-2 md:gap-3 group transition-all duration-300 text-purple-400 hover:text-white"
@@ -1623,7 +1837,6 @@ export default function App() {
             setActiveTab={setActiveTab} 
             tabs={TABS} 
             onHomeClick={() => {
-              handleLogout();
               setShowArchive(false);
             }}
             onShowOwnerClick={() => setShowOwnerDetails(true)}

@@ -1,5 +1,6 @@
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Target, User, Heart } from 'lucide-react';
+import { ArrowLeft, Target, User, Heart, ExternalLink, FolderKanban } from 'lucide-react';
 
 interface Tab {
   id: string;
@@ -16,6 +17,18 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeTab, setActiveTab, tabs, onHomeClick, onShowOwnerClick, onSupportClick }: SidebarProps) {
+  const [googleDriveLink, setGoogleDriveLink] = useState(() => {
+    return localStorage.getItem('admin_console_link') || 'https://drive.google.com';
+  });
+
+  useEffect(() => {
+    const handleSync = () => {
+      setGoogleDriveLink(localStorage.getItem('admin_console_link') || 'https://drive.google.com');
+    };
+    window.addEventListener('shadow_sync_update', handleSync);
+    return () => window.removeEventListener('shadow_sync_update', handleSync);
+  }, []);
+
   return (
     <nav className="w-28 md:w-72 border-r border-neutral-900 flex flex-col bg-bg-sidebar shrink-0">
       <div className="p-3 md:p-6 border-b border-neutral-900">

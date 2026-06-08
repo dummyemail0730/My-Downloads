@@ -5,6 +5,8 @@ import './index.css';
 
 // Intercept localStorage calls to transparently synchronize configured links and custom items with the server
 const origSetItem = localStorage.setItem;
+(window as any)._origSetItem = origSetItem;
+
 localStorage.setItem = function (key, value) {
   origSetItem.call(localStorage, key, value);
   const syncKeys = [
@@ -35,6 +37,8 @@ localStorage.setItem = function (key, value) {
 };
 
 const origRemoveItem = localStorage.removeItem;
+(window as any)._origRemoveItem = origRemoveItem;
+
 localStorage.removeItem = function (key) {
   origRemoveItem.call(localStorage, key);
   const syncKeys = [

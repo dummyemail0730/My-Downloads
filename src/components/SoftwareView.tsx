@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { PROJECTS as STATIC_PROJECTS } from '../constants';
 import { ExternalLink, Download } from 'lucide-react';
 import { Project } from '../types';
 
 export default function SoftwareView() {
-  const [projects] = useState<Project[]>(() => {
+  const loadProjects = () => {
     const saved = localStorage.getItem('custom_projects');
     let loaded = saved ? JSON.parse(saved) : [...STATIC_PROJECTS];
     const deletedIds = JSON.parse(localStorage.getItem('deleted_item_ids') || '[]');
@@ -40,7 +40,17 @@ export default function SoftwareView() {
           tags: proj.tags || []
         };
       });
-  });
+  };
+
+  const [projects, setProjects] = useState<Project[]>(loadProjects);
+
+  useEffect(() => {
+    const handleSync = () => {
+      setProjects(loadProjects());
+    };
+    window.addEventListener('shadow_sync_update', handleSync);
+    return () => window.removeEventListener('shadow_sync_update', handleSync);
+  }, []);
 
   const defaultLinks: { [key: string]: string } = {
     '1': 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing',

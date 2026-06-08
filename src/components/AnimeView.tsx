@@ -120,6 +120,7 @@ function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
             src={videoUrl}
             controls
             autoPlay
+            playsInline
             onError={() => {
               console.warn("Direct video streaming failed, falling back to secure iframe player.");
               setUseIframe(true);
@@ -192,7 +193,7 @@ export default function AnimeView() {
   const [inlineLinkInput, setInlineLinkInput] = useState('');
   const [selectedTab, setSelectedTab] = useState<'S1' | 'S2' | 'MOVIE'>('S1');
 
-  const [animeList, setAnimeList] = useState<any[]>(() => {
+  const loadAnime = () => {
     const saved = localStorage.getItem('custom_anime');
     let loaded = [];
     try {
@@ -259,7 +260,17 @@ export default function AnimeView() {
       ...customList,
       ...defaultAnime.filter(def => !customList.some((l: any) => normalizeTitle(l.title) === normalizeTitle(def.title)))
     ];
-  });
+  };
+
+  const [animeList, setAnimeList] = useState<any[]>(loadAnime);
+
+  useEffect(() => {
+    const handleSync = () => {
+      setAnimeList(loadAnime());
+    };
+    window.addEventListener('shadow_sync_update', handleSync);
+    return () => window.removeEventListener('shadow_sync_update', handleSync);
+  }, []);
 
   const handleUpdateEpisodeLink = (episodeId: string, newLink: string) => {
     const updated = animeList.map(item => {
@@ -588,6 +599,7 @@ export default function AnimeView() {
                       src={activeVideo.link}
                       controls
                       autoPlay
+                      playsInline
                       className="w-full h-full object-contain col-span-full"
                       referrerPolicy="no-referrer"
                     />
