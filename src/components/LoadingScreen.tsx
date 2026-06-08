@@ -424,7 +424,6 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
           </p>
         </div>
 
-
       </div>
     </div>
   );

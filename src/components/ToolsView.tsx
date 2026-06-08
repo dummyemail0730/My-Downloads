@@ -66,20 +66,53 @@ export default function ToolsView() {
       }
     }
 
-    return loaded
+    const mapped = loaded
       .filter((tool: Tool) => !deletedIds.includes(tool.id))
       .map((tool: Tool) => {
-        const staticTool = STATIC_TOOLS.find(t => t.id === tool.id);
+        const staticTool = STATIC_TOOLS.find(t => t.id === tool.id || (t.name && tool.name && t.name.toLowerCase().trim() === tool.name.toLowerCase().trim()));
         if (staticTool) {
           return {
             ...staticTool,
             description: tool.description || staticTool.description,
             link: tool.link || staticTool.link,
-            category: tool.category || staticTool.category
+            category: tool.category || staticTool.category,
+            version: tool.version || staticTool.version
           };
         }
         return tool;
       });
+
+    // Deduplicate by name to ensure same name always merges
+    const deduplicated: Tool[] = [];
+    const seenNames = new Set<string>();
+
+    for (const tool of mapped) {
+      if (!tool || !tool.name) continue;
+      const normName = tool.name.trim().toLowerCase();
+      if (!seenNames.has(normName)) {
+        seenNames.add(normName);
+        deduplicated.push(tool);
+      } else {
+        const idx = deduplicated.findIndex(t => t.name.trim().toLowerCase() === normName);
+        if (idx !== -1) {
+          const existing = deduplicated[idx];
+          let mergedVersion = existing.version || tool.version;
+          if (tool.version && tool.version !== 'V' && tool.version !== 'v' && tool.version !== '') {
+            mergedVersion = tool.version;
+          }
+          deduplicated[idx] = {
+            ...existing,
+            ...tool,
+            description: (tool.description && tool.description.length > (existing.description?.length || 0)) ? tool.description : existing.description,
+            link: (tool.link && !tool.link.includes('drive.google.com/drive/my-drive') && tool.link !== 'https://drive.google.com') ? tool.link : existing.link,
+            version: mergedVersion,
+            category: (tool.category && tool.category.length > (existing.category?.length || 0)) ? tool.category : existing.category
+          };
+        }
+      }
+    }
+
+    return deduplicated;
   };
 
   const [tools, setTools] = useState<Tool[]>(loadTools);

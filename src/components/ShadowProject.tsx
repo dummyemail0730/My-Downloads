@@ -1547,7 +1547,7 @@ export default function ShadowProject({
     const projectsList = savedProjects ? JSON.parse(savedProjects) : STATIC_PROJECTS;
     const deletedIds = JSON.parse(localStorage.getItem('deleted_item_ids') || '[]');
     const mergedProjects = projectsList.map((proj: any) => {
-      const staticProj = STATIC_PROJECTS.find(p => p.id === proj.id);
+      const staticProj = STATIC_PROJECTS.find(p => p.id === proj.id || (p.title && proj.title && p.title.toLowerCase().trim() === proj.title.toLowerCase().trim()));
       if (staticProj) {
         const isDbPlaceholder = proj.description?.includes('database') || proj.tags?.includes('C++');
         return {
@@ -1565,7 +1565,7 @@ export default function ShadowProject({
     const savedTools = localStorage.getItem('custom_tools');
     const toolsList = savedTools ? JSON.parse(savedTools) : STATIC_TOOLS;
     const mergedTools = toolsList.map((tool: any) => {
-      const staticTool = STATIC_TOOLS.find(t => t.id === tool.id);
+      const staticTool = STATIC_TOOLS.find(t => t.id === tool.id || (t.name && tool.name && t.name.toLowerCase().trim() === tool.name.toLowerCase().trim()));
       if (staticTool) {
         return {
           ...staticTool,
@@ -1596,7 +1596,7 @@ export default function ShadowProject({
       customTuts = savedTuts ? JSON.parse(savedTuts) : [];
     } catch (e) {}
 
-    return [
+    const rawList = [
       ...linkedProjects.map((p: any) => ({
         id: p.id,
         type: 'SOFTWARE',
@@ -1638,6 +1638,32 @@ export default function ShadowProject({
         protocol: t.category || 'EXT'
       }))
     ];
+
+    // Deduplicate/merge by type + name
+    const deduplicated: any[] = [];
+    const seen = new Set<string>();
+
+    for (const item of rawList) {
+      if (!item || !item.name) continue;
+      const key = `${item.type}_${item.name.trim().toLowerCase()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduplicated.push(item);
+      } else {
+        const idx = deduplicated.findIndex(i => `${i.type}_${i.name.trim().toLowerCase()}` === key);
+        if (idx !== -1) {
+          const existing = deduplicated[idx];
+          deduplicated[idx] = {
+            ...existing,
+            ...item,
+            description: (item.description && item.description.length > (existing.description?.length || 0)) ? item.description : existing.description,
+            link: (item.link && !item.link.includes('drive.google.com/drive/my-drive') && item.link !== 'https://drive.google.com') ? item.link : existing.link,
+          };
+        }
+      }
+    }
+
+    return deduplicated;
   };
 
   const renderGoogleDriveDiagnostic = (url: string, setUrlValue?: (val: string) => void) => {
