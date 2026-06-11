@@ -6,15 +6,31 @@ import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.pn
 
 const SKILLS = [
   {
-    category: "Hardware Maintenance",
+    category: "System Recovery & OS Configuration",
     icon: <Cpu className="w-5 h-5" />,
-    items: ["PC Diagnostics", "Hardware Optimization", "Computer Assembly And Replacement", "Thermal Management", "Hardware Cross-Compatibility & Validation"],
+    items: [
+      "Blue Screen",
+      "Boot Failure",
+      "Boot Loop",
+      "Format / Reformat",
+      "Data Recovery",
+      "System and Files Backup",
+      "O.S. Cloning",
+      "O.S. Migration",
+      "Password Removal",
+      "BIOS Update"
+    ],
     backgroundImage: shadowMysteriousAura
   },
   {
-    category: "System Recovery and Deployment",
+    category: "Software & Game Installation",
     icon: <Binary className="w-5 h-5" />,
-    items: ["BIOS Update", "Full-System Imaging & Deployment", "MBR to GPT Conversion", "Disk Image Creation", "File Restoration", "Boot Repair", "Password Reset"],
+    items: [
+      "Adobe Photoshop",
+      "Microsoft Office 365 Installation & Activation",
+      "Windows 11 Permanent Activation",
+      "Game Installation"
+    ],
     backgroundImage: shadowMysteriousAura
   }
 ];

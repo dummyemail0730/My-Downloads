@@ -1,6 +1,39 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
+const getGoogleDriveId = (url: string) => {
+  if (!url) return '';
+  const fileIdMatch = url.match(/\/file\/d\/([^/]+)/) || 
+                      url.match(/[?&]id=([^&]+)/) || 
+                      url.match(/\/d\/([^/]+)/);
+  return fileIdMatch ? fileIdMatch[1] : '';
+};
+
+const getFinalDownloadUrl = (url: string, title?: string) => {
+  if (!url) return '';
+  if (url.includes('/drive/folders/') || url.includes('/folders/')) {
+    return url;
+  }
+  const driveId = getGoogleDriveId(url);
+  if (driveId) {
+    let cleanName = (title || 'downloaded-file').trim().replace(/[\/\\?%*:|"<>]/g, '_');
+    const lowerTitle = cleanName.toLowerCase();
+    if (!lowerTitle.includes('.') && !lowerTitle.endsWith('.iso') && !lowerTitle.endsWith('.zip') && !lowerTitle.endsWith('.rar') && !lowerTitle.endsWith('.exe')) {
+      if (lowerTitle.includes('iso')) {
+        cleanName += '.iso';
+      } else if (lowerTitle.includes('office') || lowerTitle.includes('tool') || lowerTitle.includes('repair')) {
+        cleanName += '.zip';
+      } else if (lowerTitle.includes('episode') || lowerTitle.includes('video') || lowerTitle.includes('stream')) {
+        cleanName += '.mp4';
+      } else {
+        cleanName += '.bin';
+      }
+    }
+    return `/api/download-proxy?id=${driveId}&name=${encodeURIComponent(cleanName)}`;
+  }
+  return url;
+};
+
 interface RedirectLoaderProps {
   isOpen: boolean;
   targetUrl: string;
@@ -334,17 +367,41 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
               <motion.div
                 initial={{ scale: 0.85, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="pt-2 w-full flex justify-center"
+                className="pt-2 w-full flex flex-col items-center gap-2"
               >
-                <a
-                  href={targetUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={onClose}
-                  className="px-6 py-3.5 rounded-xl bg-black border-2 border-purple-500 text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:text-black hover:border-white shadow-[0_0_25px_rgba(168,85,247,0.6)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const downloadUrl = getFinalDownloadUrl(targetUrl, itemTitle);
+                    if (downloadUrl.includes('/folders/') || downloadUrl.includes('/drive/folders/')) {
+                      // Open drive folder in a separate tab
+                      window.open(downloadUrl, '_blank');
+                    } else {
+                      // Trigger download via hidden iframe so the user stays on our website
+                      const iframe = document.createElement('iframe');
+                      iframe.style.display = 'none';
+                      iframe.src = downloadUrl;
+                      document.body.appendChild(iframe);
+                      setTimeout(() => {
+                        document.body.removeChild(iframe);
+                      }, 10000);
+                    }
+                    // Close the loader modal safely
+                    setTimeout(onClose, 1000);
+                  }}
+                  className="px-6 py-3.5 rounded-xl bg-black border-2 border-purple-500 text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:text-black hover:border-white shadow-[0_0_25px_rgba(168,85,247,0.6)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 active:scale-95"
                 >
                   <span>DOWNLOAD LINK READY</span>
                   <span className="text-[14px]">⚡</span>
+                </button>
+                
+                <a
+                  href={getFinalDownloadUrl(targetUrl, itemTitle)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[9px] text-neutral-400 hover:text-white transition-colors duration-200 uppercase tracking-widest mt-1 hover:underline cursor-pointer"
+                >
+                  [ Direct Download Fallback / Open in New Tab ]
                 </a>
               </motion.div>
             )}

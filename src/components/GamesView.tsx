@@ -83,7 +83,9 @@ export default function GamesView() {
         {selectedGame === null ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 min-h-full border-b border-neutral-900 bg-neutral-950">
             {gamesList.map((game, idx) => {
-              const hasBgImage = !!game.image;
+              const fallbackBgImages = [shadowElectricity, shadowAura, shadowBlade];
+              const gameImage = game.image || fallbackBgImages[idx % fallbackBgImages.length];
+              const hasBgImage = !!gameImage;
               const Tag = motion.div;
 
               const handleClick = (e: React.MouseEvent) => {
@@ -110,16 +112,12 @@ export default function GamesView() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: idx * 0.05 }}
-                  className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-default min-h-[200px] md:min-h-[240px] ${
-                    hasBgImage 
-                      ? 'bg-neutral-950 text-white' 
-                      : 'bg-neutral-900/35 hover:bg-neutral-900/80 text-white'
-                  }`}
+                  className={`border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group cursor-default min-h-[200px] md:min-h-[240px] bg-neutral-950 text-white`}
                 >
-                  {game.image && (
+                  {gameImage && (
                     <div className="absolute inset-0 z-0 overflow-hidden">
                       <img 
-                        src={game.image} 
+                        src={gameImage} 
                         alt="" 
                         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-[0.7] group-hover:brightness-[0.8]"
                         referrerPolicy="no-referrer"
@@ -141,7 +139,7 @@ export default function GamesView() {
                         )}
                       </div>
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className={`text-xl font-black uppercase tracking-tighter leading-tight transition-colors ${
+                        <h3 className={`text-xl font-black uppercase tracking-wide leading-tight transition-colors ${
                           hasBgImage ? 'text-white' : 'text-neutral-100 group-hover:text-sky-300'
                         }`}>
                           {game.title}
@@ -194,7 +192,7 @@ export default function GamesView() {
                 <div className="w-5 h-5 bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white rounded">
                   <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
                 </div>
-                <span className="font-mono text-[10px] font-bold uppercase tracking-tighter cursor-pointer">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wide cursor-pointer">
                   BACK_TO_TERMINAL
                 </span>
               </button>

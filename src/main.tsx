@@ -83,7 +83,44 @@ fetch('/api/configs')
       const payloadToUpload: Record<string, any> = {};
       let needsUpload = false;
 
+      let deletedIds: string[] = [];
+      try {
+        const serverDeleted = data.deleted_item_ids;
+        const localDeletedStr = localStorage.getItem('deleted_item_ids');
+        const localDeleted = localDeletedStr ? JSON.parse(localDeletedStr) : [];
+        const combined = new Set([
+          ...(Array.isArray(serverDeleted) ? serverDeleted : []),
+          ...(Array.isArray(localDeleted) ? localDeleted : [])
+        ]);
+        deletedIds = Array.from(combined).map(String);
+      } catch (e) {}
+
       for (const key of syncKeys) {
+        if (key === 'deleted_item_ids') {
+          const serverVal = data.deleted_item_ids || [];
+          const localValStr = localStorage.getItem('deleted_item_ids');
+          let localVal: any[] = [];
+          try {
+            if (localValStr && localValStr.startsWith('[')) {
+              localVal = JSON.parse(localValStr);
+            }
+          } catch (e) {}
+
+          const serverSet = new Set((Array.isArray(serverVal) ? serverVal : []).map(String));
+          const localSet = new Set((Array.isArray(localVal) ? localVal : []).map(String));
+          const mergedSet = new Set([...serverSet, ...localSet]);
+          
+          const mergedList = Array.from(mergedSet);
+          const mergedStr = JSON.stringify(mergedList);
+
+          origSetItem.call(localStorage, 'deleted_item_ids', mergedStr);
+          payloadToUpload.deleted_item_ids = mergedList;
+          if (JSON.stringify(serverVal) !== mergedStr) {
+            needsUpload = true;
+          }
+          continue;
+        }
+
         const localValStr = localStorage.getItem(key);
         let localVal: any = null;
         try {
@@ -104,9 +141,40 @@ fetch('/api/configs')
             payloadToUpload[key] = localVal;
             needsUpload = true;
           } else {
-            // Respect the server's data
-            const strVal = typeof serverVal === 'string' ? serverVal : JSON.stringify(serverVal);
-            origSetItem.call(localStorage, key, strVal);
+            const serverList = Array.isArray(serverVal) ? serverVal : [];
+            const localList = Array.isArray(localVal) ? localVal : [];
+
+            const map = new Map();
+            
+            // Add server items (excluding deleted items)
+            serverList.forEach((item: any) => {
+              if (item) {
+                const id = item.id !== undefined ? String(item.id) : String(item.name || item.title || '');
+                if (id && !deletedIds.includes(id)) {
+                  map.set(id, item);
+                }
+              }
+            });
+
+            // Add local items (excluding deleted items)
+            localList.forEach((item: any) => {
+              if (item) {
+                const id = item.id !== undefined ? String(item.id) : String(item.name || item.title || '');
+                if (id && !deletedIds.includes(id) && !map.has(id)) {
+                  map.set(id, item);
+                }
+              }
+            });
+
+            const mergedList = Array.from(map.values());
+            const mergedStr = JSON.stringify(mergedList);
+
+            origSetItem.call(localStorage, key, mergedStr);
+
+            if (JSON.stringify(serverVal) !== mergedStr) {
+              payloadToUpload[key] = mergedList;
+              needsUpload = true;
+            }
           }
         } else if (localVal && (!Array.isArray(localVal) || localVal.length > 0)) {
           // Server doesn't track this key yet but local storage does. Sync it up.

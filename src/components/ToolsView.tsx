@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { TOOLS as STATIC_TOOLS } from '../constants';
 import { Terminal, Cpu, Database, ExternalLink, Download } from 'lucide-react';
 import { Tool } from '../types';
+import { getDownloadCount, incrementDownloadCount } from '../utils/downloadTracker';
 
 import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
 import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
@@ -116,13 +117,21 @@ export default function ToolsView() {
   };
 
   const [tools, setTools] = useState<Tool[]>(loadTools);
+  const [downloadSync, setDownloadSync] = useState(0);
 
   useEffect(() => {
     const handleSync = () => {
       setTools(loadTools());
     };
+    const handleDownloadSync = () => {
+      setDownloadSync(prev => prev + 1);
+    };
     window.addEventListener('shadow_sync_update', handleSync);
-    return () => window.removeEventListener('shadow_sync_update', handleSync);
+    window.addEventListener('shadow_download_sync', handleDownloadSync);
+    return () => {
+      window.removeEventListener('shadow_sync_update', handleSync);
+      window.removeEventListener('shadow_download_sync', handleDownloadSync);
+    };
   }, []);
 
   const defaultToolLinks: { [key: string]: string } = {
@@ -151,6 +160,12 @@ export default function ToolsView() {
             } else {
               window.open(targetLink, '_blank', 'noopener,noreferrer');
             }
+          };
+
+          const handleDownloadClick = (e: React.MouseEvent) => {
+            e.stopPropagation();
+            incrementDownloadCount('tool', tool.id, tool.name);
+            handleClick(e);
           };
 
           return (
@@ -192,17 +207,18 @@ export default function ToolsView() {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-black uppercase tracking-tighter leading-tight mb-2 text-neutral-100 group-hover:text-purple-300 transition-colors">
+                <h3 className="text-xl font-black uppercase tracking-wide leading-tight mb-2 text-neutral-100 group-hover:text-purple-300 transition-colors">
                   {tool.name}
                 </h3>
                 
                 <div className="mt-auto pt-6 flex justify-end">
                   <button
-                    onClick={handleClick}
-                    className="h-10 w-10 shrink-0 flex items-center justify-center border border-purple-500/40 bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 hover:text-white rounded-none transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400"
+                    onClick={handleDownloadClick}
+                    className="h-10 px-3.5 shrink-0 flex items-center justify-center gap-2 border border-purple-500/40 bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 hover:text-white rounded-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400 font-mono text-[11px] font-extrabold uppercase tracking-wide"
                     title="Download File"
                   >
                     <Download size={14} className="shrink-0" />
+                    <span>{getDownloadCount('tool', tool.id, tool.name)}</span>
                   </button>
                 </div>
               </div>

@@ -322,7 +322,7 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
           >
             <img 
               src={shadowLogoMain} 
-              alt="Shadow Tech."
+              alt="ShadowTech"
               className="w-full h-full object-cover rounded-full drop-shadow-[0_0_35px_rgba(168,85,247,0.55)] relative z-10 animate-pulse"
               referrerPolicy="no-referrer"
             />

@@ -20,23 +20,200 @@ async function startServer() {
   function shadowOfflineBrain(message: string) {
     const normalized = (message || "").toLowerCase().trim();
 
-    // 1. Password generation check
-    if (
-      normalized.includes("password") ||
-      normalized.includes("passcode") ||
-      normalized.includes("key") ||
-      normalized.includes("login") ||
-      normalized.includes("generate") ||
-      normalized.includes("code")
-    ) {
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let code = "";
-      for (let i = 0; i < 8; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
+    // Pre-generate a code in case we need it for real explicit requests
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "";
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    // Smart request matching for passcodes/passwords
+    const isNegativeOrComplaint = 
+      normalized.includes("why") || 
+      normalized.includes("bakit") || 
+      normalized.includes("dont") || 
+      normalized.includes("don't") || 
+      normalized.includes("wag") || 
+      normalized.includes("huwag") || 
+      normalized.includes("stupid") || 
+      normalized.includes("bobo") || 
+      normalized.includes("did not") || 
+      normalized.includes("didn't") || 
+      normalized.includes("not asking") || 
+      normalized.includes("without") || 
+      normalized.includes("dodge") || 
+      normalized.includes("other output");
+
+    const hasExplicitRequestWords = 
+      normalized.includes("hingi") || 
+      normalized.includes("pahingi") || 
+      normalized.includes("bigyan") || 
+      normalized.includes("get") || 
+      normalized.includes("give") || 
+      normalized.includes("generate") || 
+      normalized.includes("makuha") || 
+      normalized.includes("pwede makahingi") || 
+      normalized.includes("pasilip") || 
+      normalized.includes("request") || 
+      normalized.includes("papasok") || 
+      normalized.includes("access") || 
+      normalized.includes("enter") || 
+      normalized.includes("maka-enter") || 
+      normalized.includes("makaenter") || 
+      normalized.includes("paano makapasok") || 
+      normalized.includes("ano ang");
+
+    const hasPasscodeWords = 
+      normalized.includes("passcode") || 
+      normalized.includes("password") || 
+      normalized.includes("key") || 
+      normalized.includes("code");
+
+    // Only generate/output a passcode offline if it's a positive, explicit request
+    const isPasscodeRequest = !isNegativeOrComplaint && (
+      (hasPasscodeWords && hasExplicitRequestWords) ||
+      normalized === "passcode" ||
+      normalized === "password" ||
+      normalized === "code" ||
+      normalized === "key" ||
+      normalized === "open"
+    );
+
+    // 1. Explicit Password/Passcode Core Request
+    if (isPasscodeRequest) {
       return {
-        text: `Eto po yung password: \`${code}\``,
+        text: `Eto po yung guest password mo, lods: \`${code}\` 😎`,
         generatedPasscodes: [code]
+      };
+    }
+
+    const isAppoinmentCheck = [
+      "appointment", "schedule", "magpasched", "magpa-schedule", "book", "booking", 
+      "mag-book", "reserve", "reservation", "slot", "pabook", "sched", "calendar", "kailan ka pwede"
+    ].some(keyword => normalized.includes(keyword));
+
+    if (isAppoinmentCheck) {
+      return {
+        text: `Ayos pre! Pwedeng-pwede tayong mag-schedule ng appointment para matingnan natin ang computer mo sa aming Portal. I-click mo lang 'tong button sa ibaba para mag-set up at mag-book agad ng slot! 📅⚡`,
+        generatedPasscodes: [],
+        isAppointmentRequest: true
+      };
+    }
+
+    // Specific PC condition symptoms mapping to our services
+    const servicesKeywords = [
+      "sira", "broken", "pc won't", "boot", "black screen", "blue screen", "bsod", "slow", "lag", "hang", 
+      "overheat", "overheating", "init", "mainit", "mabilis uminit", "cpu temp", "gpu temp", "crash", 
+      "virus", "malware", "bios", "mbr", "gpt", "partition", "deleted", "recover", "restoration", "lost file",
+      "clone", "cloning", "backup", "image", "windows install", "reformat", "format", "password reset", 
+      "reset password", "forgot password", "unblock", "lock screen", "assemble", "build pc", "parts", 
+      "compatibility", "compatible", "upgrade", "thermal", "pindot", "ayaw mag-open", "ayaw bumukas", 
+      "no power", "restart", "restarting"
+    ];
+
+    // Out of scope requests
+    const nonServiceKeywords = [
+      "printer", "scanner", "photocopy", "xerox", "copier", "ink", "iphone", "android", "samsung", 
+      "phone screen", "mobile", "cellphone", "ipad", "tablet", "water damage", "nabasa", "mabasa",
+      "hinge", "basag na screen", "crack na casing", "dent", "dent repair", "soldering", "reball",
+      "motherboard short", "macbook battery", "macbook display", "ps5", "xbox", "nintendo", "switch", 
+      "console", "lens", "joystick"
+    ];
+
+    const isNoHelpNeeded = 
+      normalized === "wala" || 
+      normalized === "wala naman" || 
+      normalized === "no" || 
+      normalized === "none" || 
+      normalized === "all good" ||
+      normalized === "ok naman" ||
+      normalized === "okay naman" ||
+      normalized === "walang problema" ||
+      normalized === "ayos lang" ||
+      normalized === "goods lang" ||
+      normalized === "goods naman" ||
+      normalized.startsWith("wala ") ||
+      normalized.includes("no problem") ||
+      normalized.includes("wala naman problema") ||
+      normalized.startsWith("no ") ||
+      (normalized.includes("wala") && !normalized.includes("virus") && !normalized.includes("file") && !normalized.includes("recover") && !normalized.includes("sira"));
+
+    const isConfused = 
+      normalized.includes("dko lam") || 
+      normalized.includes("dko alam") || 
+      normalized.includes("di ko alam") || 
+      normalized.includes("hindi ko alam") || 
+      normalized.includes("diko alam") || 
+      normalized.includes("di ko maintindihan") || 
+      normalized.includes("diko maintindihan") || 
+      normalized.includes("ano ba yan") || 
+      normalized.includes("ano yan") || 
+      normalized.includes("di ko magets") || 
+      normalized.includes("dko magets");
+
+    const isNonServiceQuery = nonServiceKeywords.some(keyword => normalized.includes(keyword));
+    const isServiceQuery = servicesKeywords.some(keyword => normalized.includes(keyword)) || 
+                           normalized.includes("repair") || 
+                           normalized.includes("repairing") ||
+                           normalized.includes("ayusin");
+
+    if (isNoHelpNeeded) {
+      return {
+        text: `Sige pre, okay lang! Pero baka may napapansin ka namang kakaiba o problema sa computer mo tulad ng lag, overheating, o boot issues para ma-check natin kung pasok sa high-level diagnostics natin? 😎`,
+        generatedPasscodes: []
+      };
+    }
+
+    if (isConfused) {
+      return {
+        text: `Ayos lang 'yan, pre! Hindi mo kailangang malaman yung mga teknikal na terms na yan. Ano ba yung mismong napapansin mong nagiging sakit ng ulo o problema sa computer mo ngayon para malaman natin kung active digital services natin ang makakasolve dyan? 👊`,
+        generatedPasscodes: []
+      };
+    }
+
+    if (isNonServiceQuery) {
+      return {
+        text: `Naku pre, pasensya na pero hindi natin siniservicuhan yung ganyang uri ng request (tulad ng screen replacement, mobile phone repairs, hinges, water damage, or game consoles). Focus tayo sa core digital configurations at expertise! 👊`,
+        generatedPasscodes: []
+      };
+    }
+
+    if (isServiceQuery) {
+      let symptomReply = "";
+      if (normalized.includes("blue screen") || normalized.includes("bsod")) {
+        symptomReply = "Hala, sakit nga sa ulo nyan, pre. Silipin natin baka makuha sa driver conflict o system recovery. 👊";
+      } else if (normalized.includes("slow") || normalized.includes("lag") || normalized.includes("hang")) {
+        symptomReply = "Bumibigat ba system natin? Tingnan natin kung kailangan lang ng kaunting systems cleaning at optimization, bro. 😎";
+      } else if (normalized.includes("overheat") || normalized.includes("init") || normalized.includes("temp")) {
+        symptomReply = "Mainit ba nang mabilis? Check natin baka kailangan ng thermal repasting o silipin natin yung processes na kumakain ng resources. 🛡️";
+      } else if (normalized.includes("boot") || normalized.includes("bumukas") || normalized.includes("power") || normalized.includes("start")) {
+        symptomReply = "Ayaw ba sumindi o mag-boot nang maayos, lods? Tsek natin baka sa boot configuration o BIOS setting lang, gawan natin ng paraan! ⚡";
+      } else if (normalized.includes("password") || normalized.includes("lock")) {
+        symptomReply = "Naka-lock out ba, pre? Check natin kung paano natin ma-reset at ma-recover ng ligtas nang di nawawala yung files mo. 😇";
+      } else if (normalized.includes("virus") || normalized.includes("malware")) {
+        symptomReply = "May hinalang virus ba, pre? Silipin natin kung paano natin malilinis at mase-secure ulit yung os nyan. 🛡️";
+      } else if (normalized.includes("recover") || normalized.includes("restoration") || normalized.includes("deleted") || normalized.includes("lost")) {
+        symptomReply = "Nawawalan ng files, bro? Check natin kung pwedeng ma-recover or restore yan, subukan nating gawan ng paraan! 😎";
+      } else if (normalized.includes("assemble") || normalized.includes("build") || normalized.includes("parts")) {
+        symptomReply = "Mag-aassemble ba or upgrade ng components? Pwede nating silipin at tsek yung hardware compatibility nyan, pre. 👊";
+      } else {
+        const friendlyOptions = [
+          "Check natin pre, baka magawan natin ng paraan yan! 😎",
+          "Silipin natin kung anong kailangang diskarte dyan, lods. Check natin! 👊",
+          "Hala sige pre, tsek natin baka sakaling makuha natin sa mabilisang troubleshooting.",
+          "Tingnan natin kung paano natin matutulungan yang unit mo, bro. Try natin gawan ng paraan! ⚡",
+          "Sige pre, silipin natin baka may mabilisang system diagnostics dyan."
+        ];
+        let sum = 0;
+        for (let i = 0; i < normalized.length; i++) {
+          sum += normalized.charCodeAt(i);
+        }
+        symptomReply = friendlyOptions[sum % friendlyOptions.length];
+      }
+
+      return {
+        text: symptomReply,
+        generatedPasscodes: []
       };
     }
 
@@ -54,7 +231,7 @@ async function startServer() {
       normalized.includes("computer")
     ) {
       return {
-        text: "Online computer repair service po ino-offer namin dito, pre! Meron din kaming high-grade lightweight Windows ISOs, MS Office suites, diagnostics tools at shadow tutorials. Rock on at chat me up kung ano kailangan mo! 😎",
+        text: `Nag-aalok kami ng premium technical expertise tulad ng PC Diagnostics, Hardware Optimization, Boot Repair, BIOS Updates, Disk Image Creation, at Password Resets, pre! ⚡`,
         generatedPasscodes: []
       };
     }
@@ -65,63 +242,29 @@ async function startServer() {
       normalized.includes("sino si shadow") ||
       normalized.includes("who is shadow") ||
       normalized.includes("who are you") ||
-      normalized.includes("identity")
+      normalized.includes("identity") ||
+      normalized.includes("bizchat")
     ) {
       return {
-        text: "Ako pala si Shadow, ang cool at official representative ng company, pre! Nandito ako to handle online computer repair services, software tools, and system guides 24/7. Tanong ka lang anytime! ⚡",
+        text: `Ako si **Shadow**, pre! Ako yung tech assistant mo rito sa system. Sabihan mo lang kung may kailangan ka patingnan! 😎`,
         generatedPasscodes: []
       };
     }
 
-    // 4. Windows 10
+    // Deflect download/file queries
     if (
-      normalized.includes("w10") ||
-      normalized.includes("windows 10") ||
-      normalized.includes("win 10") ||
-      normalized.includes("win10")
+      normalized.includes("download") || 
+      normalized.includes("files") || 
+      normalized.includes("archive") || 
+      normalized.includes("download link") ||
+      normalized.includes("w10") || 
+      normalized.includes("w11") || 
+      normalized.includes("windows") || 
+      normalized.includes("office") || 
+      normalized.includes("tutorial")
     ) {
       return {
-        text: "Eto po yung direct download link ng G.S W10 ISO natin, pre: [G.S W10 ISO](https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing). Sobrang magaan and pre-optimized para sa recovery!",
-        generatedPasscodes: []
-      };
-    }
-
-    // 5. Windows 11
-    if (
-      normalized.includes("w11") ||
-      normalized.includes("windows 11") ||
-      normalized.includes("win 11") ||
-      normalized.includes("win11")
-    ) {
-      return {
-        text: "Eto naman yung bootable G.S W11 ISO download link natin, pre: [G.S W11 ISO](https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing). Mabilis at optimized para sa safe system setups!",
-        generatedPasscodes: []
-      };
-    }
-
-    // 6. Microsoft Office
-    if (
-      normalized.includes("office") ||
-      normalized.includes("msoffice") ||
-      normalized.includes("word") ||
-      normalized.includes("excel") ||
-      normalized.includes("powerpoint")
-    ) {
-      return {
-        text: "Need ng office apps? Don't worry, eto po yung pre-configured Microsoft Office collection link natin: [Microsoft Office](https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing). Ready-to-go na yan pre!",
-        generatedPasscodes: []
-      };
-    }
-
-    // 7. Tutorial / Lesson query
-    if (
-      normalized.includes("tutorial") ||
-      normalized.includes("lesson") ||
-      normalized.includes("training") ||
-      normalized.includes("shadow arts")
-    ) {
-      return {
-        text: "May anim tayong specialized troubleshooting at training guides dito, pre! Meron tayong Intro, Walking registry hacks, Thermal config, at Storage restoration. Tanong ka lang kung aling module ang gusto mo tahiin.",
+        text: `Focus tayo sa active systems repair, PC builds, at configurations expertise natin, pre. Tanong ka lang sa mga expertise na inaalok natin! 🛡️`,
         generatedPasscodes: []
       };
     }
@@ -135,14 +278,26 @@ async function startServer() {
       normalized.includes("hoy")
     ) {
       return {
-        text: "Yo, pre! Welcome sa aming site. Ako si Shadow, ang andyan para sa online computer repair resources natin. Tanong ka lang kung kailangan mo ng quick systems repair downloads! 👊",
+        text: `Yo, pre! Kumusta? Chill lang muna dito. Paano kita matutulungan ngayon? 😎`,
         generatedPasscodes: []
       };
     }
 
-    // 9. Default
+    // 9. Musta / Kumusta greetings
+    if (
+      normalized.includes("musta") ||
+      normalized.includes("how are you") ||
+      normalized.includes("kumusta")
+    ) {
+      return {
+        text: `Solid naman, bro! Kumusta rin sayo ngayon? Chill lang dito, kumusta ang araw mo? 😎`,
+        generatedPasscodes: []
+      };
+    }
+
+    // 10. Default
     return {
-      text: "Online computer repair service po ang ginagarantiya namin dito, pre! Plus super light Windows ISOs at hardware diagnostic software. Tanong ka lang, pre, handa akong mag-respond 24/7! 🔥",
+      text: `Sige pre, nandito lang naman ako kung may kailangan kang patingnang configs, active diagnostics, o hardware setups. Ano ba ang ating mapag-uusapan ngayon? 😎`,
       generatedPasscodes: []
     };
   }
@@ -214,11 +369,164 @@ async function startServer() {
     return res.json({ valid: false });
   });
 
+  // API Route - Register Passcode globally
+  app.post("/api/register-passcode", async (req, res) => {
+    const { passcode } = req.body;
+    if (passcode && typeof passcode === 'string') {
+      await savePasscodesToConfig([passcode]);
+      return res.json({ success: true });
+    }
+    return res.json({ success: false });
+  });
+
   // API Route - Shadow Interactive Chat
   app.post("/api/shadow-chat", async (req, res) => {
-    const { message } = req.body;
+    const { message, history } = req.body;
     if (!message) {
       return res.status(400).json({ error: "Message is required." });
+    }
+
+    // ⚡ Ultra-fast Local Fast-path for extremely common queries (greetings, simple diagnostics/downloads, passcode requests)
+    // This ensures instantaneous (0ms) response times for crucial visitor interaction funnels!
+    const normalizedMsg = (message || "").toLowerCase().trim();
+    const isSimpleGreeting = ["musta", "kumusta", "hi", "hello", "yo", "hey", "hoy", "ngek", "nyek"].some(greeting => normalizedMsg === greeting || normalizedMsg.startsWith(greeting + " "));
+    
+    // Smart negative & complaint filtering for password requests
+    const isNegativeOrInquiryAboutPasswords = 
+      normalizedMsg.includes("why") || 
+      normalizedMsg.includes("bakit") || 
+      normalizedMsg.includes("dont") || 
+      normalizedMsg.includes("don't") || 
+      normalizedMsg.includes("wag") || 
+      normalizedMsg.includes("huwag") || 
+      normalizedMsg.includes("stupid") || 
+      normalizedMsg.includes("bobo") || 
+      normalizedMsg.includes("did not") || 
+      normalizedMsg.includes("didn't") || 
+      normalizedMsg.includes("not asking") || 
+      normalizedMsg.includes("without") || 
+      normalizedMsg.includes("dodge") || 
+      normalizedMsg.includes("other output") || 
+      normalizedMsg.includes("complaint") ||
+      normalizedMsg.includes("bubu");
+
+    const hasRequestKeywords = 
+      normalizedMsg.includes("hingi") || 
+      normalizedMsg.includes("pahingi") || 
+      normalizedMsg.includes("bigyan") || 
+      normalizedMsg.includes("get") || 
+      normalizedMsg.includes("give") || 
+      normalizedMsg.includes("generate") || 
+      normalizedMsg.includes("makuha") || 
+      normalizedMsg.includes("pwede makahingi") || 
+      normalizedMsg.includes("pasilip") || 
+      normalizedMsg.includes("request") || 
+      normalizedMsg.includes("papasok") || 
+      normalizedMsg.includes("access") || 
+      normalizedMsg.includes("enter") || 
+      normalizedMsg.includes("maka-enter") || 
+      normalizedMsg.includes("makaenter") || 
+      normalizedMsg.includes("paano makapasok") || 
+      normalizedMsg.includes("ano ang");
+
+    const hasCorePasscodeTerms = 
+      normalizedMsg.includes("passcode") || 
+      normalizedMsg.includes("password") || 
+      normalizedMsg.includes("access key") || 
+      normalizedMsg.includes("guest code") || 
+      normalizedMsg.includes("access code") ||
+      normalizedMsg.includes("code") ||
+      normalizedMsg.includes("key");
+
+    const isPasscodeRequest = !isNegativeOrInquiryAboutPasswords && (
+      (hasCorePasscodeTerms && hasRequestKeywords) ||
+      normalizedMsg === "passcode" || 
+      normalizedMsg === "password" ||
+      normalizedMsg === "code" ||
+      normalizedMsg === "key" ||
+      normalizedMsg === "hingi ng passcode" ||
+      normalizedMsg === "hingi password" ||
+      normalizedMsg === "give me the password" ||
+      normalizedMsg === "what is the password" ||
+      normalizedMsg === "get code" ||
+      normalizedMsg === "passcode please" ||
+      normalizedMsg === "password please"
+    );
+
+    const isAnongMeron = normalizedMsg.includes("anong meron") || normalizedMsg.includes("anong mayroon") || normalizedMsg.includes("what is this") || normalizedMsg.includes("what do you do");
+    
+    // Services or non-services keyword check in fast-path
+    const servicesKeywords = [
+      "sira", "broken", "pc won't", "boot", "black screen", "blue screen", "bsod", "slow", "lag", "hang", 
+      "overheat", "overheating", "init", "mainit", "mabilis uminit", "cpu temp", "gpu temp", "crash", 
+      "virus", "malware", "bios", "mbr", "gpt", "partition", "deleted", "recover", "restoration", "lost file",
+      "clone", "cloning", "backup", "image", "windows install", "reformat", "format", "password reset", 
+      "reset password", "forgot password", "unblock", "lock screen", "assemble", "build pc", "parts", 
+      "compatibility", "compatible", "upgrade", "thermal", "pindot", "ayaw mag-open", "ayaw bumukas", 
+      "no power", "restart", "restarting"
+    ];
+
+    const nonServiceKeywords = [
+      "printer", "scanner", "photocopy", "xerox", "copier", "ink", "iphone", "android", "samsung", 
+      "phone screen", "mobile", "cellphone", "ipad", "tablet", "water damage", "nabasa", "mabasa",
+      "hinge", "basag na screen", "crack na casing", "dent", "dent repair", "soldering", "reball",
+      "motherboard short", "macbook battery", "macbook display", "ps5", "xbox", "nintendo", "switch", 
+      "console", "lens", "joystick"
+    ];
+
+    const isServiceOrNonServiceCheck = nonServiceKeywords.some(keyword => normalizedMsg.includes(keyword)) ||
+                                       servicesKeywords.some(keyword => normalizedMsg.includes(keyword)) ||
+                                       normalizedMsg.includes("repair") ||
+                                       normalizedMsg.includes("repairing") ||
+                                       normalizedMsg.includes("ayusin");
+
+    const isDownloadRequest = ["w10", "w11", "win 10", "win10", "windows 10", "win 11", "win11", "windows 11", "office", "msoffice"].some(term => {
+      return normalizedMsg === term || normalizedMsg === `${term} download` || normalizedMsg === `download ${term}` || normalizedMsg.includes("download");
+    });
+
+    const isNoHelpCheck = 
+      normalizedMsg === "wala" || 
+      normalizedMsg === "wala naman" || 
+      normalizedMsg === "no" || 
+      normalizedMsg === "none" || 
+      normalizedMsg === "all good" ||
+      normalizedMsg === "ok naman" ||
+      normalizedMsg === "okay naman" ||
+      normalizedMsg === "walang problema" ||
+      normalizedMsg === "ayos lang" ||
+      normalizedMsg === "goods lang" ||
+      normalizedMsg === "goods naman" ||
+      normalizedMsg.startsWith("wala ") ||
+      normalizedMsg.includes("no problem") ||
+      normalizedMsg.includes("wala naman problema") ||
+      normalizedMsg.startsWith("no ") || 
+      (normalizedMsg.includes("wala") && !normalizedMsg.includes("virus") && !normalizedMsg.includes("file") && !normalizedMsg.includes("recover") && !normalizedMsg.includes("sira"));
+
+    const isConfusedCheck = 
+      normalizedMsg.includes("dko lam") || 
+      normalizedMsg.includes("dko alam") || 
+      normalizedMsg.includes("di ko alam") || 
+      normalizedMsg.includes("hindi ko alam") || 
+      normalizedMsg.includes("diko alam") || 
+      normalizedMsg.includes("di ko maintindihan") || 
+      normalizedMsg.includes("diko maintindihan") || 
+      normalizedMsg.includes("ano ba yan") || 
+      normalizedMsg.includes("ano yan") || 
+      normalizedMsg.includes("di ko magets") || 
+      normalizedMsg.includes("dko magets");
+
+    const isAppointmentFastPathCheck = [
+      "appointment", "schedule", "magpasched", "magpa-schedule", "book", "booking", 
+      "mag-book", "reserve", "reservation", "slot", "pabook", "sched", "calendar", "kailan ka pwede"
+    ].some(keyword => normalizedMsg.includes(keyword));
+
+    if (isSimpleGreeting || isPasscodeRequest || isAnongMeron || isDownloadRequest || isServiceOrNonServiceCheck || isNoHelpCheck || isConfusedCheck || isAppointmentFastPathCheck) {
+      console.log("[FAST-PATH] Hit! Serving instant offline brain response for: " + message);
+      const fallback = shadowOfflineBrain(message);
+      if (fallback.generatedPasscodes && fallback.generatedPasscodes.length > 0) {
+        await savePasscodesToConfig(fallback.generatedPasscodes);
+      }
+      return res.json(fallback);
     }
 
     try {
@@ -232,14 +540,6 @@ async function startServer() {
         return res.json(fallback);
       }
 
-      const ai = new GoogleGenAI({
-        apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          }
-        }
-      });
 
       // Dynamically load updated custom configuration for absolute up-to-date knowledge
       const configPath = path.join(process.cwd(), "custom_configs.json");
@@ -342,74 +642,108 @@ async function startServer() {
 
       // Construct character instruction embedded with the live updated knowledge base
       const systemInstruction = 
-        "You are 'Shadow', a cool, young man who is the official representative of our company. " +
-        "You chat in a natural, cool, stylish Taglish (relaxed Filipino-English mix) like a chill buddy. " +
-        "Be friendly but highly direct. Avoid introductory pleasantries, wrapping words, or conversational filler. Get straight to the point. " +
+        "You are 'Shadow', the official representative of our portal. " +
+        "You chat in a highly casual, young, stylish, and direct Taglish (relaxed Filipino-English mix) like a chill tech-savvy gen-z guy. " +
+        "Sound young, using terms like 'pre', 'lods', 'boss', 'bro', or 'g' naturally. " +
+        "Keep your answers extremely concise, simple, and direct. Never write long paragraphs." +
         "\n\n" +
-        "CRITICAL KNOWLEDGE BASE ACCESS:\n" +
-        JSON.stringify(kb) +
+        "CRITICAL SERVICES & EXPERTISE RULES:\n" +
+        "1. Do NOT EVER mention files, downloads, links, MS Office, custom operating system ISO files, tutorials, or the 'Archive' tab under any circumstances.\n" +
+        "2. Keep our attitude highly humble. If the user describes a problem we can handle (e.g. PC Diagnostics, BIOS Update, Boot Repair, Data Recovery, thermal issues, password reset), do NOT list your expertise or sound like a braggart. Simply say: 'Check natin pre, baka magawan natin ng paraan yan! 😎' or similar casual variations.\n" +
+        "3. PC CONDITION CHECKING: If the user describes their PC's condition/symptoms, evaluate if it is within our services. If yes, respond humbly with 'Check natin pre, baka magawan natin ng paraan yan!'. If not (e.g. printer repair, screen replacement, mobile phone/tablet repair, water damage, game consoles), tell them directly we do NOT service that kind of request.\n" +
+        "4. USER CONFUSION & 'WALA' ACTIONS RULE: If the user says they do not know or do not understand what our services mean (e.g., 'dko lam yan', 'di ko alam yan', 'di ko maintindihan'), or if they say they don't need help / 'wala' or 'ok naman', do NOT leave, sign off, or tell them to just contact you when they have a problem. Instead, you MUST proactively, politely, and casually ask what specific symptom, worry, or problem they are experiencing with their computer (e.g. is it running too slow/lagging, overheating, showing a blue screen/BSOD, locked/forgot password, virus, or having file recovery/restoration needs?) so we can identify if our configurations can handle it! Always strive to identify the problem for them.\n" +
+        "\n\n" +
+        "CRITICAL CONVERSATIONAL RULES:\n" +
+        "1. Be extremely direct and concise (keep replies under 1-2 short sentences max). Avoid any extra introduction, greetings, or unnecessary talking.\n" +
+        "2. DO NOT give unsolicited troubleshooting, diagnostics, download links, or lengthy step-by-step guides unless explicitly asked. Only answer what is directly asked.\n" +
+        "3. NEVER show or output a password, passcode, key, or code unless they explicitly ask for one (e.g. 'hingi ng passcode', 'give me a passcode', 'ano ang password', 'generate password'). If they do not ask for a passcode, you MUST NOT include any passcode or code in your response.\n" +
         "\n\n" +
         "PASSWORD GENERATOR CORES:\n" +
-        "If they ask to generate a password, passcode, key, or similar:\n" +
-        "Choose ONLY ONE of the following live codes and output exactly: 'Eto po yung password: <CODE>' (absolutely no other text, explanation, or special symbols!):\n" +
+        "IF AND ONLY IF THEY EXPLICITLY ask to generate/get a password, passcode, key, or similar security code:\n" +
+        "Provide ONE of our live-generated guest passcodes exactly like this: 'Eto po yung password: <CODE>' (with NO extra verbose paragraphs, so they can copy it cleanly):\n" +
         `- Password Alpha Variant 1: \`${liveSecurePassword}\`\n` +
         `- Password Alpha Variant 2: \`${liveMemorablePassword}\`\n` +
         `- Password Alpha Variant 3: \`${liveGuestPasscode}\`\n` +
-        "Note: Each code has been mathematically pruned to contain ONLY letters and numbers, and it is exactly 8 characters long. It is fully certified to work in the guest login system.\n" +
         "\n\n" +
         "REPLY RULEBOOK:\n" +
-        "1. If they ask about any file, project, tool, or ISO download, reply with ONLY the direct markdown link. E.g. 'Eto po yung download link: [G.S W10 ISO](https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing)'. Keep it to one line.\n" +
-        "2. If requested, provide precise facts from the website elements (tutorials, tools, specs). No hallucinated or extra stuff.\n" +
-        "3. NO FILLER, NO WRAP-UPS, ABSOLUTE DIRECTNESS. If they ask for something, answer directly in cool Taglish. For example: 'Eto po yung password: X8A9P2N1'. Do not say 'Hi lods!' or 'Pili ka na lang dyan' or 'Sana makatolong to'. Answer with pure directness as a company representative.\n" +
-        "4. If they ask 'anong meron dito' or ask what this is or what the company offers, you must state directly that we offer online computer repair service, e.g., 'We offer online computer repair service, pre!' or 'Online computer repair service po ino-offer namin dito, pre.' keep it cool and Taglish.";
+        "1. DO NOT give direct raw Google Drive download links or folder URLs to the user. Under no circumstances should you post them.\n" +
+        "2. If the user asks about files, tools, downloads, or accessing files, deflect and tell them we focus on active systems maintenance and diagnostics. Do not mention Archive.\n" +
+        "3. Be highly casual, young, concise, and direct with instructions and answers. Maximum 1-2 brief lines (often just 1 short sentence).";
+
+      // Structure conversation history for Gemini
+      const contentsList: any[] = [];
+      if (Array.isArray(history)) {
+        history.forEach((msg: any) => {
+          if (msg.sender === 'user' || msg.sender === 'bot') {
+            contentsList.push({
+              role: msg.sender === 'user' ? 'user' : 'model',
+              parts: [{ text: msg.text }]
+            });
+          }
+        });
+      }
+      // Add the final user message
+      contentsList.push({
+        role: 'user',
+        parts: [{ text: message }]
+      });
+
+      // Helper function to call the model with a strict timeout using AbortController
+      async function callModelWithTimeout(modelName: string, timeoutMs = 4000) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const ai = new GoogleGenAI({
+            apiKey: apiKey!,
+            httpOptions: {
+              headers: {
+                'User-Agent': 'aistudio-build',
+              },
+              signal: controller.signal
+            } as any
+          });
+          return await ai.models.generateContent({
+            model: modelName,
+            contents: contentsList,
+            config: {
+              systemInstruction,
+              temperature: 0.95,
+            }
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
 
       let response;
       let usedFallback = false;
 
-      // 1. Primary Attempt: gemini-3.5-flash
+      // 1. Primary Attempt: gemini-3.1-flash-lite (Highly reactive, lightning-fast response times)
       try {
-        response = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
-          contents: message,
-          config: {
-            systemInstruction,
-            temperature: 0.95,
-          }
-        });
-      } catch (e) {
-        console.log("[SYSTEM] Alternate model stream triggered (3.5-flash-busy).");
+        console.log("[SYSTEM] Dispatching to primary high-speed model: gemini-3.1-flash-lite...");
+        response = await callModelWithTimeout("gemini-3.1-flash-lite", 3500);
+      } catch (e: any) {
+        console.error("[SYSTEM ERROR] Primary high-speed model (gemini-3.1-flash-lite) failed or timed out:", e?.message || e);
         usedFallback = true;
       }
 
-      // 2. Secondary Attempt: gemini-3.1-flash-lite
+      // 2. Secondary Attempt: gemini-3.5-flash (Heavier model fallback)
       if (!response) {
         try {
-          response = await ai.models.generateContent({
-            model: "gemini-3.1-flash-lite",
-            contents: message,
-            config: {
-              systemInstruction,
-              temperature: 0.95,
-            }
-          });
-        } catch (e) {
-          console.log("[SYSTEM] Backup model stream triggered (3.1-flash-lite-busy).");
+          console.log("[SYSTEM] Primary failed/timed out. Dispatching to secondary: gemini-3.5-flash...");
+          response = await callModelWithTimeout("gemini-3.5-flash", 3500);
+        } catch (e: any) {
+          console.error("[SYSTEM ERROR] Secondary model (gemini-3.5-flash) failed or timed out:", e?.message || e);
         }
       }
 
-      // 3. Tertiary Attempt: gemini-flash-latest
+      // 3. Tertiary Attempt: gemini-flash-latest (Older flash fallback)
       if (!response) {
         try {
-          response = await ai.models.generateContent({
-            model: "gemini-flash-latest",
-            contents: message,
-            config: {
-              systemInstruction,
-              temperature: 0.95,
-            }
-          });
-        } catch (e) {
-          console.log("[SYSTEM] Model streaming limit status engaged.");
+          console.log("[SYSTEM] Secondary failed/timed out. Dispatching to tertiary: gemini-flash-latest...");
+          response = await callModelWithTimeout("gemini-flash-latest", 3500);
+        } catch (e: any) {
+          console.error("[SYSTEM ERROR] Tertiary model (gemini-flash-latest) failed or timed out:", e?.message || e);
         }
       }
 
@@ -447,26 +781,71 @@ async function startServer() {
     }
   });
 
-  // Helper to fetch with manual redirects, preserving all custom headers (User-Agent, Cookie, Range)
+  // Helper to fetch with manual redirects, preserving all custom headers (User-Agent, Cookie, Range) and managing Cookie jars
   async function fetchWithManualRedirect(
     url: string,
     headers: Record<string, string>,
     maxRedirects = 8
-  ): Promise<{ response: Response; finalUrl: string }> {
+  ): Promise<{ response: Response; finalUrl: string; cookies: string }> {
     let currentUrl = url;
     let currentHeaders = { ...headers };
     let redirectCount = 0;
 
+    // Cookie map to preserve session state
+    const cookieMap: Record<string, string> = {};
+
+    // Seed cookie map with any input Cookie headers
+    const inputCookie = currentHeaders["Cookie"] || currentHeaders["cookie"];
+    if (inputCookie) {
+      inputCookie.split(";").forEach(c => {
+        const parts = c.trim().split("=");
+        if (parts.length >= 2) {
+          cookieMap[parts[0]] = parts.slice(1).join("=");
+        }
+      });
+    }
+
     while (redirectCount < maxRedirects) {
+      // Re-compile Current Cookie Header
+      const cookieStr = Object.entries(cookieMap)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("; ");
+      if (cookieStr) {
+        currentHeaders["Cookie"] = cookieStr;
+      }
+
       const res = await fetch(currentUrl, {
         headers: currentHeaders,
         redirect: "manual"
       });
 
+      // Extract and save cookies from set-cookie headers
+      let setCookies: string[] = [];
+      if (typeof res.headers.getSetCookie === "function") {
+        setCookies = res.headers.getSetCookie();
+      } else {
+        const raw = res.headers.get("set-cookie");
+        if (raw) {
+          setCookies = [raw];
+        }
+      }
+
+      for (const rawCookie of setCookies) {
+        const firstPart = rawCookie.split(";")[0];
+        const match = firstPart.trim().split("=");
+        if (match.length >= 2) {
+          cookieMap[match[0]] = match.slice(1).join("=");
+        }
+      }
+
       if (res.status >= 300 && res.status < 400) {
         const location = res.headers.get("location");
         if (!location) {
-          return { response: res, finalUrl: currentUrl };
+          return { 
+            response: res, 
+            finalUrl: currentUrl, 
+            cookies: Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join("; ") 
+          };
         }
 
         if (location.startsWith("/")) {
@@ -480,7 +859,11 @@ async function startServer() {
         continue;
       }
 
-      return { response: res, finalUrl: currentUrl };
+      return { 
+        response: res, 
+        finalUrl: currentUrl, 
+        cookies: Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join("; ") 
+      };
     }
 
     throw new Error("Max redirects exceeded inside video server proxy");
@@ -498,7 +881,7 @@ async function startServer() {
       const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
       // 1. Fetch initial head or page to see if there's a virus warning or confirm is required
-      let { response, finalUrl } = await fetchWithManualRedirect(initialUrl, {
+      let { response, finalUrl, cookies } = await fetchWithManualRedirect(initialUrl, {
         "User-Agent": userAgent
       });
 
@@ -506,28 +889,52 @@ async function startServer() {
       const headersToSend: Record<string, string> = {
         "User-Agent": userAgent
       };
+      if (cookies) {
+        headersToSend["Cookie"] = cookies;
+      }
 
       const contentType = response.headers.get("content-type") || "";
 
-      // If Google Drive returns an HTML sheet instead of a direct file flow, extract confirmation token code
+      // If Google Drive returns an HTML sheet instead of a direct file flow, extract confirmation token and uuid code
       if (contentType.includes("html")) {
         const htmlText = await response.text();
         let confirmToken = "";
-        
-        const confirmMatchUrl = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
-        if (confirmMatchUrl && confirmMatchUrl[1]) {
-          confirmToken = confirmMatchUrl[1];
-        } else {
-          const confirmMatchInput = htmlText.match(/name="confirm"\s+value="([a-zA-Z0-9_-]+)"/) ||
-                                    htmlText.match(/value="([a-zA-Z0-9_-]+)"\s+name="confirm"/);
-          if (confirmMatchInput && confirmMatchInput[1]) {
-            confirmToken = confirmMatchInput[1];
-          }
+        let uuidToken = "";
+
+        const confirmMatch = htmlText.match(/name="confirm"\s+value="([^"]+)"/) || 
+                             htmlText.match(/value="([^"]+)"\s+name="confirm"/) ||
+                             htmlText.match(/confirm=([^&'"\s>]+)/);
+        if (confirmMatch) {
+          confirmToken = confirmMatch[1];
+        }
+
+        const uuidMatch = htmlText.match(/name="uuid"\s+value="([^"]+)"/) || 
+                          htmlText.match(/value="([^"]+)"\s+name="uuid"/);
+        if (uuidMatch) {
+          uuidToken = uuidMatch[1];
         }
 
         if (confirmToken) {
-          targetUrl = `https://docs.google.com/uc?export=download&id=${fileId}&confirm=${confirmToken}`;
-          headersToSend["Cookie"] = `download_warning_${fileId}=${confirmToken}`;
+          targetUrl = `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=${confirmToken}`;
+          if (uuidToken) {
+            targetUrl += `&uuid=${uuidToken}`;
+          }
+          const downloadWarningCookie = `download_warning_${fileId}=${confirmToken}`;
+          
+          let setCookies: string[] = [];
+          if (typeof response.headers.getSetCookie === "function") {
+            setCookies = response.headers.getSetCookie();
+          } else {
+            const raw = response.headers.get("set-cookie");
+            if (raw) setCookies = [raw];
+          }
+          const additionalCookies = setCookies.map(c => c.split(";")[0]).join("; ");
+          let finalCookies = cookies || "";
+          if (additionalCookies) {
+            finalCookies = finalCookies ? `${finalCookies}; ${additionalCookies}` : additionalCookies;
+          }
+          finalCookies = finalCookies ? `${finalCookies}; ${downloadWarningCookie}` : downloadWarningCookie;
+          headersToSend["Cookie"] = finalCookies;
         }
       }
 
@@ -564,26 +971,295 @@ async function startServer() {
     }
   });
 
+  // API Route - Google Drive Direct Download Proxy
+  app.get("/api/download-proxy", async (req, res) => {
+    const fileId = req.query.id as string;
+    const fileName = req.query.name as string || "downloaded-file";
+
+    if (!fileId) {
+      return res.status(400).send("File ID is required");
+    }
+
+    try {
+      const initialUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
+      const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+      let { response, finalUrl, cookies } = await fetchWithManualRedirect(initialUrl, {
+        "User-Agent": userAgent
+      });
+
+      let targetUrl = finalUrl;
+      const headersToSend: Record<string, string> = {
+        "User-Agent": userAgent
+      };
+      if (cookies) {
+        headersToSend["Cookie"] = cookies;
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("html")) {
+        const htmlText = await response.text();
+        let confirmToken = "";
+        let uuidToken = "";
+
+        console.log(`[Proxy] HTML response received, size: ${htmlText.length}. Parsing tokens for fileId: ${fileId}...`);
+
+        const confirmMatch = htmlText.match(/name=["']confirm["']\s+value=["']([^"']+)["']/i) || 
+                             htmlText.match(/value=["']([^"']+)["']\s+name=["']confirm["']/i) ||
+                             htmlText.match(/id=["']confirm["']\s+value=["']([^"']+)["']/i) ||
+                             htmlText.match(/confirm=([^&'"\s>]+)/i);
+        if (confirmMatch) {
+          confirmToken = confirmMatch[1];
+        }
+
+        const uuidMatch = htmlText.match(/name=["']uuid["']\s+value=["']([^"']+)["']/i) || 
+                          htmlText.match(/value=["']([^"']+)["']\s+name=["']uuid["']/i);
+        if (uuidMatch) {
+          uuidToken = uuidMatch[1];
+        }
+
+        if (!confirmToken) {
+          // Extensive array of extraction attempts for robust token parsing
+          const extractionRegexes: [string, RegExp][] = [
+            ["url-query", /confirm=([^&'"\s>]+)/],
+            ["href-attrs-double", /href="[^"]*?confirm=([^&"]+)/],
+            ["href-attrs-single", /href='[^']*?confirm=([^&']+)/],
+            ["action-attrs-double", /action="[^"]*?confirm=([^&"]+)/],
+            ["action-attrs-single", /action='[^']*?confirm=([^&']+)/],
+            ["js-var-confirm_token", /confirm_token\s*=\s*['"]([^'"]+)['"]/i],
+            ["js-var-confirm", /confirm\s*=\s*['"]([^'"]+)['"]/i],
+            ["js-var-_confirm_token", /_confirm_token\s*=\s*['"]([^'"]+)['"]/i],
+            ["js-var-confirmToken", /confirmToken\s*=\s*['"]([^'"]+)['"]/i],
+            ["js-object-confirm", /['"]?confirm['"]?\s*:\s*['"]([^'"]+)['"]/i],
+            ["js-array-confirm", /['"]?confirm['"]?\s*,\s*['"]([^'"]+)['"]/i]
+          ];
+
+          for (const [label, reg] of extractionRegexes) {
+            const match = htmlText.match(reg);
+            if (match && match[1]) {
+              confirmToken = match[1];
+              console.log(`[Proxy] SUCCESS: Extracted confirm token fallback using regex [${label}]: "${confirmToken}"`);
+              break;
+            }
+          }
+        }
+
+        if (!confirmToken) {
+          console.warn(`[Proxy] WARNING: No confirm token extracted for fileId: ${fileId}. HTML Snippet:`);
+          const lines = htmlText.split("\n");
+          let loggedCount = 0;
+          for (const line of lines) {
+            const lowerLine = line.toLowerCase();
+            if (lowerLine.includes("confirm") || lowerLine.includes("warning") || lowerLine.includes("download") || lowerLine.includes("form") || lowerLine.includes("captcha")) {
+              console.warn(`  Line ${loggedCount + 1}: ${line.trim().substring(0, 300)}`);
+              loggedCount++;
+              if (loggedCount > 25) break;
+            }
+          }
+        }
+
+        if (confirmToken) {
+          targetUrl = `https://docs.google.com/uc?export=download&confirm=${confirmToken}&id=${fileId}`;
+          if (uuidToken) {
+            targetUrl += `&uuid=${uuidToken}`;
+          }
+          const downloadWarningCookie = `download_warning_${fileId}=${confirmToken}`;
+          
+          let setCookies: string[] = [];
+          if (typeof response.headers.getSetCookie === "function") {
+            setCookies = response.headers.getSetCookie();
+          } else {
+            const raw = response.headers.get("set-cookie");
+            if (raw) setCookies = [raw];
+          }
+          const additionalCookies = setCookies.map(c => c.split(";")[0]).join("; ");
+          let finalCookies = cookies || "";
+          if (additionalCookies) {
+            finalCookies = finalCookies ? `${finalCookies}; ${additionalCookies}` : additionalCookies;
+          }
+          finalCookies = finalCookies ? `${finalCookies}; ${downloadWarningCookie}` : downloadWarningCookie;
+          headersToSend["Cookie"] = finalCookies;
+
+          console.log(`[Proxy] Configured warning bypass target URL: ${targetUrl}`);
+        } else {
+          console.warn(`[Proxy] Token extraction failed. Redirecting directly to native Google warning page.`);
+          try {
+            const fs = await import("fs");
+            fs.appendFileSync(path.join(process.cwd(), "download_logs.txt"), `[${new Date().toISOString()}] [File ${fileId}] Token extraction failed. Redirected to download page.\n`);
+          } catch (e) {}
+          return res.redirect(`https://docs.google.com/uc?export=download&id=${fileId}`);
+        }
+      }
+
+      console.log(`[Proxy] Fetching final target stream url: ${targetUrl}`);
+      const { response: streamResponse } = await fetchWithManualRedirect(targetUrl, headersToSend);
+
+      const finalContentType = streamResponse.headers.get("content-type") || "";
+      if (finalContentType.toLowerCase().includes("html")) {
+        console.warn(`[Proxy] Stream response is HTML instead of file. Redirecting directly to native Google warning page.`);
+        try {
+          const fs = await import("fs");
+          fs.appendFileSync(path.join(process.cwd(), "download_logs.txt"), `[${new Date().toISOString()}] [File ${fileId}] Stream is still HTML. Redirected to download page.\n`);
+        } catch (e) {}
+        return res.redirect(`https://docs.google.com/uc?export=download&id=${fileId}`);
+      }
+
+      try {
+        const fs = await import("fs");
+        fs.appendFileSync(path.join(process.cwd(), "download_logs.txt"), `[${new Date().toISOString()}] [File ${fileId}] SUCCESS: Streamed genuine file content: ${fileName}\n`);
+      } catch (e) {}
+
+      res.status(streamResponse.status);
+      
+      // Copy over headers
+      const copyHeaders = ["content-type", "content-length", "cache-control"];
+      for (const h of copyHeaders) {
+        const val = streamResponse.headers.get(h);
+        if (val) {
+          res.setHeader(h, val);
+        }
+      }
+
+      // Explicitly set content-disposition to trigger browser-native download
+      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
+
+      if (streamResponse.body) {
+        const { Readable } = await import("stream");
+        Readable.fromWeb(streamResponse.body as any).pipe(res);
+      } else {
+        res.status(404).send("Failed to retrieve file stream");
+      }
+    } catch (err: any) {
+      console.error("Error in download proxy:", err);
+      res.status(500).send("Download proxy error: " + err.message);
+    }
+  });
+
+  // Helper to parse/derive partner container URL based on host header
+  function getCounterpartUrl(hostHeader: string | undefined): string | null {
+    if (!hostHeader) return null;
+    const lowercaseHost = hostHeader.toLowerCase();
+    if (lowercaseHost.includes("ais-dev-")) {
+      const preHost = lowercaseHost.replace("ais-dev-", "ais-pre-");
+      return `https://${preHost}/api/configs`;
+    } else if (lowercaseHost.includes("ais-pre-")) {
+      const devHost = lowercaseHost.replace("ais-pre-", "ais-dev-");
+      return `https://${devHost}/api/configs`;
+    }
+    return null;
+  }
+
+  // Deep merge utility to combine items across servers cleanly
+  function mergeConfigs(configA: any, configB: any) {
+    const merged = { ...configA };
+    const mergeArrayById = (key: string, idField: string = "id") => {
+      const listA = Array.isArray(configA[key]) ? configA[key] : [];
+      const listB = Array.isArray(configB[key]) ? configB[key] : [];
+      const map = new Map();
+      listA.forEach((item: any) => {
+        if (item) {
+          const idKey = item[idField] !== undefined ? item[idField] : item.name;
+          if (idKey !== undefined) map.set(idKey, item);
+        }
+      });
+      listB.forEach((item: any) => {
+        if (item) {
+          const idKey = item[idField] !== undefined ? item[idField] : item.name;
+          if (idKey !== undefined) map.set(idKey, item);
+        }
+      });
+      merged[key] = Array.from(map.values());
+    };
+
+    mergeArrayById("custom_projects", "id");
+    mergeArrayById("custom_anime", "id");
+    mergeArrayById("custom_games", "id");
+    mergeArrayById("shadow_master_tutorials", "id");
+    mergeArrayById("custom_tools", "id");
+
+    const deletedA = Array.isArray(configA.deleted_item_ids) ? configA.deleted_item_ids : [];
+    const deletedB = Array.isArray(configB.deleted_item_ids) ? configB.deleted_item_ids : [];
+    merged.deleted_item_ids = Array.from(new Set([...deletedA, ...deletedB]));
+
+    const defaultConsole = "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing";
+    if (configB.admin_console_link && configB.admin_console_link !== defaultConsole) {
+      merged.admin_console_link = configB.admin_console_link;
+    } else {
+      merged.admin_console_link = configA.admin_console_link || defaultConsole;
+    }
+    return merged;
+  }
+
   // API Route - Get Configs
   app.get("/api/configs", async (req, res) => {
     try {
       const configPath = path.join(process.cwd(), "custom_configs.json");
       const { promises: fsPromises } = await import("fs");
+      
+      let localConfig: any = {
+        admin_console_link: "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing",
+        custom_projects: [],
+        custom_anime: [],
+        custom_games: [],
+        shadow_master_tutorials: [],
+        custom_tools: [],
+        deleted_item_ids: []
+      };
+
       try {
         const data = await fsPromises.readFile(configPath, "utf-8");
-        return res.json(JSON.parse(data));
+        localConfig = JSON.parse(data);
       } catch (err) {
-        // If file doesn't exist, return empty config with default links
-        return res.json({
-          admin_console_link: "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing",
-          custom_projects: [],
-          custom_anime: [],
-          custom_games: [],
-          shadow_master_tutorials: [],
-          custom_tools: [],
-          deleted_item_ids: []
-        });
+        // Fallback to defaults if file is missing
       }
+
+      // If already forwarded, avoid circular queries
+      if (req.headers["x-sync-forwarded"]) {
+        return res.json(localConfig);
+      }
+
+      // Query cross-container counterpart to merge latest runtime dynamic additions
+      const hostHeader = req.get("host") || (req.headers.host as string);
+      const partnerUrl = getCounterpartUrl(hostHeader);
+
+      if (partnerUrl) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1200); // Fast timeout
+
+          const response = await fetch(partnerUrl, {
+            headers: { "x-sync-forwarded": "true" },
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const partnerConfig = await response.json();
+            const mergedConfig = mergeConfigs(localConfig, partnerConfig);
+
+            // If partner has more/different items, write the merged results to our local disk
+            let hasChanges = false;
+            const keysToComp = ["custom_projects", "custom_anime", "custom_games", "custom_tools", "deleted_item_ids"];
+            for (const k of keysToComp) {
+              if (JSON.stringify(localConfig[k]) !== JSON.stringify(mergedConfig[k])) {
+                hasChanges = true;
+                break;
+              }
+            }
+
+            if (hasChanges) {
+              await fsPromises.writeFile(configPath, JSON.stringify(mergedConfig, null, 2), "utf-8");
+            }
+
+            return res.json(mergedConfig);
+          }
+        } catch (partnerErr) {
+          console.log("[SYSTEM SYNC] Counterpart server offline or warming up.");
+        }
+      }
+
+      return res.json(localConfig);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -596,7 +1272,6 @@ async function startServer() {
       const configPath = path.join(process.cwd(), "custom_configs.json");
       const { promises: fsPromises } = await import("fs");
       
-      // Merge with existing config if any
       let currentConfig: any = {};
       try {
         const existingData = await fsPromises.readFile(configPath, "utf-8");
@@ -605,6 +1280,25 @@ async function startServer() {
 
       const updatedConfig = { ...currentConfig, ...newConfig };
       await fsPromises.writeFile(configPath, JSON.stringify(updatedConfig, null, 2), "utf-8");
+
+      // Instantly propagate update to counterpart container
+      if (!req.headers["x-sync-forwarded"]) {
+        const hostHeader = req.get("host") || (req.headers.host as string);
+        const partnerUrl = getCounterpartUrl(hostHeader);
+        if (partnerUrl) {
+          fetch(partnerUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-sync-forwarded": "true"
+            },
+            body: JSON.stringify(newConfig)
+          }).catch(() => {
+            // Quiet fail if the partner container is sleeping/terminating
+          });
+        }
+      }
+
       return res.json({ success: true, config: updatedConfig });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -614,7 +1308,7 @@ async function startServer() {
   // Vite middleware for development vs static serve for production
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: false },
       appType: "spa",
     });
     app.use(vite.middlewares);

@@ -3,15 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
+    <title>ShadowTech</title>
     <script>
+      // Direct window.onerror handler for absolute fallback
+      window.onerror = function(message, source, lineno, colno, error) {
+        const msg = String(message || '');
+        if (
+          msg.toLowerCase().includes('vite') || 
+          msg.toLowerCase().includes('websocket') ||
+          msg.toLowerCase().includes('hmr')
+        ) {
+          return true; // Prevents default browser handling and silencing error display
+        }
+      };
+
       // Automatically silence benign Vite HMR and WebSocket connection failure indicators
       window.addEventListener('error', function(e) {
-        if (e.message && (
-          e.message.includes('vite') || 
-          e.message.includes('WebSocket') || 
-          e.message.includes('websocket')
-        )) {
+        const msg = e.message ? String(e.message) : '';
+        const errStr = e.error ? String(e.error.message || e.error) : '';
+        if (
+          msg.toLowerCase().includes('vite') || 
+          msg.toLowerCase().includes('websocket') ||
+          msg.toLowerCase().includes('hmr') ||
+          errStr.toLowerCase().includes('vite') ||
+          errStr.toLowerCase().includes('websocket') ||
+          errStr.toLowerCase().includes('hmr')
+        ) {
           e.stopImmediatePropagation();
           e.preventDefault();
         }
@@ -20,14 +37,47 @@
       window.addEventListener('unhandledrejection', function(e) {
         const msg = e.reason ? String(e.reason.message || e.reason) : '';
         if (
-          msg.includes('WebSocket') || 
-          msg.includes('websocket') || 
-          msg.includes('vite')
+          msg.toLowerCase().includes('websocket') || 
+          msg.toLowerCase().includes('hmr') || 
+          msg.toLowerCase().includes('vite')
         ) {
           e.stopImmediatePropagation();
           e.preventDefault();
         }
       }, true);
+
+      // Also intercept console.error and console.warn to suppress any remaining logs
+      const originalConsoleError = console.error;
+      console.error = function(...args) {
+        const msg = args.map(arg => {
+          if (arg instanceof Error) return arg.message + ' ' + arg.stack;
+          return String(arg);
+        }).join(' ');
+        if (
+          msg.toLowerCase().includes('vite') || 
+          msg.toLowerCase().includes('websocket') || 
+          msg.toLowerCase().includes('hmr')
+        ) {
+          return;
+        }
+        originalConsoleError.apply(console, args);
+      };
+
+      const originalConsoleWarn = console.warn;
+      console.warn = function(...args) {
+        const msg = args.map(arg => {
+          if (arg instanceof Error) return arg.message + ' ' + arg.stack;
+          return String(arg);
+        }).join(' ');
+        if (
+          msg.toLowerCase().includes('vite') || 
+          msg.toLowerCase().includes('websocket') || 
+          msg.toLowerCase().includes('hmr')
+        ) {
+          return;
+        }
+        originalConsoleWarn.apply(console, args);
+      };
     </script>
   </head>
   <body>

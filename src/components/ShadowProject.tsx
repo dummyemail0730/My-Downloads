@@ -32,6 +32,8 @@ export default function ShadowProject({
   generatedGuestPasscodeDuration = 90,
   setGeneratedGuestPasscodeDuration,
   isAdmin = false,
+  autoOpenAppointment = false,
+  onAppointmentOpened,
 }: { 
   onEnter: () => void; 
   hasPlayed?: boolean; 
@@ -44,6 +46,8 @@ export default function ShadowProject({
   generatedGuestPasscodeDuration?: number;
   setGeneratedGuestPasscodeDuration?: (duration: number) => void;
   isAdmin?: boolean;
+  autoOpenAppointment?: boolean;
+  onAppointmentOpened?: () => void;
 }) {
   const skip = hasPlayed;
 
@@ -63,12 +67,13 @@ export default function ShadowProject({
 
   // Soundtrack Control states
   const STATIC_PLAYLIST = [
-    { id: 'ATHTNyLK2TM', name: 'School Life', desc: 'Main soundtrack of this page' },
-    { id: 'T9MLjIsfUOU', name: 'Xado Theme Orchestral', desc: 'Pre-load soundtrack frequency' },
-    { id: '9iQVgj4z-I4', name: 'Shadow Garden Lofi Chill', desc: 'Background ambiance of the shadows' }
+    { id: '1zUW4zza5mVJYG2DETaSEHVPUq26mLPqT', name: 'Our Garden Theme', desc: 'Custom requested page background track', type: 'drive' as const },
+    { id: 'ATHTNyLK2TM', name: 'School Life', desc: 'Main soundtrack of this page', type: 'youtube' as const },
+    { id: 'T9MLjIsfUOU', name: 'Xado Theme Orchestral', desc: 'Pre-load soundtrack frequency', type: 'youtube' as const },
+    { id: '9iQVgj4z-I4', name: 'Shadow Garden Lofi Chill', desc: 'Background ambiance of the shadows', type: 'youtube' as const }
   ];
 
-  const [customTracks, setCustomTracks] = useState<Array<{ id: string; name: string; desc: string }>>(() => {
+  const [customTracks, setCustomTracks] = useState<Array<{ id: string; name: string; desc: string; type?: 'youtube' | 'drive' }>>(() => {
     const saved = localStorage.getItem('shadow_custom_tracks_data');
     return saved ? JSON.parse(saved) : [];
   });
@@ -150,11 +155,46 @@ export default function ShadowProject({
     return null;
   };
 
+  const parseMediaUrl = (urlOrId: string): { id: string; type: 'youtube' | 'drive' } | null => {
+    const trimmed = urlOrId.trim();
+    if (!trimmed) return null;
+
+    // Check if it's a Google Drive link or file ID (Drive file IDs are usually 25 to 50 characters long)
+    if (trimmed.includes('drive.google.com') || trimmed.includes('docs.google.com')) {
+      const driveMatch = trimmed.match(/\/d\/([a-zA-Z0-9_-]{25,50})/);
+      if (driveMatch && driveMatch[1]) {
+        return { id: driveMatch[1], type: 'drive' };
+      }
+      const idMatch = trimmed.match(/id=([a-zA-Z0-9_-]{25,50})/);
+      if (idMatch && idMatch[1]) {
+        return { id: idMatch[1], type: 'drive' };
+      }
+    }
+
+    // Direct Google Drive ID patterns
+    if (/^[a-zA-Z0-9_-]{25,45}$/.test(trimmed)) {
+      return { id: trimmed, type: 'drive' };
+    }
+
+    // Check YouTube ID directly
+    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+      return { id: trimmed, type: 'youtube' };
+    }
+
+    // Regex check for youtube urls
+    const ytId = parseYoutubeId(trimmed);
+    if (ytId) {
+      return { id: ytId, type: 'youtube' };
+    }
+
+    return null;
+  };
+
   const handleInjectTrack = (e: FormEvent) => {
     e.preventDefault();
-    const id = parseYoutubeId(soundtrackInput);
-    if (!id) {
-      alert("UNABLE TO RESOLVE COG-LINK URL // Re-evaluate YouTube details.");
+    const media = parseMediaUrl(soundtrackInput);
+    if (!media) {
+      alert("UNABLE TO RESOLVE COG-LINK URL // Re-evaluate YouTube or Google Drive details.");
       return;
     }
 
@@ -296,6 +336,15 @@ export default function ShadowProject({
 
   // --- APPOINTMENTS STATE ---
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (autoOpenAppointment) {
+      setIsAppointmentModalOpen(true);
+      setAptStep(1);
+      onAppointmentOpened?.();
+    }
+  }, [autoOpenAppointment]);
+
   const [isFiledAppointmentsDropdownOpen, setIsFiledAppointmentsDropdownOpen] = useState(false);
   const [isSubmittingAppointment, setIsSubmittingAppointment] = useState(false);
   const [showAppointmentSuccess, setShowAppointmentSuccess] = useState(false);
@@ -911,14 +960,17 @@ export default function ShadowProject({
         clearInterval(interval);
         
         setTimeout(() => {
-          const id = parseYoutubeId(trackInputPayload);
-          if (!id) {
-            alert("UNABLE TO RESOLVE COG-LINK URL // Re-evaluate YouTube details.");
+          const media = parseMediaUrl(trackInputPayload);
+          if (!media) {
+            alert("UNABLE TO RESOLVE COG-LINK URL // Re-evaluate YouTube & Google Drive details.");
             setIsInjectingTrack(false);
             setInjectingTrackProgress(0);
             setTrackInputPayload('');
             return;
           }
+
+          const id = media.id;
+          const type = media.type;
 
           const allCurrent = [...STATIC_PLAYLIST, ...customTracks];
           const matchIdx = allCurrent.findIndex(t => t.id === id);
@@ -936,8 +988,9 @@ export default function ShadowProject({
 
           const newTrack = {
             id,
-            name: `User Frequency Audio [${id.substring(0, 4)}]`,
-            desc: `Injected frequencies: ${id}`
+            name: type === 'drive' ? `User Drive Audio [${id.substring(0, 4)}]` : `User Frequency Audio [${id.substring(0, 4)}]`,
+            desc: type === 'drive' ? `Injected Google Drive frequencies: ${id}` : `Injected frequencies: ${id}`,
+            type
           };
           const updated = [newTrack, ...customTracks];
           setCustomTracks(updated);
@@ -2168,25 +2221,60 @@ export default function ShadowProject({
 
   return (
     <div className="min-h-[200vh] w-full flex flex-col bg-black text-white relative overflow-y-auto no-scrollbar scroll-smooth">
-      {/* Hidden YouTube Theme Audio Stream */}
+      {/* Hidden Theme Audio Stream */}
       {isPlaying && localAudioActive && (
-        <iframe
-          key={activeTrack.id}
-          src={`https://www.youtube.com/embed/${activeTrack.id}?autoplay=1&mute=0&playlist=${activeTrack.id}&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1`}
-          allow="autoplay; encrypted-media"
-          title="Landing Page Shadow Theme OST"
-          style={{
-            position: 'fixed',
-            width: '320px',
-            height: '240px',
-            top: '-2000px',
-            left: '-2000px',
-            pointerEvents: 'none',
-            opacity: 0.001,
-            zIndex: -9999
-          }}
-          referrerPolicy="no-referrer"
-        />
+        activeTrack.type === 'drive' ? (
+          <>
+            {/* HTML5 Direct Audio Stream (Highly reliable for native playback/loop) */}
+            <audio
+              key={`audio-${activeTrack.id}`}
+              autoPlay
+              loop
+              controls={false}
+              style={{ display: 'none' }}
+            >
+              <source src={`https://drive.google.com/uc?export=download&id=${activeTrack.id}`} type="audio/mp3" />
+              <source src={`https://docs.google.com/uc?export=download&id=${activeTrack.id}`} type="audio/mp3" />
+              <source src={`https://drive.google.com/uc?export=open&id=${activeTrack.id}`} type="audio/mp3" />
+            </audio>
+            {/* Embedded sandboxed Drive preview for general content handling */}
+            <iframe
+              key={`iframe-${activeTrack.id}`}
+              src={`https://drive.google.com/file/d/${activeTrack.id}/preview`}
+              allow="autoplay; encrypted-media"
+              title="Landing Page Shadow Theme OST"
+              style={{
+                position: 'fixed',
+                width: '320px',
+                height: '240px',
+                top: '-2000px',
+                left: '-2000px',
+                pointerEvents: 'none',
+                opacity: 0.001,
+                zIndex: -9999
+              }}
+              referrerPolicy="no-referrer"
+            />
+          </>
+        ) : (
+          <iframe
+            key={activeTrack.id}
+            src={`https://www.youtube.com/embed/${activeTrack.id}?autoplay=1&mute=0&playlist=${activeTrack.id}&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1`}
+            allow="autoplay; encrypted-media"
+            title="Landing Page Shadow Theme OST"
+            style={{
+              position: 'fixed',
+              width: '320px',
+              height: '240px',
+              top: '-2000px',
+              left: '-2000px',
+              pointerEvents: 'none',
+              opacity: 0.001,
+              zIndex: -9999
+            }}
+            referrerPolicy="no-referrer"
+          />
+        )
       )}
 
       {/* Background Image */}
@@ -5705,7 +5793,7 @@ export default function ShadowProject({
             <div>
               <span className="text-[9px] font-mono tracking-[0.3em] uppercase text-purple-400 font-extrabold">// SYSTEM_PROFICIENCY</span>
               <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-neutral-100 via-white to-purple-300">
-                EXPERTISE
+                ONLINE COMPUTER REPAIR SERVICES
               </h2>
             </div>
           </div>
@@ -5713,7 +5801,7 @@ export default function ShadowProject({
           {/* Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-neutral-900/30 border border-neutral-900/40 text-white">
             
-            {/* Card 1: Hardware Maintenance */}
+            {/* Card 1: System Recovery & OS Configuration */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -5730,11 +5818,22 @@ export default function ShadowProject({
                   <div className="w-9 h-9 flex items-center justify-center transition-colors border border-neutral-800 rounded bg-neutral-900 text-purple-400 font-black">
                     <Cpu className="w-5 h-5" />
                   </div>
-                  <h3 className="font-black uppercase tracking-tight text-xs md:text-sm text-neutral-100 group-hover:text-white">Hardware Maintenance</h3>
+                  <h3 className="font-black uppercase tracking-tight text-xs md:text-sm text-neutral-100 group-hover:text-white">System Recovery & OS Configuration</h3>
                 </div>
                 
                 <ul className="space-y-2">
-                  {["PC Diagnostics", "Hardware Optimization", "Computer Assembly And Replacement", "Thermal Management", "Hardware Cross-Compatibility & Validation"].map((item) => (
+                  {[
+                    "Blue Screen",
+                    "Boot Failure",
+                    "Boot Loop",
+                    "Format / Reformat",
+                    "Data Recovery",
+                    "System and Files Backup",
+                    "O.S. Cloning",
+                    "O.S. Migration",
+                    "Password Removal",
+                    "BIOS Update"
+                  ].map((item) => (
                     <li key={item} className="flex items-center gap-2.5">
                       <div className="w-1 h-1 rotate-45 bg-purple-500 transition-colors shrink-0" />
                       <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-neutral-300 transition-all">
@@ -5746,7 +5845,7 @@ export default function ShadowProject({
               </div>
             </motion.div>
 
-            {/* Card 2: System Recovery and Deployment */}
+            {/* Card 2: Software & Game Installation */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -5763,11 +5862,16 @@ export default function ShadowProject({
                   <div className="w-9 h-9 flex items-center justify-center transition-colors border border-neutral-800 rounded bg-neutral-900 text-purple-400 font-black">
                     <Binary className="w-5 h-5" />
                   </div>
-                  <h3 className="font-black uppercase tracking-tight text-xs md:text-sm text-neutral-100 group-hover:text-white">System Recovery and Deployment</h3>
+                  <h3 className="font-black uppercase tracking-tight text-xs md:text-sm text-neutral-100 group-hover:text-white">Software & Game Installation</h3>
                 </div>
                 
                 <ul className="space-y-2">
-                  {["BIOS Update", "Full-System Imaging & Deployment", "MBR to GPT Conversion", "Disk Image Creation", "File Restoration", "Boot Repair", "Password Reset"].map((item) => (
+                  {[
+                    "Adobe Photoshop",
+                    "Microsoft Office 365 Installation & Activation",
+                    "Windows 11 Permanent Activation",
+                    "Game Installation"
+                  ].map((item) => (
                     <li key={item} className="flex items-center gap-2.5">
                       <div className="w-1 h-1 rotate-45 bg-purple-500 transition-colors shrink-0" />
                       <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-neutral-300 transition-all">

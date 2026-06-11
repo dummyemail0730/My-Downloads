@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Tv, ExternalLink, Film, ArrowLeft, RefreshCw, Download } from 'lucide-react';
+import { getDownloadCount, incrementDownloadCount } from '../utils/downloadTracker';
 
 import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
 import shadowAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
@@ -84,6 +85,14 @@ const getNormalizedSeason = (anime: any): 'S1' | 'S2' | 'MOVIE' => {
   }
   const title = (anime.title || '').toLowerCase();
   const protocol = (anime.protocol || '').toLowerCase();
+  const description = (anime.description || '').toLowerCase();
+  
+  if (description.includes('season 1') || description.includes('s1')) {
+    return 'S1';
+  }
+  if (description.includes('season 2') || description.includes('s2')) {
+    return 'S2';
+  }
   
   if (title.includes('season 1') || title.includes('s1') || protocol.includes('s1') || title.includes('episode 1')) {
     return 'S1';
@@ -263,13 +272,21 @@ export default function AnimeView() {
   };
 
   const [animeList, setAnimeList] = useState<any[]>(loadAnime);
+  const [downloadSync, setDownloadSync] = useState(0);
 
   useEffect(() => {
     const handleSync = () => {
       setAnimeList(loadAnime());
     };
+    const handleDownloadSync = () => {
+      setDownloadSync(prev => prev + 1);
+    };
     window.addEventListener('shadow_sync_update', handleSync);
-    return () => window.removeEventListener('shadow_sync_update', handleSync);
+    window.addEventListener('shadow_download_sync', handleDownloadSync);
+    return () => {
+      window.removeEventListener('shadow_sync_update', handleSync);
+      window.removeEventListener('shadow_download_sync', handleDownloadSync);
+    };
   }, []);
 
   const handleUpdateEpisodeLink = (episodeId: string, newLink: string) => {
@@ -397,7 +414,16 @@ export default function AnimeView() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 min-h-full border-b border-neutral-900 bg-neutral-950 flex-1">
           {filteredAnimeList.map((anime, idx) => {
-          const hasBgImage = !!anime.image;
+          const fallbackAnimeBgImages = [
+            shadowOnRoof,
+            shadowAura,
+            shadowBlade,
+            shadowMoonRain,
+            shadowElectricity,
+            shadowClockTower
+          ];
+          const animeBgImage = anime.image || fallbackAnimeBgImages[idx % fallbackAnimeBgImages.length];
+          const hasBgImage = !!animeBgImage;
           const Tag = motion.div;
           const adminLink = localStorage.getItem('admin_console_link') || 'https://drive.google.com';
           const targetLink = anime.link || adminLink;
@@ -426,10 +452,10 @@ export default function AnimeView() {
                   : 'bg-neutral-900/35 hover:bg-neutral-900/80 text-white'
               }`}
             >
-              {anime.image && (
+              {animeBgImage && (
                 <div className="absolute inset-0 z-0 overflow-hidden">
                   <img 
-                    src={anime.image} 
+                    src={animeBgImage} 
                     alt="" 
                     className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-[0.7] group-hover:brightness-[0.8]"
                     referrerPolicy="no-referrer"
@@ -465,7 +491,7 @@ export default function AnimeView() {
                       })()}
                     </span>
                     <div className="flex justify-between items-start gap-4">
-                      <h3 className={`text-lg sm:text-xl font-black uppercase tracking-tighter leading-tight transition-colors break-words line-clamp-3 ${
+                      <h3 className={`text-lg sm:text-xl font-black uppercase tracking-wide leading-tight transition-colors break-words line-clamp-3 ${
                         hasBgImage ? 'text-white' : 'text-neutral-100 group-hover:text-rose-300'
                       }`}>
                         {anime.title}
@@ -483,15 +509,19 @@ export default function AnimeView() {
                       href={downloadUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className={`h-10 w-10 shrink-0 flex items-center justify-center border transition-all duration-300 cursor-pointer shadow-md rounded-none ${
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        incrementDownloadCount('anime', anime.id, anime.title);
+                      }}
+                      className={`h-10 px-3.5 shrink-0 flex items-center justify-center gap-2 border transition-all duration-300 cursor-pointer shadow-md rounded-xl font-mono text-[11px] font-extrabold uppercase tracking-wide ${
                         hasBgImage
-                          ? 'bg-neutral-900/45 hover:bg-neutral-800/80 border-neutral-700/50 hover:border-rose-500/50 text-neutral-400 hover:text-rose-400'
-                          : 'bg-neutral-900/45 hover:bg-neutral-800/80 border-neutral-700/50 hover:border-purple-500/50 text-neutral-400 hover:text-purple-400'
+                          ? 'bg-neutral-900/45 hover:bg-neutral-800/85 border-neutral-700/50 hover:border-rose-500/50 text-neutral-400 hover:text-rose-450'
+                          : 'bg-neutral-900/45 hover:bg-neutral-800/85 border-neutral-700/50 hover:border-purple-500/50 text-neutral-400 hover:text-purple-450'
                       }`}
                       title="Download file directly"
                     >
                       <Download size={14} className="shrink-0" />
+                      <span>{getDownloadCount('anime', anime.id, anime.title)}</span>
                     </a>
                     
                     <button

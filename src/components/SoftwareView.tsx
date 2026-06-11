@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { PROJECTS as STATIC_PROJECTS } from '../constants';
 import { ExternalLink, Download, Cpu, Database, Terminal } from 'lucide-react';
 import { Project } from '../types';
+import { getDownloadCount, incrementDownloadCount } from '../utils/downloadTracker';
 
 import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
 import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
@@ -108,13 +109,21 @@ export default function SoftwareView() {
   };
 
   const [projects, setProjects] = useState<Project[]>(loadProjects);
+  const [downloadSync, setDownloadSync] = useState(0);
 
   useEffect(() => {
     const handleSync = () => {
       setProjects(loadProjects());
     };
+    const handleDownloadSync = () => {
+      setDownloadSync(prev => prev + 1);
+    };
     window.addEventListener('shadow_sync_update', handleSync);
-    return () => window.removeEventListener('shadow_sync_update', handleSync);
+    window.addEventListener('shadow_download_sync', handleDownloadSync);
+    return () => {
+      window.removeEventListener('shadow_sync_update', handleSync);
+      window.removeEventListener('shadow_download_sync', handleDownloadSync);
+    };
   }, []);
 
   const defaultLinks: { [key: string]: string } = {
@@ -130,7 +139,15 @@ export default function SoftwareView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-neutral-900">
         {projects.map((project, idx) => {
           const Tag = motion.div;
-          const bgImage = resolveImage(project.image);
+          const fallbackBgImages = [
+            shadowOnRoof,
+            shadowDarkBlade,
+            shadowMysteriousAura,
+            shadowMoonRain,
+            shadowNeonElectricity,
+            shadowClockTower
+          ];
+          const bgImage = resolveImage(project.image) || fallbackBgImages[idx % fallbackBgImages.length];
           const targetLink = project.link || defaultLinks[project.id] || 'https://drive.google.com/drive/my-drive';
 
           const handleClick = (e: React.MouseEvent) => {
@@ -140,6 +157,12 @@ export default function SoftwareView() {
             } else {
               window.open(targetLink, '_blank', 'noopener,noreferrer');
             }
+          };
+
+          const handleDownloadClick = (e: React.MouseEvent) => {
+            e.stopPropagation();
+            incrementDownloadCount('software', project.id, project.title);
+            handleClick(e);
           };
 
           return (
@@ -183,17 +206,18 @@ export default function SoftwareView() {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-black uppercase tracking-tighter leading-tight mb-2 text-neutral-100 group-hover:text-cyan-300 transition-colors">
+                <h3 className="text-xl font-black uppercase tracking-wide leading-tight mb-2 text-neutral-100 group-hover:text-cyan-300 transition-colors">
                   {project.title}
                 </h3>
                 
                 <div className="mt-auto pt-6 flex justify-end">
                   <button
-                    onClick={handleClick}
-                    className="h-10 w-10 shrink-0 flex items-center justify-center border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 hover:text-white rounded-none transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.12)] hover:shadow-[0_0_20px_rgba(34,211,238,0.35)] hover:border-cyan-400"
+                    onClick={handleDownloadClick}
+                    className="h-10 px-3.5 shrink-0 flex items-center justify-center gap-2 border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 hover:text-white rounded-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.12)] hover:shadow-[0_0_20px_rgba(34,211,238,0.35)] hover:border-cyan-400 font-mono text-[11px] font-extrabold uppercase tracking-wide"
                     title="Download File"
                   >
                     <Download size={14} className="shrink-0" />
+                    <span>{getDownloadCount('software', project.id, project.title)}</span>
                   </button>
                 </div>
               </div>

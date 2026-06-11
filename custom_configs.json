@@ -1,53 +1,91 @@
 {
-  "admin_console_link": "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing",
+  "admin_console_link": "https://drive.google.com/file/d/1sy4Dx502mHTHl-tlG1vl8lc7qbCeU3IF/view?usp=sharing",
   "custom_projects": [
     {
-      "id": "1",
-      "title": "G.S. W11 ISO",
-      "description": "Ghost spectre windows 11 ISO",
-      "tags": ["RUST"],
-      "link": "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing"
-    },
-    {
-      "id": "2",
-      "title": "G.S W10 ISO",
-      "description": "Ghost Spectre ISO",
-      "tags": ["OS"],
-      "link": "https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing"
+      "id": "1781087117944",
+      "title": "GS. Windows 11 iso",
+      "description": "Ghost Spectre. Windows 11 iso",
+      "tags": [
+        "G: DRIVE"
+      ],
+      "link": "https://drive.google.com/file/d/1sy4Dx502mHTHl-tlG1vl8lc7qbCeU3IF/view?usp=sharing"
     },
     {
       "id": "3",
       "title": "MICROSOFT OFFICE",
       "description": "Microsoft office 365",
-      "tags": ["EXT"],
-      "link": "https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing"
+      "tags": [
+        "EXT"
+      ],
+      "link": "https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8zOT37qUlOJOe_1?usp=sharing"
+    },
+    {
+      "id": "4",
+      "title": "Omni Script",
+      "description": "Custom scripting language for procedural animation and generative architecture patterns.",
+      "tags": [
+        "LLVM",
+        "Compiler",
+        "Generative"
+      ],
+      "image": "/src/assets/images/shadow_moon_rain_1779250676888.png"
+    },
+    {
+      "id": "5",
+      "title": "Aether CMS",
+      "description": "Headless content management system with a focus on developer experience and speed.",
+      "tags": [
+        "Go",
+        "PostgreSQL",
+        "API"
+      ],
+      "image": "/src/assets/images/shadow_neon_electricity_1779250694461.png"
     }
   ],
   "custom_anime": [
     {
       "id": "anime-shadow-ep1-s1",
-      "title": "SHADOW EP1 S1",
+      "title": "SHADOW Episode 1",
       "description": "The Eminence in Shadow Season 1 Episode 1 Decoded Stream",
       "protocol": "EXT",
-      "link": "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing"
+      "link": "https://drive.google.com/file/d/1fxXlxBKvuKk_AnTOWdxLQgSz4I0Pnu7k/view?usp=sharing",
+      "season": "SEASON 1"
     },
     {
       "id": "anime-shadow-ep2-s1",
-      "title": "SHADOW EP2 S1",
+      "title": "SHADOW EPisode 2",
       "description": "The Eminence in Shadow Season 1 Episode 2 Decoded Stream",
       "protocol": "EXT",
-      "link": "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing"
+      "link": "https://drive.google.com/file/d/1paqiSk-dfuJiFOJTGkNjyUC8AgoU2q3v/view?usp=sharing",
+      "season": "SEASON 1"
     },
     {
       "id": "anime-shadow-ep3-s1",
-      "title": "SHADOW EP3 S1",
+      "title": "SHADOW EPisode 3",
       "description": "The Eminence in Shadow Season 1 Episode 3 Decoded Stream",
       "protocol": "EXT",
-      "link": "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing"
+      "link": "https://drive.google.com/file/d/1au30TR5BZBKqrVWMiIhxZCQSYArsoIJK/view?usp=sharing",
+      "season": "SEASON 1"
     }
   ],
   "custom_games": [],
   "shadow_master_tutorials": [],
-  "custom_tools": [],
-  "deleted_item_ids": []
+  "custom_tools": [
+    {
+      "id": "1780907612498",
+      "name": "technocal toolkit",
+      "description": "Sergei Strelec",
+      "category": "G: DRIVE",
+      "link": "https://drive.google.com/file/d/1cPuUeZOSF0xGiJa-Gb6lGO3MasQ_EvYh/view?usp=sharing"
+    }
+  ],
+  "deleted_item_ids": [
+    "2",
+    "1"
+  ],
+  "chatbot_passcodes": [
+    "T70C3KTZ",
+    "TGD868UA",
+    "KH2VAKZN"
+  ]
 }
