@@ -124,8 +124,8 @@ export default function ShadowLoreView() {
       {
         index: "01",
         category: "BEGINNER",
-        title: "INTRO TO SHADOW ARTS",
-        description: "Learn the fundamentals of shadow manipulation—rebuilding system bootloaders (BCD), legacy boot records (MBR), and master UEFI partition configurations under the hood.",
+        title: "BOOTLOADER & BCD REPAIR",
+        description: "Learn the fundamentals of booting diagnostics—rebuilding system bootloaders (BCD), legacy boot records (MBR), and mastering UEFI partition configurations under the hood.",
         duration: "12:47",
         difficulty: "EASY",
         difficultyColor: "text-purple-400",
@@ -139,8 +139,8 @@ export default function ShadowLoreView() {
       {
         index: "02",
         category: "FUNDAMENTALS",
-        title: "SHADOW WALKING",
-        description: "Master the art of moving unseen across OS structures—loading corrupted offline Registry hives via WinPE rescue nodes to bypass critical Windows startup failure loops.",
+        title: "OFFLINE REGISTRY RECOVERY",
+        description: "Master the art of system recovery—loading corrupted offline Registry hives via WinPE rescue nodes to bypass critical Windows startup failure loops.",
         duration: "18:32",
         difficulty: "EASY",
         difficultyColor: "text-purple-400",
@@ -154,8 +154,8 @@ export default function ShadowLoreView() {
       {
         index: "03",
         category: "INTERMEDIATE",
-        title: "SHADOW MOLDING",
-        description: "Shape heat dynamics to your will—interpreting critical sensor outputs, logs, and voltage margins to troubleshoot PC thermal throttle gates and cooling failures.",
+        title: "PC THERMAL & SYSTEM COOLING",
+        description: "Diagnose high temperature thermal issues—interpreting critical sensor outputs, log analysis, and voltage margins to troubleshoot PC thermal throttle gates and cooling failures.",
         duration: "24:15",
         difficulty: "MEDIUM",
         difficultyColor: "text-amber-500",
@@ -169,8 +169,8 @@ export default function ShadowLoreView() {
       {
         index: "04",
         category: "INTERMEDIATE",
-        title: "FEAR INDUCTION",
-        description: "Salvage raw and corrupted storage sectors—deploying partition command utilities, GPT record rebuilding, and custom file system recovery to rescue lost document vaults.",
+        title: "HARD DRIVE & PARTITION RECOVERY",
+        description: "Salvage raw and corrupted storage sectors—deploying partition command utilities, GPT record rebuilding, and custom file system recovery to rescue lost doc files.",
         duration: "21:03",
         difficulty: "MEDIUM",
         difficultyColor: "text-amber-500",
@@ -184,8 +184,8 @@ export default function ShadowLoreView() {
       {
         index: "05",
         category: "ADVANCED",
-        title: "SHADOW POSSESSION",
-        description: "Assume total network telemetry control—debugging subnet delays, capturing packet logs via Wireshark, and mapping custom firewalls to defend against hidden port requests.",
+        title: "NETWORK TROUBLESHOOTING",
+        description: "Assume total control of network diagnostics—debugging subnet delays, capturing packet logs via Wireshark, and mapping custom firewalls to troubleshoot connectivity issues.",
         duration: "27:40",
         difficulty: "HARD",
         difficultyColor: "text-red-500",
@@ -199,8 +199,8 @@ export default function ShadowLoreView() {
       {
         index: "06",
         category: "MASTER LEVEL",
-        title: "DOMAIN OF DARKNESS",
-        description: "Purge stealthy persistent security threats—isolating sophisticated rootkits, rogue thread schedulers, and tracking fileless backdoor script parameters with precision tooling.",
+        title: "MALWARE DEEP CLEANING",
+        description: "Purge stealthy persistent security threats—isolating sophisticated malware, rootkits, rogue threads, and malware script parameters with precision diagnostic tooling.",
         duration: "32:18",
         difficulty: "EXPERT",
         difficultyColor: "text-red-500",
@@ -296,13 +296,13 @@ export default function ShadowLoreView() {
         <div className="space-y-2 relative z-10 text-left">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping" />
-            <p className="text-[9px] text-purple-400 font-extrabold tracking-[0.3em] uppercase">// SHADOW ARTS ACADEMY // TUTORIAL LIBRARY</p>
+            <p className="text-[9px] text-purple-400 font-extrabold tracking-[0.3em] uppercase">// DIAGNOSTICS & SYSTEM CLINIC // COMPUTER REPAIR ACADEMY</p>
           </div>
           <h3 className="text-2xl md:text-4.5xl font-black tracking-tighter text-white uppercase font-sans">
-            THE SHADOW MASTER TUTORIALS
+            COMPUTER REPAIR & TROUBLESHOOTING
           </h3>
           <p className="text-xs text-neutral-400 max-w-xl font-sans leading-relaxed">
-            Step-by-step video guides to master the ancient arts of shadow manipulation, stealth, and control. Learn the secrets of deep system configurations, OS recovery, and diagnostic wisdom. Become the shadow.
+            Step-by-step video guides to master computer repair, hardware diagnostics, and operating system recovery. Learn the secrets of deep system configurations, hardware repair under-the-hood, and expert troubleshooting workflows.
           </p>
         </div>
 

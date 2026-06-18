@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft, Eye, EyeOff, Clock, ArrowRight, ShieldCheck, Clipboard, Calendar } from 'lucide-react';
+import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft, Eye, EyeOff, Clock, ArrowRight, ShieldCheck, Clipboard, Calendar, Mic, MicOff } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
 import AnimeView from './components/AnimeView';
-import GamesView from './components/GamesView';
+import MusicView from './components/MusicView';
 import ToolsView from './components/ToolsView';
 import ExpertiseView from './components/ExpertiseView';
 import SupportView from './components/SupportView';
@@ -12,6 +12,7 @@ import ShadowProject from './components/ShadowProject';
 import LoadingScreen from './components/LoadingScreen';
 import ShadowLoreView from './components/ShadowLoreView';
 import RedirectLoader from './components/RedirectLoader';
+import LogUpdateModal from './components/LogUpdateModal';
 import shadowBg from './assets/images/shadow_master_atomic_1779279129608.png';
 import ownerIdPhoto from './assets/images/owner_id_photo_1779279731967.png';
 import shadowChibiAvatar from './assets/images/shadow_eminence_chibi_1779532936009.png';
@@ -22,7 +23,7 @@ import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from './constants'
 const TABS = [
   { id: 'SOFTWARE', label: 'Software' },
   { id: 'ANIME', label: 'Anime' },
-  { id: 'GAMES', label: 'Games' },
+  { id: 'GAMES', label: 'Music' },
   { id: 'TOOLS', label: 'Tools' }
 ];
 
@@ -109,7 +110,7 @@ const renderMessageContent = (msgText: string, sender: string) => {
 };
 
 export default function App() {
-  const [audioApproved, setAudioApproved] = useState<boolean | null>(null);
+  const [audioApproved, setAudioApproved] = useState<boolean | null>(true);
 
   // Soundtrack / Background audio states
   const STATIC_PLAYLIST = [
@@ -151,6 +152,12 @@ export default function App() {
       setIsPlaying(false);
     }
   }, [audioApproved]);
+
+  useEffect(() => {
+    // Purge legacy persistent chat_boss_mode from localStorage & sessionStorage so refreshing starts with a fresh guest state
+    localStorage.removeItem('chat_boss_mode');
+    sessionStorage.removeItem('chat_boss_mode');
+  }, []);
 
   const activeTrack = playlist[currentTrackIndex] || playlist[0] || STATIC_PLAYLIST[0];
 
@@ -236,12 +243,88 @@ export default function App() {
     {
       id: 'welcome',
       sender: 'bot',
-      text: "Yo! Welcome sa ShadowTech. Ako si **Shadow**, assistant mo dito. Hingi ka lang ng passcode, got you covered, pre! 😎🔑",
+      text: "Yo! Welcome sa ShadowTech. Ako si **Shadow**, assistant mo dito. Tanong ka lang, got you covered, pre! 😎",
       timestamp: new Date()
     }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+
+  // Speech to Text state and refs
+  const [isListening, setIsListening] = useState(false);
+  const [speechHelperText, setSpeechHelperText] = useState('');
+  const recognitionRef = useRef<any>(null);
+
+  const startListening = () => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      setSpeechHelperText("Speech recognition not supported in this browser.");
+      setTimeout(() => setSpeechHelperText(''), 3000);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'fil-PH'; // Native fil-PH handles English & Tagalog perfectly
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setSpeechHelperText("Listening... Magsalita na po.");
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) {
+          setChatInput((prev) => prev ? prev + ' ' + transcript : transcript);
+          setSpeechHelperText(`Narinig: "${transcript}"`);
+          setTimeout(() => setSpeechHelperText(''), 3000);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+        if (event.error === 'not-allowed') {
+          setSpeechHelperText("Paki-allow po ng mic permission.");
+        } else {
+          setSpeechHelperText(`Error: ${event.error}`);
+        }
+        setTimeout(() => setSpeechHelperText(''), 3000);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error(err);
+      setIsListening(false);
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setIsListening(false);
+    setSpeechHelperText('');
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
 
   // Chat scroll anchor ref
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -259,6 +342,8 @@ export default function App() {
   const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
   const [showAdminPasscode, setShowAdminPasscode] = useState(false);
   const [showGuestPasscode, setShowGuestPasscode] = useState(false);
+  const [isChatBossMode, setIsChatBossMode] = useState<boolean>(false);
+  const [showLogUpdateModal, setShowLogUpdateModal] = useState(false);
 
   const [generatedGuestPasscodeDuration, setGeneratedGuestPasscodeDuration] = useState<number>(() => {
     const stored = localStorage.getItem('generated_guest_passcode_duration');
@@ -306,7 +391,11 @@ export default function App() {
             'custom_games',
             'shadow_master_tutorials',
             'custom_tools',
-            'deleted_item_ids'
+            'deleted_item_ids',
+            'user_suggestions',
+            'user_appointments',
+            'user_shout_outs',
+            'user_activity_logs'
           ];
 
           const payloadToUpload: Record<string, any> = {};
@@ -325,6 +414,11 @@ export default function App() {
           } catch (e) {}
 
           syncKeys.forEach(key => {
+            const localKeyName = (key === 'user_suggestions') ? 'shadow_suggestions' :
+                                 (key === 'user_appointments') ? 'shadow_appointments' :
+                                 (key === 'user_shout_outs') ? 'shadow_shout_outs_v3' :
+                                 (key === 'user_activity_logs') ? 'shadow_user_movements' : key;
+
             if (key === 'deleted_item_ids') {
               const serverVal = data.deleted_item_ids || [];
               const localValStr = localStorage.getItem('deleted_item_ids');
@@ -357,7 +451,7 @@ export default function App() {
 
             const serverVal = data[key];
             if (serverVal !== undefined && serverVal !== null) {
-              const currentLocalStr = localStorage.getItem(key);
+              const currentLocalStr = localStorage.getItem(localKeyName);
               
               let localVal: any = null;
               try {
@@ -392,21 +486,24 @@ export default function App() {
                 // Add local items that do not exist yet on server
                 localList.forEach((item: any) => {
                   if (item) {
-                    const id = item.id !== undefined ? String(item.id) : String(item.name || item.title || '');
-                    if (id && !deletedIds.includes(id) && !map.has(id)) {
-                      map.set(id, item);
-                    }
+                     const id = item.id !== undefined ? String(item.id) : String(item.name || item.title || '');
+                     if (id && !deletedIds.includes(id) && !map.has(id)) {
+                       map.set(id, item);
+                     }
                   }
                 });
 
-                const mergedList = Array.from(map.values());
+                let mergedList = Array.from(map.values());
+                if (localKeyName === 'shadow_user_movements') {
+                  mergedList = mergedList.filter((log: any) => !(log.text && log.text.toLowerCase().includes('kgab0730')));
+                }
                 const mergedStr = JSON.stringify(mergedList);
 
                 if (currentLocalStr !== mergedStr) {
                   if ((window as any)._origSetItem) {
-                    (window as any)._origSetItem.call(localStorage, key, mergedStr);
+                    (window as any)._origSetItem.call(localStorage, localKeyName, mergedStr);
                   } else {
-                    localStorage.setItem(key, mergedStr);
+                    localStorage.setItem(localKeyName, mergedStr);
                   }
                   hasAnyDiff = true;
                 }
@@ -472,6 +569,12 @@ export default function App() {
       const saved = localStorage.getItem('custom_projects');
       let projectsList = saved ? JSON.parse(saved) : [...STATIC_PROJECTS];
       if (Array.isArray(projectsList)) {
+        // Filter out Episode 16 and Episode 18 from custom projects list as requested by the user
+        projectsList = projectsList.filter((p: any) => {
+          const normTitle = p.title?.toLowerCase() || '';
+          return !normTitle.includes('episode 16') && !normTitle.includes('episode 18');
+        });
+
         // Merge static projects if they are not in projectsList to prevent blank initialization
         const existingIds = new Set(projectsList.map((p: any) => p.id));
         for (const staticProj of STATIC_PROJECTS) {
@@ -723,6 +826,16 @@ export default function App() {
 
   const [appLoading, setAppLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('SOFTWARE');
+  const [activeTabLoggedFirst, setActiveTabLoggedFirst] = useState(false);
+  useEffect(() => {
+    if (!activeTabLoggedFirst) {
+      setActiveTabLoggedFirst(true);
+      return;
+    }
+    if ((window as any).logUserMovement) {
+      (window as any).logUserMovement('navigation', `Switched category tab to: "${activeTab}"`);
+    }
+  }, [activeTab]);
   const [showArchive, setShowArchive] = useState(false);
   const [showShadowLoreOnly, setShowShadowLoreOnly] = useState(false);
   const [introPlayed, setIntroPlayed] = useState(false);
@@ -746,8 +859,94 @@ export default function App() {
         itemTitle: title,
       });
     };
+    (window as any).logUserMovement = (type: 'chat' | 'navigation' | 'modal' | 'action', text: string) => {
+      try {
+        // If the text contains the admin passcode/password, do not include it in history.
+        if (text && text.toLowerCase().includes('kgab0730')) {
+          return;
+        }
+
+        const isChat = (type === 'chat');
+        const hasInteractedBefore = localStorage.getItem('shadow_chatbot_interacted') === 'true';
+
+        // History starts ONLY when they interact with chatbot.
+        // If they have not interacted and this is not a chat interaction, ignore it.
+        if (!isChat && !hasInteractedBefore) {
+          return;
+        }
+
+        // If this is a chat message, make sure they are flagged as interacted
+        if (isChat) {
+          localStorage.setItem('shadow_chatbot_interacted', 'true');
+        }
+
+        // Resolve the Guest User number
+        let userNumStr = localStorage.getItem('shadow_user_number');
+        if (!userNumStr) {
+          let maxNum = 0;
+          try {
+            const existingStr = localStorage.getItem('shadow_user_movements');
+            const existing = existingStr ? JSON.parse(existingStr) : [];
+            const regex = /(?:User|USER)\s*(\d+)/i;
+            existing.forEach((l: any) => {
+              if (l.text) {
+                const match = regex.exec(l.text);
+                if (match) {
+                  const val = parseInt(match[1], 10);
+                  if (val > maxNum) maxNum = val;
+                }
+              }
+            });
+          } catch (e) {
+            console.error(e);
+          }
+          const nextNum = maxNum + 1;
+          userNumStr = 'User ' + String(nextNum).padStart(2, '0');
+          localStorage.setItem('shadow_user_number', userNumStr);
+        }
+
+        // Format trace message with User number
+        const formattedText = `[${userNumStr}] ${text}`;
+
+        const existingStr = localStorage.getItem('shadow_user_movements');
+        const parsedExisting = existingStr ? JSON.parse(existingStr) : [];
+        const existing = Array.isArray(parsedExisting)
+          ? parsedExisting.filter((log: any) => !(log.text && log.text.toLowerCase().includes('kgab0730')))
+          : [];
+        const newLog = {
+          id: 'log_' + Date.now() + '_' + Math.floor(Math.random() * 1000000),
+          type,
+          text: formattedText,
+          user: userNumStr,
+          date: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).toUpperCase()
+        };
+        const updated = [newLog, ...existing].slice(0, 300);
+        localStorage.setItem('shadow_user_movements', JSON.stringify(updated));
+        
+        // Dispatch event so that open instances react immediately
+        window.dispatchEvent(new Event('shadow_sync_update'));
+
+        // Background push to make changes immediately permanent on the server database
+        const payloadToUpload = {
+          admin_console_link: localStorage.getItem('admin_console_link') || 'https://drive.google.com',
+          user_suggestions: JSON.parse(localStorage.getItem('shadow_suggestions') || '[]'),
+          user_appointments: JSON.parse(localStorage.getItem('shadow_appointments') || '[]'),
+          user_shout_outs: JSON.parse(localStorage.getItem('shadow_shout_outs_v3') || '[]'),
+          user_activity_logs: updated
+        };
+        fetch('/api/configs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadToUpload)
+        }).catch(err => console.error("Auto-sync log save error:", err));
+
+      } catch (e) {
+        console.error("Failed to log activity:", e);
+      }
+    };
     return () => {
       delete (window as any).triggerRedirectLoader;
+      delete (window as any).logUserMovement;
     };
   }, []);
 
@@ -772,7 +971,7 @@ export default function App() {
       case 'ANIME':
         return <AnimeView />;
       case 'GAMES':
-        return <GamesView />;
+        return <MusicView />;
       case 'TOOLS':
         return <ToolsView />;
       case 'EXPERTISE':
@@ -1079,7 +1278,8 @@ export default function App() {
                             setGuestPasscode(pastedText.trim());
                             if (guestAuthError) setGuestAuthError('');
                           } else {
-                            setGuestAuthError("NO CODE FOUND IN CLIPBOARD OR MEMORY. PLEASE COPY FIRST FROM SHADOW CHAT.");
+                            // Show helpful guidance instructing them on manual paste (browser standard)
+                            setGuestAuthError("SECURITY: PROCESS BLOCKED BY BROWSER PERMISSIONS. PLEASE NATIVELY PRESS CTRL+V OR LONG-PRESS TO PASTE.");
                           }
                         }}
                         className="absolute right-10 text-neutral-500 hover:text-purple-400 transition-colors p-1.5 rounded cursor-pointer z-10"
@@ -1195,6 +1395,53 @@ export default function App() {
                   onSubmit={async (e) => {
                     e.preventDefault();
                     const entered = passcode.trim();
+                    
+                    const deleteUserHistory = () => {
+                      try {
+                        const shadowUserNum = localStorage.getItem('shadow_user_number');
+                        if (shadowUserNum) {
+                          const numPart = shadowUserNum.replace(/\D/g, '');
+                          const formattedUser = 'User ' + numPart.padStart(2, '0');
+                          
+                          const existingStr = localStorage.getItem('shadow_user_movements');
+                          if (existingStr) {
+                            const logs = JSON.parse(existingStr);
+                            if (Array.isArray(logs)) {
+                              const updated = logs.filter((log: any) => {
+                                let logUser = log.user;
+                                if (!logUser && log.text) {
+                                  const match = /\[(?:User|USER)\s*(\d+)\]/i.exec(log.text);
+                                  if (match) logUser = 'User ' + match[1];
+                                }
+                                if (!logUser) return true;
+                                const logNumPart = logUser.replace(/\D/g, '');
+                                const formattedLogUser = 'User ' + logNumPart.padStart(2, '0');
+                                return formattedLogUser !== formattedUser;
+                              });
+                              localStorage.setItem('shadow_user_movements', JSON.stringify(updated));
+                              window.dispatchEvent(new Event('shadow_sync_update'));
+                              
+                              // sync to backend server config
+                              const payloadToUpload = {
+                                admin_console_link: localStorage.getItem('admin_console_link') || 'https://drive.google.com',
+                                user_suggestions: JSON.parse(localStorage.getItem('shadow_suggestions') || '[]'),
+                                user_appointments: JSON.parse(localStorage.getItem('shadow_appointments') || '[]'),
+                                user_shout_outs: JSON.parse(localStorage.getItem('shadow_shout_outs_v3') || '[]'),
+                                user_activity_logs: updated
+                              };
+                              fetch('/api/configs', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payloadToUpload)
+                              }).catch(err => console.error("Auto-sync clean save error:", err));
+                            }
+                          }
+                        }
+                      } catch (cleanErr) {
+                        console.error("Clean error on admin entry:", cleanErr);
+                      }
+                    };
+
                     try {
                       const msgBuffer = new TextEncoder().encode(entered);
                       const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -1207,6 +1454,7 @@ export default function App() {
                         setAuthError('');
                         sessionStorage.setItem('is_authorized', 'true');
                         sessionStorage.setItem('is_admin_mode', 'true');
+                        deleteUserHistory();
                       } else {
                         setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
                         setPasscode('');
@@ -1219,6 +1467,7 @@ export default function App() {
                         setAuthError('');
                         sessionStorage.setItem('is_authorized', 'true');
                         sessionStorage.setItem('is_admin_mode', 'true');
+                        deleteUserHistory();
                       } else {
                         setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
                         setPasscode('');
@@ -1241,8 +1490,42 @@ export default function App() {
                           setPasscode(e.target.value);
                           if (authError) setAuthError('');
                         }}
-                        className="w-full text-center text-sm font-mono bg-black hover:bg-neutral-900/45 focus:bg-black border border-neutral-800 focus:border-purple-500/60 text-purple-400 p-3 pr-11 rounded-xl outline-none transition-all placeholder:text-neutral-800 tracking-widest font-bold"
+                        className="w-full text-center text-sm font-mono bg-black hover:bg-neutral-900/45 focus:bg-black border border-neutral-800 focus:border-purple-500/60 text-purple-400 p-3 pr-20 rounded-xl outline-none transition-all placeholder:text-neutral-800 tracking-widest font-bold"
                       />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          let pastedText = '';
+                          try {
+                            // Try the standard clipboard API
+                            pastedText = await navigator.clipboard.readText();
+                          } catch (err) {
+                            // Securely fall back without console warning noise inside iframe sandbox
+                          }
+
+                          // 1. Fallback to global window copy-buffer if populated
+                          if (!pastedText && (window as any).lastShadowCopiedText) {
+                            pastedText = (window as any).lastShadowCopiedText;
+                          }
+
+                          // 2. Fallback to local storage copy-buffer if populated
+                          if (!pastedText) {
+                            const cached = localStorage.getItem('copied_passcode_buffer');
+                            if (cached) pastedText = cached;
+                          }
+
+                          if (pastedText && pastedText.trim()) {
+                            setPasscode(pastedText.trim());
+                            if (authError) setAuthError('');
+                          } else {
+                            setAuthError("SECURITY: PROCESS BLOCKED BY BROWSER PERMISSIONS. PLEASE NATIVELY PRESS CTRL+V OR LONG-PRESS TO PASTE.");
+                          }
+                        }}
+                        className="absolute right-10 text-neutral-500 hover:text-purple-400 transition-colors p-1.5 rounded cursor-pointer z-10"
+                        title="Paste passcode"
+                      >
+                        <Clipboard size={14} />
+                      </button>
                       <button
                         type="button"
                         onClick={() => setShowAdminPasscode(!showAdminPasscode)}
@@ -1467,10 +1750,15 @@ export default function App() {
                       <div className="flex items-center gap-1.5 mt-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
                         <span className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest font-mono">Online</span>
+                        {isChatBossMode && (
+                          <span className="ml-2.5 text-[9px] text-purple-400 font-extrabold uppercase tracking-wider font-mono px-1.5 py-0.5 rounded border border-purple-500/30 bg-purple-950/40 animate-pulse">
+                            Boss Active
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Option to clear chat & Guest Login trigger removed */}
                 </div>
 
@@ -1513,7 +1801,7 @@ export default function App() {
                                 id="guest-login-modal-btn"
                                 onClick={() => {
                                   setGuestAuthError('');
-                                  setGuestPasscode(''); // Keep it empty so they have to manually type or paste it
+                                  setGuestPasscode('');
                                   setShowGuestPopup(true);
                                 }}
                                 className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 border border-purple-500/25 text-white font-sans text-[10px] uppercase font-bold tracking-wider rounded-lg shadow-md transition-all cursor-pointer select-none"
@@ -1526,31 +1814,31 @@ export default function App() {
                           return null;
                         })()}
 
-                        {/* Direct Setup/Book Appointment button under bot bubbles if identified as appointment request */}
-                        {msg.sender === 'bot' && ((msg as any).isAppointmentRequest || (() => {
-                          const norm = msg.text.toLowerCase();
-                          return norm.includes("appointment") || norm.includes("schedule") || norm.includes("magpasched") || norm.includes("magpa-schedule") || norm.includes("book");
-                        })()) && (
-                          <button
-                            type="button"
-                            id="direct-appointment-link-btn"
-                            onClick={() => {
-                              // Execute 1-click automatic guest login under-the-hood if not logged in
-                              if (!isAuthorized) {
-                                setIsAuthorized(true);
-                                setIsGuestMode(true);
-                                setGuestLoginTime(Date.now());
-                              }
-                              // Set flag to auto open appointment!
-                              setAutoOpenAppointment(true);
-                            }}
-                            className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 border border-purple-500/30 text-white font-sans text-[10px] uppercase font-bold tracking-wider rounded-lg shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer select-none"
-                          >
-                            <Calendar size={11} className="text-purple-200 animate-pulse" />
-                            <span>📅 SETUP APPOINTMENT (1-CLICK)</span>
-                          </button>
-                        )}
-                        
+                        {/* Log Update button for Owner/Boss queries */}
+                        {msg.sender === 'bot' && isChatBossMode && (() => {
+                          const textLower = msg.text.toLowerCase();
+                          const isUpdateLog = textLower.includes('suggestions') || 
+                                              textLower.includes('appointment') || 
+                                              textLower.includes('shout') || 
+                                              textLower.includes('update') || 
+                                              textLower.includes('system status') ||
+                                              textLower.includes('item(s) total');
+                          if (isUpdateLog) {
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => setShowLogUpdateModal(true)}
+                                className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 hover:from-purple-500 hover:via-fuchsia-500 hover:to-indigo-500 text-white rounded-lg text-[10px] sm:text-xs font-bold font-mono tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.45)] hover:shadow-[0_0_22px_rgba(168,85,247,0.6)] transition-all duration-300 cursor-pointer border border-purple-400/30 active:scale-95 select-none"
+                              >
+                                <Terminal className="w-3.5 h-3.5 animate-pulse" />
+                                <span>LOG UPDATE</span>
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()}
+
+
                         {/* Golden coin emoji next to user bubbles as in reference image */}
                         {msg.sender === 'user' && (
                           <div className="absolute -right-2 top-2 bg-[#fcd34d] text-neutral-900 rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm select-none">
@@ -1617,6 +1905,26 @@ export default function App() {
                       const userMsgText = chatInput;
                       setChatInput('');
 
+                      let enteredTextClean = userMsgText.trim();
+                      let isPasscodeMatched = false;
+                      try {
+                        const msgBuffer = new TextEncoder().encode(enteredTextClean);
+                        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                        const hashArray = Array.from(new Uint8Array(hashBuffer));
+                        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                        if (hashHex === 'cf7a14191ac01a39913eadfae86c9e032ec7bd69fe01d452113f54ea6eef68ef') {
+                          isPasscodeMatched = true;
+                        }
+                      } catch (e) {
+                        console.error(e);
+                      }
+
+                      let currentBossState = isChatBossMode;
+                      if (isPasscodeMatched || userMsgText.toLowerCase().trim() === 'kgab0730') {
+                        setIsChatBossMode(true);
+                        currentBossState = true;
+                      }
+
                       // Append user message
                       const userMsg = {
                         id: `user-${Date.now()}`,
@@ -1625,7 +1933,99 @@ export default function App() {
                         timestamp: new Date()
                       };
                       setChatMessages((prev) => [...prev, userMsg]);
+                      if ((window as any).logUserMovement) {
+                        (window as any).logUserMovement('chat', `Typed in chatbot: "${userMsgText}"`);
+                      }
                       setChatLoading(true);
+
+                      const normText = userMsgText.toLowerCase().trim();
+                      const physicalHW = [
+                        "ram", "memory", "ddr4", "ddr5", "ddr3",
+                        "motherboard", "mobo", "mainboard", "board", "board-level",
+                        "cpu", "processor", "intel", "ryzen", "amd", "i5", "i7", "i9", "ryzen 5", "ryzen 7",
+                        "gpu", "video card", "videocard", "graphics card", "nvidia", "rtx", "gtx", "radeon",
+                        "power supply", "psu", "power cord", "charger",
+                        "hard drive", "hdd", "ssd", "m.2", "nvme",
+                        "fan", "cooler", "heatsink", "liquid cooling", "fan motor", "cooling fan",
+                        "screen", "monitor", "display", "panel", "lcd",
+                        "keyboard", "mouse", "headset", "speaker", "webcam", "camera", "microphone", "mic",
+                        "case", "chassis", "tower", "cables", "wire"
+                      ];
+
+                      const isHardwareWord = physicalHW.some(hw => {
+                        return normText === hw || 
+                               normText.includes(" " + hw + " ") || 
+                               normText.startsWith(hw + " ") || 
+                               normText.endsWith(" " + hw) || 
+                               normText.includes("-" + hw) || 
+                               normText.includes(hw + "-") ||
+                               normText.includes(" " + hw) ||
+                               normText.includes(hw + " ");
+                      });
+
+                      const isHwRepairQuery = normText.includes("hardware repair") || 
+                        normText.includes("hardware na sira") || 
+                        normText.includes("ayusin ang hardware") || 
+                        normText.includes("paggawa ng hardware") || 
+                        normText.includes("ayusin ang ram") ||
+                        normText.includes("nag aayos kayo ng ram") ||
+                        normText.includes("nag aayos kayo ng gpu") ||
+                        (normText.includes("hardware") && (normText.includes("repair") || normText.includes("ayos") || normText.includes("sira") || normText.includes("gawa") || normText.includes("palit") || normText.includes("unbox"))) ||
+                        (isHardwareWord && (
+                          normText.includes("repair") || 
+                          normText.includes("ayos") || 
+                          normText.includes("sira") || 
+                          normText.includes("gawa") || 
+                          normText.includes("palit") || 
+                          normText.includes("linis") || 
+                          normText.includes("basag") ||
+                          normText.includes("burnt") ||
+                          normText.includes("sunog") ||
+                          normText.includes("kabit") ||
+                          normText.includes("isaksak") ||
+                          normText.includes("pundido") ||
+                          normText.includes("basa") ||
+                          normText.includes("water damage") ||
+                          normText.includes("ipagawa") ||
+                          normText.includes("mag-ayos") ||
+                          normText.includes("magaayos") ||
+                          normText.includes("magpagawa") ||
+                          normText.includes("pagawa") ||
+                          normText.includes("papalitan") ||
+                          normText.includes("palitan")
+                        ));
+
+                      if (normText.includes("cpu")) {
+                        setTimeout(() => {
+                          setChatMessages((prev) => [
+                            ...prev,
+                            {
+                              id: `bot-${Date.now()}`,
+                              sender: 'bot' as const,
+                              text: "Teka pre, computer ba ang tinutukoy mo? Kasi ang CPU, part lang siya ng computer at hindi kami nag-aayos ng physical hardware. Online repair lang ang gawa namin dito. Ano ba ang problema ng PC mo, pre? 💻⚡",
+                              timestamp: new Date()
+                            }
+                          ]);
+                          setChatLoading(false);
+                        }, 500);
+                        return;
+                      }
+
+                      if (isHwRepairQuery) {
+                        setTimeout(() => {
+                          setChatMessages((prev) => [
+                            ...prev,
+                            {
+                              id: `bot-${Date.now()}`,
+                              sender: 'bot' as const,
+                              text: "Pasensya na, pre, pero hindi kami nag-o-offer ng hardware repair. Tanging online repair services lamang ang iniaalok namin—ibig sabihin ay inaayos namin ang inyong PC online kaya hindi kami pwedeng makasama ninyo nang personal o pumunta dyan habang ginagawa ito. 💻⚡",
+                              timestamp: new Date()
+                            }
+                          ]);
+                          setChatLoading(false);
+                        }, 500);
+                        return;
+                      }
 
                       try {
                         const response = await fetch('/api/shadow-chat', {
@@ -1635,6 +2035,7 @@ export default function App() {
                           },
                           body: JSON.stringify({ 
                             message: userMsgText,
+                            isBossMode: currentBossState,
                             history: chatMessages.slice(-10).map(msg => ({
                               sender: msg.sender,
                               text: msg.text
@@ -1689,6 +2090,11 @@ export default function App() {
                               if (!savedList.includes(code)) {
                                 savedList.push(code);
                               }
+                              // Put into instant-copy fallback buffers for paste button resilience!
+                              try {
+                                (window as any).lastShadowCopiedText = code;
+                                localStorage.setItem('copied_passcode_buffer', code);
+                              } catch (_) {}
                             });
                             localStorage.setItem('chatbot_generated_passwords', JSON.stringify(savedList));
                             setAvailablePasscodes(savedList);
@@ -1787,6 +2193,9 @@ export default function App() {
                             }
                             localStorage.setItem('chatbot_generated_passwords', JSON.stringify(savedList));
                             setAvailablePasscodes(savedList);
+                            // Put into instant-copy fallback buffers for paste button resilience!
+                            (window as any).lastShadowCopiedText = code;
+                            localStorage.setItem('copied_passcode_buffer', code);
                           } catch (e) {
                             console.error("Client fallback save secret err", e);
                           }
@@ -1841,6 +2250,53 @@ export default function App() {
                           norm.includes("dko magets");
 
                         const isNonServiceInClient = nonServiceKeywords.some(keyword => norm.includes(keyword));
+                        const physicalHardwareWords = [
+                          "ram", "memory", "ddr4", "ddr5", "ddr3",
+                          "motherboard", "mobo", "mainboard", "board",
+                          "cpu", "processor", "intel", "ryzen", "amd", "i5", "i7", "i9", "ryzen 5", "ryzen 7",
+                          "gpu", "video card", "videocard", "graphics card", "nvidia", "rtx", "gtx", "radeon",
+                          "power supply", "psu", "power cord", "charger",
+                          "hard drive", "hdd", "ssd", "m.2", "nvme",
+                          "fan", "cooler", "heatsink", "liquid cooling", "fan motor", "cooling fan",
+                          "screen", "monitor", "display", "panel", "lcd",
+                          "keyboard", "mouse", "headset", "speaker", "webcam", "camera", "microphone", "mic",
+                          "case", "chassis", "tower", "cables", "wire"
+                        ];
+
+                        const hasPhysicalHardwareWord = physicalHardwareWords.some(hw => {
+                          return norm === hw || norm.includes(" " + hw + " ") || norm.startsWith(hw + " ") || norm.endsWith(" " + hw) || norm.includes("-" + hw) || norm.includes(hw + "-");
+                        });
+
+                        const isHardwareRepair = norm.includes("hardware repair") || 
+                          norm.includes("hardware na sira") || 
+                          norm.includes("ayusin ang hardware") || 
+                          norm.includes("paggawa ng hardware") || 
+                          norm.includes("ayusin ang ram") ||
+                          norm.includes("nag aayos kayo ng ram") ||
+                          (norm.includes("hardware") && (norm.includes("repair") || norm.includes("ayos") || norm.includes("sira") || norm.includes("gawa") || norm.includes("palit") || norm.includes("unbox"))) ||
+                          (hasPhysicalHardwareWord && (
+                            norm.includes("repair") || 
+                            norm.includes("ayos") || 
+                            norm.includes("sira") || 
+                            norm.includes("gawa") || 
+                            norm.includes("palit") || 
+                            norm.includes("linis") || 
+                            norm.includes("basag") ||
+                            norm.includes("burnt") ||
+                            norm.includes("sunog") ||
+                            norm.includes("kabit") ||
+                            norm.includes("isaksak") ||
+                            norm.includes("pundido") ||
+                            norm.includes("basa") ||
+                            norm.includes("water damage") ||
+                            norm.includes("ipagawa") ||
+                            norm.includes("mag-ayos") ||
+                            norm.includes("magaayos") ||
+                            norm.includes("magpagawa") ||
+                            norm.includes("pagawa") ||
+                            norm.includes("papalitan") ||
+                            norm.includes("palitan")
+                          ));
                         const isServiceInClient = servicesKeywords.some(keyword => norm.includes(keyword)) || norm.includes("repair") || norm.includes("repairing") || norm.includes("ayusin");
                         
                         const isAppointmentInClient = [
@@ -1853,7 +2309,11 @@ export default function App() {
                         if (isCodeWanted) {
                           // code logic already handled above or can be left or handled here cleanly.
                           // Since we processed code in the original block, we'll keep the chain consistent
-                        } else if (isAppointmentInClient) {
+                        } else if (norm.includes("cpu")) {
+                          replyText = "Teka pre, computer ba ang tinutukoy mo? Kasi ang CPU, part lang siya ng computer at hindi kami nag-aayos ng physical hardware. Online repair lang ang gawa namin dito. Ano ba ang problema ng PC mo, pre? 💻⚡";
+                        } else if (isHardwareRepair) {
+                           replyText = "Pasensya na, pre, pero hindi kami nag-o-offer ng hardware repair. Tanging online repair services lamang ang iniaalok namin—ibig sabihin ay inaayos namin ang inyong PC online kaya hindi kami pwedeng makasama ninyo nang personal o pumunta dyan habang ginagawa ito. 💻⚡";
+                         } else if (isAppointmentInClient) {
                           replyText = "Ayos pre! Pwedeng-pwede tayong mag-schedule ng appointment para matingnan natin ang computer mo sa aming Portal. I-click mo lang 'tong button sa ibaba para mag-set up at mag-book agad ng slot! 📅⚡";
                           isReplyAppointment = true;
                         } else if (isNoHelpOfPC) {
@@ -1965,22 +2425,43 @@ export default function App() {
                         setChatLoading(false);
                       }
                     }}
-                    className="flex items-center gap-2"
+                    className="flex flex-col gap-1.5"
                   >
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="Type your message..."
-                      className="flex-1 bg-[#101119] border border-[#242938] text-[11.5px] text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-purple-500/40 placeholder:text-zinc-500 font-sans tracking-wide"
-                    />
-                    <button
-                      type="submit"
-                      disabled={chatLoading}
-                      className="px-5 py-2.5 bg-[#42b783] hover:bg-[#52d399] active:scale-98 disabled:opacity-50 text-white font-bold text-xs rounded-xl tracking-wider transition-all duration-150 cursor-pointer shadow-[0_3px_10px_rgba(66,183,131,0.2)] flex items-center justify-center shrink-0 uppercase"
-                    >
-                      Send
-                    </button>
+                    {speechHelperText && (
+                      <div className="text-[10px] text-zinc-400 font-mono text-center mb-0.5 animate-pulse bg-zinc-900/60 rounded py-1 px-2 border border-[#242938]/40 self-center">
+                        🎙️ {speechHelperText}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="relative flex-1 flex items-center">
+                        <input
+                          type="text"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          placeholder={isListening ? "Magsalita na po..." : "Type your message..."}
+                          className="w-full bg-[#101119] border border-[#242938] text-[11.5px] text-white pl-3.5 pr-10 py-2.5 rounded-xl outline-none focus:border-[#42b783]/40 placeholder:text-zinc-500 font-sans tracking-wide"
+                        />
+                        <button
+                          type="button"
+                          onClick={toggleListening}
+                          title={isListening ? "Stop listening" : "Speech to Text"}
+                          className={`absolute right-2 px-1.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
+                            isListening 
+                              ? "text-red-400 hover:text-red-300 bg-red-500/10 animate-pulse" 
+                              : "text-zinc-500 hover:text-white hover:bg-[#1c2030]"
+                          }`}
+                        >
+                          {isListening ? <MicOff size={13} /> : <Mic size={13} />}
+                        </button>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={chatLoading}
+                        className="px-5 py-2.5 bg-[#42b783] hover:bg-[#52d399] active:scale-98 disabled:opacity-50 text-white font-bold text-xs rounded-xl tracking-wider transition-all duration-150 cursor-pointer shadow-[0_3px_10px_rgba(66,183,131,0.2)] flex items-center justify-center shrink-0 uppercase"
+                      >
+                        Send
+                      </button>
+                    </div>
                   </form>
                   {/* Credits alignment matching Silver Techpx */}
                   <div className="text-center select-none pt-0.5">
@@ -2164,9 +2645,14 @@ export default function App() {
               {/* Header Section */}
               <header className="h-24 border-b border-neutral-900 flex items-center justify-between px-4 md:px-8 bg-neutral-950/95 backdrop-blur-md shrink-0 sm:pointer-events-auto">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-neutral-900 border border-neutral-800 flex items-center justify-center cursor-default hover:bg-neutral-800 transition-colors pointer-events-auto">
+                  <a 
+                    href="https://everythingmoe.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-neutral-900 border border-neutral-800 flex items-center justify-center cursor-pointer hover:bg-neutral-800 transition-colors pointer-events-auto"
+                  >
                     <Folder className="text-purple-400" size={20} strokeWidth={2.5} />
-                  </div>
+                  </a>
                   <div>
                     <div className="flex items-center gap-2">
                       <h1 className="text-xs sm:text-lg md:text-xl font-black uppercase tracking-wide leading-none text-white">ShadowTech</h1>
@@ -2462,6 +2948,12 @@ export default function App() {
         targetUrl={redirectLoaderState.targetUrl}
         itemTitle={redirectLoaderState.itemTitle}
         onClose={() => setRedirectLoaderState(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Boss Logs Portal Update Modal */}
+      <LogUpdateModal
+        isOpen={showLogUpdateModal}
+        onClose={() => setShowLogUpdateModal(false)}
       />
     </div>
   );

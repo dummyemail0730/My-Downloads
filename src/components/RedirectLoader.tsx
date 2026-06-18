@@ -10,28 +10,7 @@ const getGoogleDriveId = (url: string) => {
 };
 
 const getFinalDownloadUrl = (url: string, title?: string) => {
-  if (!url) return '';
-  if (url.includes('/drive/folders/') || url.includes('/folders/')) {
-    return url;
-  }
-  const driveId = getGoogleDriveId(url);
-  if (driveId) {
-    let cleanName = (title || 'downloaded-file').trim().replace(/[\/\\?%*:|"<>]/g, '_');
-    const lowerTitle = cleanName.toLowerCase();
-    if (!lowerTitle.includes('.') && !lowerTitle.endsWith('.iso') && !lowerTitle.endsWith('.zip') && !lowerTitle.endsWith('.rar') && !lowerTitle.endsWith('.exe')) {
-      if (lowerTitle.includes('iso')) {
-        cleanName += '.iso';
-      } else if (lowerTitle.includes('office') || lowerTitle.includes('tool') || lowerTitle.includes('repair')) {
-        cleanName += '.zip';
-      } else if (lowerTitle.includes('episode') || lowerTitle.includes('video') || lowerTitle.includes('stream')) {
-        cleanName += '.mp4';
-      } else {
-        cleanName += '.bin';
-      }
-    }
-    return `/api/download-proxy?id=${driveId}&name=${encodeURIComponent(cleanName)}`;
-  }
-  return url;
+  return url || '';
 };
 
 interface RedirectLoaderProps {
@@ -44,16 +23,24 @@ interface RedirectLoaderProps {
 export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }: RedirectLoaderProps) {
   const [progress, setProgress] = useState(1);
   const [statusText, setStatusText] = useState('INITIALIZING SECURE DOWNLOAD...');
+  const [isStarDrawn, setIsStarDrawn] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setProgress(1);
       setStatusText('INITIALIZING SECURE DOWNLOAD...');
+      setIsStarDrawn(false);
       return;
     }
 
     setProgress(1);
     setStatusText('INITIALIZING SECURE DOWNLOAD...');
+    setIsStarDrawn(false);
+
+    // After 5.8 seconds (when sequential lines and clockwise orbs have fully loaded), initiate full continuous rotation
+    const starTimeout = setTimeout(() => {
+      setIsStarDrawn(true);
+    }, 5800);
 
     // Progress counting up smoothly over exactly 10 seconds (10,000ms)
     // 100 steps of 100ms = 10,000ms (10 seconds)
@@ -82,7 +69,10 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
       setProgress(currentProgress);
     }, 100);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(starTimeout);
+    };
   }, [isOpen, targetUrl]);
 
   if (!isOpen) return null;
@@ -182,31 +172,37 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
 
               {/* Rotating 6-Pointed Magic Star and Vertex Orbs assembly */}
               <motion.g
-                animate={{ rotate: 360 }}
-                transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                animate={isStarDrawn ? { rotate: 360 } : { rotate: 0 }}
+                transition={isStarDrawn ? { duration: 25, repeat: Infinity, ease: "linear" } : { duration: 0.5, ease: "easeOut" }}
                 style={{ transformOrigin: 'center' }}
               >
                 {/* Upward equilateral triangle */}
-                <polygon 
+                <motion.polygon 
                   points="100,44 148.5,128 51.5,128" 
                   fill="none" 
                   stroke="#a855f7" 
                   strokeWidth="1.6" 
                   filter="url(#neonGlowPurple)"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={isOpen ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
+                  transition={{ duration: 4.5, ease: "easeInOut", delay: 0.2 }}
                 />
                 
                 {/* Downward equilateral triangle (together forms the Hexagram star) */}
-                <polygon 
+                <motion.polygon 
                   points="100,156 148.5,72 51.5,72" 
                   fill="none" 
                   stroke="#a855f7" 
                   strokeWidth="1.6" 
                   filter="url(#neonGlowPurple)"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={isOpen ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
+                  transition={{ duration: 4.5, ease: "easeInOut", delay: 1.0 }}
                 />
 
                 {/* Highly bright glowing plasma orbs focused on the 6 vertices */}
                 {/* Vertex 1: Top (Upward star tip) */}
-                <circle 
+                <motion.circle 
                   cx="100" 
                   cy="44" 
                   r="7.5" 
@@ -214,11 +210,24 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
                   stroke="#ffffff" 
                   strokeWidth="1"
                   filter="url(#orbGlowPurple)"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 2.2, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '100px 44px' }}
                 />
-                <circle cx="100" cy="44" r="3" fill="#ffffff" />
+                <motion.circle 
+                  cx="100" 
+                  cy="44" 
+                  r="3" 
+                  fill="#ffffff" 
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 2.2, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '100px 44px' }}
+                />
 
                 {/* Vertex 2: Right-center (Downward star top-right tip) */}
-                <circle 
+                <motion.circle 
                   cx="148.5" 
                   cy="72" 
                   r="7.5" 
@@ -226,11 +235,24 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
                   stroke="#ffffff" 
                   strokeWidth="1"
                   filter="url(#orbGlowPurple)"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 3.8, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '148.5px 72px' }}
                 />
-                <circle cx="148.5" cy="72" r="3" fill="#ffffff" />
+                <motion.circle 
+                  cx="148.5" 
+                  cy="72" 
+                  r="3" 
+                  fill="#ffffff" 
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 3.8, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '148.5px 72px' }}
+                />
 
                 {/* Vertex 3: Bottom-right (Upward star bottom-right tip) */}
-                <circle 
+                <motion.circle 
                   cx="148.5" 
                   cy="128" 
                   r="7.5" 
@@ -238,11 +260,24 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
                   stroke="#ffffff" 
                   strokeWidth="1"
                   filter="url(#orbGlowPurple)"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 3.2, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '148.5px 128px' }}
                 />
-                <circle cx="148.5" cy="128" r="3" fill="#ffffff" />
+                <motion.circle 
+                  cx="148.5" 
+                  cy="128" 
+                  r="3" 
+                  fill="#ffffff" 
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 3.2, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '148.5px 128px' }}
+                />
 
                 {/* Vertex 4: Bottom (Downward star bottom tip) */}
-                <circle 
+                <motion.circle 
                   cx="100" 
                   cy="156" 
                   r="7.5" 
@@ -250,11 +285,24 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
                   stroke="#ffffff" 
                   strokeWidth="1"
                   filter="url(#orbGlowPurple)"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 2.6, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '100px 156px' }}
                 />
-                <circle cx="100" cy="156" r="3" fill="#ffffff" />
+                <motion.circle 
+                  cx="100" 
+                  cy="156" 
+                  r="3" 
+                  fill="#ffffff" 
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 2.6, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '100px 156px' }}
+                />
 
                 {/* Vertex 5: Bottom-left (Upward star bottom-left tip) */}
-                <circle 
+                <motion.circle 
                   cx="51.5" 
                   cy="128" 
                   r="7.5" 
@@ -262,11 +310,24 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
                   stroke="#ffffff" 
                   strokeWidth="1"
                   filter="url(#orbGlowPurple)"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 4.2, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '51.5px 128px' }}
                 />
-                <circle cx="51.5" cy="128" r="3" fill="#ffffff" />
+                <motion.circle 
+                  cx="51.5" 
+                  cy="128" 
+                  r="3" 
+                  fill="#ffffff" 
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 4.2, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '51.5px 128px' }}
+                />
 
                 {/* Vertex 6: Left-center (Downward star top-left tip) */}
-                <circle 
+                <motion.circle 
                   cx="51.5" 
                   cy="72" 
                   r="7.5" 
@@ -274,8 +335,21 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
                   stroke="#ffffff" 
                   strokeWidth="1"
                   filter="url(#orbGlowPurple)"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 5.0, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '51.5px 72px' }}
                 />
-                <circle cx="51.5" cy="72" r="3" fill="#ffffff" />
+                <motion.circle 
+                  cx="51.5" 
+                  cy="72" 
+                  r="3" 
+                  fill="#ffffff" 
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={isOpen ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ delay: 5.0, duration: 0.35, ease: "backOut" }}
+                  style={{ transformOrigin: '51.5px 72px' }}
+                />
               </motion.g>
 
               {/* Inner concentric layout rings */}
@@ -372,21 +446,9 @@ export default function RedirectLoader({ isOpen, targetUrl, itemTitle, onClose }
                 <button
                   onClick={(e) => {
                     e.preventDefault();
-                    const downloadUrl = getFinalDownloadUrl(targetUrl, itemTitle);
-                    if (downloadUrl.includes('/folders/') || downloadUrl.includes('/drive/folders/')) {
-                      // Open drive folder in a separate tab
-                      window.open(downloadUrl, '_blank');
-                    } else {
-                      // Trigger download via hidden iframe so the user stays on our website
-                      const iframe = document.createElement('iframe');
-                      iframe.style.display = 'none';
-                      iframe.src = downloadUrl;
-                      document.body.appendChild(iframe);
-                      setTimeout(() => {
-                        document.body.removeChild(iframe);
-                      }, 10000);
-                    }
-                    // Close the loader modal safely
+                    // Open the original Google Drive / target link in a new window/tab safely as requested
+                    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                    // Close the loader modal safely after 1 second
                     setTimeout(onClose, 1000);
                   }}
                   className="px-6 py-3.5 rounded-xl bg-black border-2 border-purple-500 text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:text-black hover:border-white shadow-[0_0_25px_rgba(168,85,247,0.6)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 active:scale-95"

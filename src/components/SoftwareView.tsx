@@ -1,30 +1,59 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { PROJECTS as STATIC_PROJECTS } from '../constants';
 import { ExternalLink, Download, Cpu, Database, Terminal } from 'lucide-react';
 import { Project } from '../types';
 import { getDownloadCount, incrementDownloadCount } from '../utils/downloadTracker';
 
-import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
-import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
-import shadowMysteriousAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
-import shadowMoonRain from '../assets/images/shadow_moon_rain_1779250676888.png';
-import shadowNeonElectricity from '../assets/images/shadow_neon_electricity_1779250694461.png';
-import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
+// Import technical/software specific backgrounds
+import computerSoftwareBg from '../assets/images/computer_software_bg_1781345966685.jpg';
+import intelCpuBg from '../assets/images/intel_cpu_bg_1781341674798.jpg';
+import hardwareBg from '../assets/images/hardware_background_1779204942117.png';
+import systemRecoveryBg from '../assets/images/system_recovery_bg_1779205058378.png';
+import shadowTechMagic from '../assets/images/shadow_tech_magic_1780090755590.png';
 
-const resolveImage = (imgSrc: any) => {
-  if (!imgSrc) return null;
-  if (typeof imgSrc !== 'string') return imgSrc;
-  
-  const lower = imgSrc.toLowerCase();
-  if (lower.includes('shadow_on_roof')) return shadowOnRoof;
-  if (lower.includes('shadow_dark_blade')) return shadowDarkBlade;
-  if (lower.includes('shadow_mysterious_aura')) return shadowMysteriousAura;
-  if (lower.includes('shadow_moon_rain')) return shadowMoonRain;
-  if (lower.includes('shadow_neon_electricity')) return shadowNeonElectricity;
-  if (lower.includes('shadow_clock_tower')) return shadowClockTower;
-  
-  return imgSrc;
+import cyberTerminalBg from '../assets/images/cyber_terminal_tool_bg_1781609678510.jpg';
+import hardwareDiagnosticsBg from '../assets/images/hardware_diagnostics_bg_1781609697998.jpg';
+import softwareCodeMatrixBg from '../assets/images/software_code_matrix_bg_1781610295283.jpg';
+import serverRackDatabaseBg from '../assets/images/server_rack_database_bg_1781610314139.jpg';
+import osDesktopGuiBg from '../assets/images/os_desktop_gui_bg_1781610329859.jpg';
+
+// Import newly generated high-quality original computer backgrounds
+import highTechLaptopBg from '../assets/images/high_tech_laptop_recovery_bg_1781612911261.jpg';
+import cyberDesktopBg from '../assets/images/cyber_desktop_setup_bg_1781612930975.jpg';
+import biosSetupBg from '../assets/images/bios_setup_screen_bg_1781612949476.jpg';
+import internalPcBg from '../assets/images/internal_pc_motherboard_bg_1781612967173.jpg';
+
+const resolveComputerImage = (project: Project, fallbackImg: any) => {
+  const title = (project.title || '').toLowerCase();
+  const tags = (project.tags || []).map(t => t.toLowerCase());
+  const desc = (project.description || '').toLowerCase();
+
+  // 1. Windows ISOs / operating systems
+  if (title.includes('w11') || title.includes('windows 11')) {
+    return osDesktopGuiBg;
+  }
+  if (title.includes('w10') || title.includes('windows 10') || title.includes('spectre')) {
+    return systemRecoveryBg;
+  }
+
+  // 2. Office Suites
+  if (title.includes('office') || title.includes('microsoft') || desc.includes('productivity') || tags.includes('office')) {
+    return computerSoftwareBg;
+  }
+
+  // 3. Coding / Script / Omni Script
+  if (title.includes('script') || title.includes('omni') || tags.includes('llvm') || tags.includes('compiler')) {
+    return softwareCodeMatrixBg;
+  }
+
+  // 4. CMS / Database / Backend
+  if (title.includes('cms') || tags.includes('postgresql') || tags.includes('database') || title.includes('aether')) {
+    return serverRackDatabaseBg;
+  }
+
+  // Fallback
+  return fallbackImg;
 };
 
 const getSoftwareIcon = (tags: string[]) => {
@@ -58,7 +87,12 @@ export default function SoftwareView() {
     }
 
     const mapped = loaded
-      .filter((proj: Project) => !deletedIds.includes(proj.id))
+      .filter((proj: Project) => {
+        if (deletedIds.includes(proj.id)) return false;
+        const normTitle = proj.title?.toLowerCase() || '';
+        if (normTitle.includes('episode 16') || normTitle.includes('episode 18')) return false;
+        return true;
+      })
       .map((proj: Project) => {
         // Find the corresponding static project to merge newly updated details/assets
         const staticProj = STATIC_PROJECTS.find(p => p.id === proj.id || (p.title && proj.title && p.title.toLowerCase().trim() === proj.title.toLowerCase().trim()));
@@ -134,20 +168,53 @@ export default function SoftwareView() {
     '5': 'https://github.com/topics/headless-cms',
   };
 
+  const resolvedBgImages = useMemo(() => {
+    const fallbackBgImages = [
+      highTechLaptopBg,
+      cyberDesktopBg,
+      biosSetupBg,
+      internalPcBg,
+      computerSoftwareBg,
+      intelCpuBg,
+      hardwareBg,
+      systemRecoveryBg,
+      cyberTerminalBg,
+      hardwareDiagnosticsBg,
+      softwareCodeMatrixBg,
+      serverRackDatabaseBg,
+      osDesktopGuiBg
+    ];
+    const result: any[] = [];
+    projects.forEach((project, idx) => {
+      let chosen = resolveComputerImage(project, fallbackBgImages[idx % fallbackBgImages.length]);
+      
+      // Avoid matching previous items to ensure maximum distribution and no repetition in grid
+      const prev1 = idx >= 1 ? result[idx - 1] : null;
+      const prev2 = idx >= 2 ? result[idx - 2] : null;
+      const prev3 = idx >= 3 ? result[idx - 3] : null;
+      
+      if (chosen === prev1 || chosen === prev2 || chosen === prev3) {
+        // Shift to another one that doesn't match any of the last 3 elements
+        let altIndex = (idx + 1) % fallbackBgImages.length;
+        for (let attempt = 0; attempt < fallbackBgImages.length; attempt++) {
+          const candidate = fallbackBgImages[(altIndex + attempt) % fallbackBgImages.length];
+          if (candidate !== prev1 && candidate !== prev2 && candidate !== prev3) {
+            chosen = candidate;
+            break;
+          }
+        }
+      }
+      result.push(chosen);
+    });
+    return result;
+  }, [projects]);
+
   return (
     <div className="h-full flex flex-col bg-neutral-950">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-neutral-900">
         {projects.map((project, idx) => {
           const Tag = motion.div;
-          const fallbackBgImages = [
-            shadowOnRoof,
-            shadowDarkBlade,
-            shadowMysteriousAura,
-            shadowMoonRain,
-            shadowNeonElectricity,
-            shadowClockTower
-          ];
-          const bgImage = resolveImage(project.image) || fallbackBgImages[idx % fallbackBgImages.length];
+          const bgImage = resolvedBgImages[idx];
           const targetLink = project.link || defaultLinks[project.id] || 'https://drive.google.com/drive/my-drive';
 
           const handleClick = (e: React.MouseEvent) => {
@@ -162,6 +229,9 @@ export default function SoftwareView() {
           const handleDownloadClick = (e: React.MouseEvent) => {
             e.stopPropagation();
             incrementDownloadCount('software', project.id, project.title);
+            if (typeof window !== 'undefined' && (window as any).logUserMovement) {
+              (window as any).logUserMovement('action', `Downloaded "${project.title}" from Software Archive`);
+            }
             handleClick(e);
           };
 
@@ -173,17 +243,40 @@ export default function SoftwareView() {
               transition={{ delay: idx * 0.05 }}
               className="border-r border-b border-neutral-900 p-5 flex flex-col relative overflow-hidden transition-all duration-300 group text-white cursor-default"
             >
-              {bgImage && (
-                <div className="absolute inset-0 z-0 overflow-hidden">
+              {/* Original Cybernetic Tech Matrix Background */}
+              <div className="absolute inset-0 z-0 overflow-hidden bg-gradient-to-br from-neutral-900 to-neutral-850">
+                {bgImage && (
                   <img 
                     src={bgImage} 
                     alt="" 
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-75 group-hover:brightness-90 saturate-[0.50] group-hover:saturate-[0.70] contrast-[1.05]"
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100 brightness-[0.80] group-hover:brightness-[0.95] saturate-[0.80] group-hover:saturate-[1.0] contrast-[1.05]"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-neutral-950/40 to-black/20 group-hover:from-black/95 group-hover:via-neutral-900/35 group-hover:to-black/25 transition-all duration-350 z-10" />
+                )}
+                
+                {/* Tech circuit lines & grid mesh overlay */}
+                <svg className="absolute inset-0 w-full h-full opacity-[0.08] group-hover:opacity-[0.15] transition-opacity duration-300" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                  <defs>
+                    <pattern id={`grid-${project.id}`} width="30" height="30" patternUnits="userSpaceOnUse">
+                      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="currentColor" strokeWidth="1" className="text-cyan-500" />
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill={`url(#grid-${project.id})`} />
+                  {/* Glowing custom circuit lines */}
+                  <path d="M 10 10 L 100 10 L 120 30 M 200 80 L 150 130 H 250" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-cyan-400 animate-pulse" />
+                </svg>
+
+                {/* Cybernetic code elements / floating status bits */}
+                <div className="absolute top-2 right-4 font-mono text-[7px] text-cyan-500/20 group-hover:text-cyan-400/40 select-none pointer-events-none transition-colors duration-300">
+                  <span>SYS_KERN_ADDR_0x{(idx * 163 + 4729).toString(16).toUpperCase()}</span>
+                  <br />
+                  <span>INTEGRITY_SAFE</span>
                 </div>
-              )}
+
+                {/* Interactive Cyan pulse background glow */}
+                <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-cyan-500/10 group-hover:bg-cyan-500/20 blur-[60px] transition-all duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent z-10" />
+              </div>
 
               <div className="relative z-10 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-4">

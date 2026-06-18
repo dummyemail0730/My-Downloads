@@ -11,14 +11,15 @@ const SKILLS = [
     items: [
       "Blue Screen",
       "Boot Failure",
-      "Boot Loop",
+      "MBR to GPT Conversion",
       "Format / Reformat",
       "Data Recovery",
       "System and Files Backup",
       "O.S. Cloning",
       "O.S. Migration",
       "Password Removal",
-      "BIOS Update"
+      "BIOS Update",
+      "Secure Boot Issue"
     ],
     backgroundImage: shadowMysteriousAura
   },
@@ -52,7 +53,7 @@ export default function ExpertiseView({ onBack, onSupportClick }: { onBack?: () 
             >
               {skill.backgroundImage && (
                 <div 
-                  className="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-luminosity group-hover:opacity-45 transition-opacity duration-700" 
+                  className="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-luminosity group-hover:opacity-100 group-hover:mix-blend-normal group-hover:brightness-150 transition-all duration-700" 
                   style={{ backgroundImage: `url(${skill.backgroundImage})` }}
                 />
               )}

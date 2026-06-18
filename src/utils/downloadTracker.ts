@@ -20,8 +20,17 @@ const TOOL_SEEDS: { [key: string]: number } = {
 };
 
 const ANIME_SEEDS: { [key: string]: number } = {
-  'default-anime-s2': 154,
-  'default-anime-movie': 342,
+  'default-anime-s2': 54,
+  'default-anime-movie': 72,
+};
+
+const MUSIC_SEEDS: { [key: string]: number } = {
+  'default-music-1': 328,
+  'default-music-2': 415,
+  'default-music-3': 189,
+  'default-music-4': 247,
+  'default-music-5': 533,
+  'default-music-6': 294,
 };
 
 // Generates a deterministic fallback seed if not hardcoded
@@ -31,39 +40,49 @@ const getFallbackSeed = (id: string, name: string): number => {
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return Math.abs(hash % 90) + 9; // Fallback between 9 and 99 downloads
+  return Math.abs(hash % 450) + 45; // Fallback between 45 and 495 downloads
 };
 
-export const getDownloadCount = (type: 'software' | 'tool' | 'anime', id: string, name: string): number => {
+export const getDownloadCount = (type: 'software' | 'tool' | 'anime' | 'music', id: string, name: string): number => {
   if (typeof window === 'undefined') return 9;
   
   const key = `downloads_${type}_${id}`;
   const saved = localStorage.getItem(key);
   if (saved) {
     const num = parseInt(saved, 10);
-    return isNaN(num) ? 9 : num;
+    const val = isNaN(num) ? 9 : num;
+    return Math.min(val, 90);
   }
 
   // Get seeds based on category type
   let seed = 9;
   if (type === 'software') {
-    seed = SOFTWARE_SEEDS[id] || getFallbackSeed(id, name);
+    const rawSeed = SOFTWARE_SEEDS[id] || getFallbackSeed(id, name);
+    seed = Math.min((rawSeed % 35) + 45, 90);
   } else if (type === 'tool') {
-    seed = TOOL_SEEDS[id] || getFallbackSeed(id, name);
+    const rawSeed = TOOL_SEEDS[id] || getFallbackSeed(id, name);
+    seed = Math.min((rawSeed % 35) + 45, 90);
   } else if (type === 'anime') {
-    seed = ANIME_SEEDS[id] || getFallbackSeed(id, name);
+    const rawSeed = ANIME_SEEDS[id] || getFallbackSeed(id, name);
+    seed = Math.min((rawSeed % 35) + 45, 90); // Deterministic initial value between 45 and 80
+  } else if (type === 'music') {
+    const rawSeed = MUSIC_SEEDS[id] || getFallbackSeed(id, name);
+    seed = Math.min((rawSeed % 35) + 45, 90);
   }
 
   localStorage.setItem(key, seed.toString());
-  return seed;
+  return Math.min(seed, 90);
 };
 
-export const incrementDownloadCount = (type: 'software' | 'tool' | 'anime', id: string, name: string): number => {
+export const incrementDownloadCount = (type: 'software' | 'tool' | 'anime' | 'music', id: string, name: string): number => {
   if (typeof window === 'undefined') return 10;
 
   const key = `downloads_${type}_${id}`;
   const current = getDownloadCount(type, id, name);
-  const nextVal = current + 1;
+  let nextVal = current + 1;
+  if (nextVal > 90) {
+    nextVal = 90;
+  }
   localStorage.setItem(key, nextVal.toString());
 
   // Notify components to update download views

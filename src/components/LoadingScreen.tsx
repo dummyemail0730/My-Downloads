@@ -80,17 +80,12 @@ function MatrixRain() {
             
             if (isHead) {
               ctx.fillStyle = '#ffffff';
-              ctx.shadowColor = '#e9d5ff';
-              ctx.shadowBlur = 10;
             } else {
-              // Vibrant neon violet style to match the theme
+              // Vibrant neon violet style to match the theme (no expensive GPU canvas shadow to prevent lag)
               ctx.fillStyle = '#bc52ff';
-              ctx.shadowColor = '#bc52ff';
-              ctx.shadowBlur = 4;
             }
 
             ctx.fillText(char, x, y);
-            ctx.shadowBlur = 0; // Reset shadow for efficiency
           }
 
           drops[i] += 0.85; // Speed speed of descent
@@ -168,20 +163,18 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
   }, [isAudioAllowed]);
 
   const smokeParticles = useMemo(() => {
-    return Array.from({ length: 14 }).map((_, i) => ({
+    return Array.from({ length: 6 }).map((_, i) => ({
       id: i,
-      size: Math.random() * 250 + 180, // 180px to 430px
+      size: Math.random() * 200 + 150, // slightly more optimized size
       x: Math.random() * 100,
       y: Math.random() * 100,
-      tx: (Math.random() - 0.5) * 120, // travel range X
-      ty: -Math.random() * 150 - 50,    // travel range Y (always floating upwards)
-      duration: Math.random() * 12 + 18, // 18s to 30s
-      delay: Math.random() * -25, // pre-warmed so there's smoke already visible
-      color: i % 3 === 0 
-        ? 'rgba(168, 85, 247, 0.06)' // Mystic purple nebula
-        : i % 3 === 1
-        ? 'rgba(255, 255, 255, 0.03)'   // Soft white celestial glow
-        : 'rgba(0, 0, 0, 0.35)'      // Deep shadow smoke
+      tx: (Math.random() - 0.5) * 80, // travel range X
+      ty: -Math.random() * 100 - 40,    // travel range Y (always floating upwards)
+      duration: Math.random() * 8 + 14, // 14s to 22s
+      delay: Math.random() * -20, // pre-warmed
+      color: i % 2 === 0 
+        ? 'rgba(168, 85, 247, 0.05)' // Mystic purple nebula
+        : 'rgba(255, 255, 255, 0.02)'   // Soft white celestial glow
     }));
   }, []);
 
@@ -231,7 +224,7 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
       className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 select-none overflow-hidden font-mono text-white cursor-pointer"
     >
       {/* Dynamic Animated Smoke Layer */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-70" style={{ filter: 'url(#shadow-smoke-filter)' }}>
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-60">
         {smokeParticles.map((p) => (
           <motion.div
             key={p.id}
@@ -242,14 +235,15 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
               left: `${p.x}%`,
               top: `${p.y}%`,
               backgroundColor: p.color,
-              filter: 'blur(55px)',
-              mixBlendMode: 'screen'
+              filter: 'blur(45px)',
+              mixBlendMode: 'screen',
+              willChange: 'transform, opacity'
             }}
             animate={{
               x: [0, p.tx, p.tx * 0.5, 0],
               y: [0, p.ty, p.ty * 0.4, 0],
-              scale: [1, 1.25, 0.85, 1],
-              opacity: [0.35, 0.85, 0.45, 0.35],
+              scale: [1, 1.15, 0.9, 1],
+              opacity: [0.3, 0.7, 0.4, 0.3],
             }}
             transition={{
               duration: p.duration,
@@ -260,18 +254,6 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
           />
         ))}
       </div>
-
-      {/* Hardware-accelerated SVG Turbulence Smoke Filter */}
-      <svg className="fixed w-0 h-0 pointer-events-none opacity-0" aria-hidden="true">
-        <defs>
-          <filter id="shadow-smoke-filter">
-            <feTurbulence type="fractalNoise" baseFrequency="0.013" numOctaves="4" result="noise">
-              <animate attributeName="baseFrequency" dur="22s" values="0.013;0.019;0.010;0.013" repeatCount="indefinite" />
-            </feTurbulence>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="55" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-        </defs>
-      </svg>
 
       {/* Background Radial Shadows and Grid Overlay */}
       <div 

@@ -1,6 +1,6 @@
 {
   "name": "ShadowTech",
   "description": "A clean, modern portfolio showcasing work across Software, Music, Photography (ISO), and Tools.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

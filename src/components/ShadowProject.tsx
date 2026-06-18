@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary, Key, Database } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary, Key, Database, Search } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import shadowChibiSticker from '../assets/images/shadow_chibi_avatar_1779438320279.png';
@@ -16,6 +16,11 @@ import shadowGardenLogo from '../assets/images/shadow_garden_logo_1779199904393.
 import shadowMysteriousAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
 import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
 import shadowTechMagic from '../assets/images/shadow_tech_magic_1780090755590.png';
+import shadowComputerServicesLogo from '../assets/images/shadow_computer_services_logo_1779535416403.png';
+import shadowLogoLarge from '../assets/images/shadow_logo_chibi_computer_services_large_1779534088917.png';
+import systemRecoveryBg from '../assets/images/system_recovery_bg_1779205058378.png';
+import hardwareBackground from '../assets/images/hardware_background_1779204942117.png';
+import computerSoftwareBg from '../assets/images/computer_software_bg_1781345966685.jpg';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
 
 
@@ -230,7 +235,7 @@ export default function ShadowProject({
   const [editLinkValue, setEditLinkValue] = useState('');
   const [editNameValue, setEditNameValue] = useState('');
   const [editDescValue, setEditDescValue] = useState('');
-  const [editProtocolValue, setEditProtocolValue] = useState('EXT');
+  const [editProtocolValue, setEditProtocolValue] = useState('G: DRIVE');
   const [editCategoryValue, setEditCategoryValue] = useState('SOFTWARE');
   
   // High-fidelity Admin Console Form States (Pre-populated matching user's reference image!)
@@ -238,8 +243,10 @@ export default function ShadowProject({
   const [category, setCategory] = useState('SOFTWARE');
   const [description, setDescription] = useState('');
   const [gameFile, setGameFile] = useState('');
-  const [linkType, setLinkType] = useState('EXT'); // GITHUB | FB | EXT
+  const [linkType, setLinkType] = useState('G: DRIVE'); // GITHUB | FB | EXT
   const [successStatus, setSuccessStatus] = useState<string | null>(null);
+  const [animeSeason, setAnimeSeason] = useState('SEASON 1');
+  const [editAnimeSeason, setEditAnimeSeason] = useState('SEASON 1');
 
   // Google Drive Accounts dropdown list - strictly Primary G-Drive, Secondary G-Drive Mirror and Tertiary G-Drive
   const driveAccounts = [
@@ -247,7 +254,7 @@ export default function ShadowProject({
     { name: 'SECONDARY G-DRIVE // CLOUD MIRROR', url: 'https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing' },
     { name: 'TERTIARY G-DRIVE // RECOVERY MIRROR', url: 'https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing' },
   ];
-  const [selectedDriveUrl, setSelectedDriveUrl] = useState<string>('CUSTOM_URL');
+  const [selectedDriveUrl, setSelectedDriveUrl] = useState<string>('');
 
   const [syncVersion, setSyncVersion] = useState(0);
 
@@ -258,6 +265,26 @@ export default function ShadowProject({
     window.addEventListener('shadow_sync_update', handleSync);
     return () => window.removeEventListener('shadow_sync_update', handleSync);
   }, []);
+
+  const [activityLogs, setActivityLogs] = useState<Array<{ id: string; type: string; text: string; date: string; user?: string }>>([]);
+  const [selectedUserLog, setSelectedUserLog] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('shadow_user_movements');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const filtered = Array.isArray(parsed)
+          ? parsed.filter((log: any) => !(log.text && log.text.toLowerCase().includes('kgab0730')))
+          : [];
+        setActivityLogs(filtered);
+      } else {
+        setActivityLogs([]);
+      }
+    } catch (e) {
+      console.error(e);
+      setActivityLogs([]);
+    }
+  }, [syncVersion]);
 
   // Decryption Passcode states
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -305,13 +332,163 @@ export default function ShadowProject({
   }, [lockoutUntil, currentTime]);
 
   // Tab dynamic state
-  const [activeTab, setActiveTab] = useState<'uplink' | 'linked' | 'tutorials'>('uplink');
+  const [activeTab, setActiveTab ] = useState<'uplink' | 'linked' | 'tutorials' | 'history'>('uplink');
+  const [activeTabLoggedFirst, setActiveTabLoggedFirst] = useState(false);
+  useEffect(() => {
+    if (!activeTabLoggedFirst) {
+      setActiveTabLoggedFirst(true);
+      return;
+    }
+    if ((window as any).logUserMovement) {
+      (window as any).logUserMovement('navigation', `Switched console tab to: "${activeTab.toUpperCase()}"`);
+    }
+  }, [activeTab]);
+
+  const [showLinkedSearch, setShowLinkedSearch] = useState(false);
+  const [linkedSearchQuery, setLinkedSearchQuery] = useState('');
   const [unlinkTrigger, setUnlinkTrigger] = useState(0);
   const [isAdminSuggestionsOpen, setIsAdminSuggestionsOpen] = useState(false);
   const [isAdminAppointmentsOpen, setIsAdminAppointmentsOpen] = useState(false);
   const [isAdminKeysOpen, setIsAdminKeysOpen] = useState(false);
   const [isCustomDurationPopupOpen, setIsCustomDurationPopupOpen] = useState(false);
   const [tempDuration, setTempDuration] = useState<string>('90');
+
+  // --- USER DATA BACKEND STORAGE PERSISTENCE ---
+  const [isSavingHistory, setIsSavingHistory] = useState(false);
+  const [saveHistoryProgress, setSaveHistoryProgress] = useState(0);
+  const [saveHistorySuccess, setSaveHistorySuccess] = useState(false);
+  const [saveHistoryError, setSaveHistoryError] = useState<string | null>(null);
+
+  const handleSaveUserHistory = () => {
+    if ((window as any).logUserMovement) {
+      (window as any).logUserMovement('action', 'Initiated secure permanent disk synchronization protocol');
+    }
+
+    setIsSavingHistory(true);
+    setSaveHistoryProgress(10);
+    setSaveHistorySuccess(false);
+    setSaveHistoryError(null);
+
+    const interval = setInterval(() => {
+      setSaveHistoryProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return prev + 12;
+      });
+    }, 150);
+
+    const payload = {
+      admin_console_link: localStorage.getItem('admin_console_link') || consoleLink,
+      user_suggestions: suggestions,
+      user_appointments: appointments,
+      user_shout_outs: shouts,
+      user_activity_logs: JSON.parse(localStorage.getItem('shadow_user_movements') || '[]')
+    };
+
+    fetch('/api/configs', {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    })
+    .then(res => {
+      clearInterval(interval);
+      if (!res.ok) throw new Error("Server storage write failure");
+      return res.json();
+    })
+    .then(() => {
+      setSaveHistoryProgress(100);
+      if ((window as any).logUserMovement) {
+        (window as any).logUserMovement('action', 'Completed permanent configuration database lock');
+      }
+      setTimeout(() => {
+        setIsSavingHistory(false);
+        setSaveHistorySuccess(true);
+        // Force fully synchronize state
+        window.dispatchEvent(new Event('shadow_sync_update'));
+      }, 500);
+    })
+    .catch((err: any) => {
+      clearInterval(interval);
+      setIsSavingHistory(false);
+      setSaveHistoryError(err.message || "Failed to commit user files to disk");
+    });
+  };
+
+  const handleDeleteSpecificUser = (userToDelete: string) => {
+    try {
+      const existingStr = localStorage.getItem('shadow_user_movements');
+      if (!existingStr) return;
+      const logs = JSON.parse(existingStr);
+      if (!Array.isArray(logs)) return;
+      
+      const updated = logs.filter((log: any) => {
+        let logUser = log.user;
+        if (!logUser && log.text) {
+          const match = /\[(?:User|USER)\s*(\d+)\]/i.exec(log.text);
+          if (match) logUser = 'User ' + match[1];
+        }
+        if (!logUser) return true;
+        const numPart = logUser.replace(/\D/g, '');
+        const formattedLogUser = 'User ' + numPart.padStart(2, '0');
+        return formattedLogUser !== userToDelete;
+      });
+
+      localStorage.setItem('shadow_user_movements', JSON.stringify(updated));
+      
+      const payload = {
+        admin_console_link: localStorage.getItem('admin_console_link') || consoleLink,
+        user_suggestions: suggestions,
+        user_appointments: appointments,
+        user_shout_outs: shouts,
+        user_activity_logs: updated
+      };
+      
+      fetch('/api/configs', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).catch(err => console.error("Error syncing after user deletion:", err));
+
+      if (selectedUserLog === userToDelete) {
+        setSelectedUserLog(null);
+      }
+      window.dispatchEvent(new Event('shadow_sync_update'));
+    } catch (error) {
+      console.error("Failed to delete user logs:", error);
+    }
+  };
+
+  const handleDeleteAllHistory = () => {
+    if (!window.confirm("Are you sure you want to permanently delete ALL user history logs?")) {
+      return;
+    }
+    try {
+      localStorage.setItem('shadow_user_movements', JSON.stringify([]));
+      
+      const payload = {
+        admin_console_link: localStorage.getItem('admin_console_link') || consoleLink,
+        user_suggestions: suggestions,
+        user_appointments: appointments,
+        user_shout_outs: shouts,
+        user_activity_logs: []
+      };
+      
+      fetch('/api/configs', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).catch(err => console.error("Error syncing after purging all logs:", err));
+
+      setSelectedUserLog(null);
+      window.dispatchEvent(new Event('shadow_sync_update'));
+    } catch (error) {
+      console.error("Failed to purge all history:", error);
+    }
+  };
 
   // --- TUTORIALS STATE ---
   const [tutorials, setTutorials] = useState<Array<{ id: string; title: string; category: string; description: string; url: string; system?: boolean }>>(() => {
@@ -380,7 +557,7 @@ export default function ShadowProject({
   // --- ADDITIONAL SIMULATOR STATES ---
   const [isSendingUplink, setIsSendingUplink] = useState(false);
   const [sendingUplinkProgress, setSendingUplinkProgress] = useState(0);
-  const [uplinkToSubmit, setUplinkToSubmit] = useState<{ gameTitle: string; category: string; description: string; linkType: string; gameFile: string } | null>(null);
+  const [uplinkToSubmit, setUplinkToSubmit] = useState<{ gameTitle: string; category: string; description: string; linkType: string; gameFile: string; season?: string } | null>(null);
 
   const [isPostingShout, setIsPostingShout] = useState(false);
   const [postingShoutProgress, setPostingShoutProgress] = useState(0);
@@ -435,13 +612,7 @@ export default function ShadowProject({
         console.error(e);
       }
     }
-    const defaults = [
-      { id: 's1', text: 'Add automatic shadow driver updater utility', date: 'MAY 20, 2026', category: 'UTILITY', status: 'NEW' },
-      { id: 's2', text: 'Integrate fallback mirror link if Google Drive is in heavy usage limit', date: 'MAY 18, 2026', category: 'NETWORK', status: 'PENDING' },
-      { id: 's3', text: 'Increase sound bite rate for live TV/anime audio channel', date: 'MAY 15, 2026', category: 'MEDIA', status: 'RESOLVED' },
-    ];
-    localStorage.setItem('shadow_suggestions', JSON.stringify(defaults));
-    return defaults;
+    return [];
   });
 
   const [appointments, setAppointments] = useState<Array<{ id: string; name: string; contact: string; specs: string; problem: string; description: string; furtherDetails?: string; date: string; status: string }>>(() => {
@@ -449,14 +620,13 @@ export default function ShadowProject({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure legacy fields don't crash, map them if legacy found
         if (parsed && parsed.length > 0) {
           return parsed.map((item: any) => ({
             id: item.id || 'ap-' + Math.random(),
             name: item.name || 'Anonymous',
             contact: item.contact || item.email || 'N/A',
-            specs: item.specs || item.location || 'Core i7 13700H, 16GB RAM, RTX 4060, Windows 11',
-            problem: item.problem || item.purpose || 'Slow Performance & Freezing',
+            specs: item.specs || item.location || 'N/A',
+            problem: item.problem || item.purpose || 'N/A',
             description: item.description || item.purpose || 'No additional explanation provided.',
             furtherDetails: item.furtherDetails || '',
             date: item.date || '2026-05-28',
@@ -468,12 +638,7 @@ export default function ShadowProject({
         console.error(e);
       }
     }
-    const defaults = [
-      { id: 'ap-1', name: 'Alpha', contact: 'alpha@shadow-garden.net', specs: 'Intel Core i9-13900K, 64GB DDR5, NVMe Gen4 2TB', problem: 'Slow Performance & Freezing', description: 'The compilation of system files is taking more than 5 minutes due to IO storage bottle-necks.', furtherDetails: 'This happens specifically during large GCC builds.', date: '2026-05-28', status: 'CONFIRMED' },
-      { id: 'ap-2', name: 'Sherry Barnett', contact: 'sherry@academic.net', specs: 'AMD Ryzen 7 5800X, 32GB RAM, AMD RX 6700XT', problem: 'Windows / OS Boot Failure', description: 'System hangs on the BIOS screen with an unidentified artifact verification failure code.', furtherDetails: 'No BIOS beep codes but fans are spinning at maximum. Already checked RAM seats.', date: '2026-05-27', status: 'PENDING' }
-    ];
-    localStorage.setItem('shadow_appointments', JSON.stringify(defaults));
-    return defaults;
+    return [];
   });
 
   const [newSuggestionText, setNewSuggestionText] = useState('');
@@ -591,6 +756,9 @@ export default function ShadowProject({
           setSuggestions(prev => {
             const updated = [newSugg, ...prev];
             localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+            if ((window as any).logUserMovement) {
+              (window as any).logUserMovement('action', `Created Suggestion [${newSugg.category}]: "${newSugg.text}"`);
+            }
             return updated;
           });
 
@@ -653,6 +821,9 @@ export default function ShadowProject({
           setAppointments(prev => {
             const updated = [newApt, ...prev];
             localStorage.setItem('shadow_appointments', JSON.stringify(updated));
+            if ((window as any).logUserMovement) {
+              (window as any).logUserMovement('action', `Booked Appointment for: "${newApt.name}" specs: "${newApt.specs}" problem: "${newApt.problem}"`);
+            }
             return updated;
           });
 
@@ -699,7 +870,7 @@ export default function ShadowProject({
         
         setTimeout(() => {
           const trimTitle = uplinkToSubmit.gameTitle;
-          const { category, description, linkType, gameFile } = uplinkToSubmit;
+          const { category, description, linkType, gameFile, season } = uplinkToSubmit;
 
           // Search if there is a matching existing item ID and un-blacklist it if matching
           let matchedId: string | null = null;
@@ -779,7 +950,8 @@ export default function ShadowProject({
               title: trimTitle,
               description: description,
               protocol: linkType,
-              link: gameFile
+              link: gameFile,
+              season: season || 'SEASON 1'
             };
 
             let updatedList;
@@ -869,12 +1041,31 @@ export default function ShadowProject({
           localStorage.setItem('admin_console_link', gameFile);
           setConsoleLink(gameFile);
 
+          // Synchronize and write custom admin console link securely to server database
+          fetch('/api/configs', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ admin_console_link: gameFile })
+          })
+          .then(res => {
+            if (res.ok) {
+              if ((window as any).logUserMovement) {
+                (window as any).logUserMovement('action', `Updated Admin Console global file link to: "${gameFile}"`);
+              }
+            } else {
+              console.error('Failed to sync admin console link to server database');
+            }
+          })
+          .catch(err => console.error('Error synchronizing admin console link:', err));
+
           // Reset inputs / state
           setGameTitle('');
           setCategory('SOFTWARE');
           setDescription('');
           setGameFile('');
-          setSelectedDriveUrl('CUSTOM_URL');
+          setSelectedDriveUrl('');
           setUplinkToSubmit(null);
           setIsSendingUplink(false);
           setSendingUplinkProgress(0);
@@ -929,6 +1120,9 @@ export default function ShadowProject({
           const updated = [newShout, ...shouts];
           setShouts(updated);
           localStorage.setItem('shadow_shout_outs_v3', JSON.stringify(updated));
+          if ((window as any).logUserMovement) {
+            (window as any).logUserMovement('action', `Posted Shoutout: "${newShout.name}: ${newShout.message}"`);
+          }
           
           // Reset fields
           setShoutMessage('');
@@ -1574,8 +1768,8 @@ export default function ShadowProject({
     setCategory('SOFTWARE');
     setDescription('');
     setGameFile('');
-    setLinkType('EXT');
-    setSelectedDriveUrl('CUSTOM_URL');
+    setLinkType('G: DRIVE');
+    setSelectedDriveUrl('');
     setSuccessStatus(null);
     
     // 2. Clear all custom entries signed up or configured in localStorage
@@ -1588,6 +1782,25 @@ export default function ShadowProject({
     // Reset core reference link
     setConsoleLink('https://drive.google.com');
 
+    // Sync clear to server permanently
+    fetch('/api/configs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        admin_console_link: 'https://drive.google.com',
+        custom_projects: [],
+        custom_anime: [],
+        custom_games: [],
+        custom_tools: []
+      })
+    })
+    .then(() => {
+      window.dispatchEvent(new Event('shadow_sync_update'));
+    })
+    .catch(err => console.error(err));
+
     // 3. Close the admin console and return to the home screen
     setIsModalOpen(false);
     setActiveTab('uplink');
@@ -1597,7 +1810,13 @@ export default function ShadowProject({
     const _dummy = syncVersion; // force dependency-tracking
     // Read from localStorage with fallback to predefined list
     const savedProjects = localStorage.getItem('custom_projects');
-    const projectsList = savedProjects ? JSON.parse(savedProjects) : STATIC_PROJECTS;
+    let projectsList = savedProjects ? JSON.parse(savedProjects) : STATIC_PROJECTS;
+    if (Array.isArray(projectsList)) {
+      projectsList = projectsList.filter((p: any) => {
+        const normTitle = p.title?.toLowerCase() || '';
+        return !normTitle.includes('episode 16') && !normTitle.includes('episode 18');
+      });
+    }
     const deletedIds = JSON.parse(localStorage.getItem('deleted_item_ids') || '[]');
     const mergedProjects = projectsList.map((proj: any) => {
       const staticProj = STATIC_PROJECTS.find(p => p.id === proj.id || (p.title && proj.title && p.title.toLowerCase().trim() === proj.title.toLowerCase().trim()));
@@ -1664,7 +1883,8 @@ export default function ShadowProject({
         name: a.title,
         description: a.description,
         link: a.link,
-        protocol: a.protocol || 'EXT'
+        protocol: a.protocol || 'EXT',
+        season: a.season
       })),
       ...customGamesList.map((g: any) => ({
         id: g.id,
@@ -1692,11 +1912,13 @@ export default function ShadowProject({
       }))
     ];
 
+    const filteredRaw = rawList;
+
     // Deduplicate/merge by type + name
     const deduplicated: any[] = [];
     const seen = new Set<string>();
 
-    for (const item of rawList) {
+    for (const item of filteredRaw) {
       if (!item || !item.name) continue;
       const key = `${item.type}_${item.name.trim().toLowerCase()}`;
       if (!seen.has(key)) {
@@ -1717,6 +1939,18 @@ export default function ShadowProject({
     }
 
     return deduplicated;
+  };
+
+  const getFilteredLinkedItems = () => {
+    const items = getLinkedItems();
+    if (!linkedSearchQuery.trim()) return items;
+    const q = linkedSearchQuery.toLowerCase();
+    return items.filter(item => 
+      (item.name || '').toLowerCase().includes(q) || 
+      (item.description || '').toLowerCase().includes(q) || 
+      (item.type || '').toLowerCase().includes(q) || 
+      (item.protocol || '').toLowerCase().includes(q)
+    );
   };
 
   const renderGoogleDriveDiagnostic = (url: string, setUrlValue?: (val: string) => void) => {
@@ -1941,7 +2175,8 @@ export default function ShadowProject({
           title: editNameValue.trim(),
           description: editDescValue.trim(),
           protocol: editProtocolValue.trim(),
-          link: editLinkValue.trim()
+          link: editLinkValue.trim(),
+          season: editAnimeSeason
         };
         if (existingIdx !== -1) {
           animeList[existingIdx] = itemObj;
@@ -2192,7 +2427,7 @@ export default function ShadowProject({
     setEditingItemId(null);
     setEditNameValue('');
     setEditDescValue('');
-    setEditProtocolValue('EXT');
+    setEditProtocolValue('G: DRIVE');
     setEditCategoryValue('SOFTWARE');
     setEditLinkValue('');
     setUnlinkTrigger(prev => prev + 1);
@@ -2213,70 +2448,46 @@ export default function ShadowProject({
       category,
       description,
       linkType,
-      gameFile
+      gameFile,
+      season: category === 'ANIME' ? animeSeason : undefined
     });
     setIsSendingUplink(true);
     setSendingUplinkProgress(0);
   };
 
+  // Header buttons staggered bounce variants
+  const headerBtnContainerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 1.0,
+        delayChildren: 2.0,
+      }
+    }
+  };
+
+  const headerBtnItemVariants = {
+    hidden: { 
+      opacity: 0, 
+      scale: 0.3,
+      y: 15
+    },
+    visible: { 
+      opacity: 1, 
+      scale: 1.0,
+      y: 0,
+      transition: { 
+        type: "spring",
+        damping: 10,
+        stiffness: 120,
+        duration: 0.7
+      }
+    }
+  };
+
   return (
     <div className="min-h-[200vh] w-full flex flex-col bg-black text-white relative overflow-y-auto no-scrollbar scroll-smooth">
-      {/* Hidden Theme Audio Stream */}
-      {isPlaying && localAudioActive && (
-        activeTrack.type === 'drive' ? (
-          <>
-            {/* HTML5 Direct Audio Stream (Highly reliable for native playback/loop) */}
-            <audio
-              key={`audio-${activeTrack.id}`}
-              autoPlay
-              loop
-              controls={false}
-              style={{ display: 'none' }}
-            >
-              <source src={`https://drive.google.com/uc?export=download&id=${activeTrack.id}`} type="audio/mp3" />
-              <source src={`https://docs.google.com/uc?export=download&id=${activeTrack.id}`} type="audio/mp3" />
-              <source src={`https://drive.google.com/uc?export=open&id=${activeTrack.id}`} type="audio/mp3" />
-            </audio>
-            {/* Embedded sandboxed Drive preview for general content handling */}
-            <iframe
-              key={`iframe-${activeTrack.id}`}
-              src={`https://drive.google.com/file/d/${activeTrack.id}/preview`}
-              allow="autoplay; encrypted-media"
-              title="Landing Page Shadow Theme OST"
-              style={{
-                position: 'fixed',
-                width: '320px',
-                height: '240px',
-                top: '-2000px',
-                left: '-2000px',
-                pointerEvents: 'none',
-                opacity: 0.001,
-                zIndex: -9999
-              }}
-              referrerPolicy="no-referrer"
-            />
-          </>
-        ) : (
-          <iframe
-            key={activeTrack.id}
-            src={`https://www.youtube.com/embed/${activeTrack.id}?autoplay=1&mute=0&playlist=${activeTrack.id}&loop=1&controls=0&showinfo=0&disablekb=1&modestbranding=1`}
-            allow="autoplay; encrypted-media"
-            title="Landing Page Shadow Theme OST"
-            style={{
-              position: 'fixed',
-              width: '320px',
-              height: '240px',
-              top: '-2000px',
-              left: '-2000px',
-              pointerEvents: 'none',
-              opacity: 0.001,
-              zIndex: -9999
-            }}
-            referrerPolicy="no-referrer"
-          />
-        )
-      )}
-
       {/* Background Image */}
       <div className="fixed inset-0 z-0 opacity-25 pointer-events-none">
         <img 
@@ -2287,85 +2498,116 @@ export default function ShadowProject({
         />
       </div>
 
-      {/* Upper-right Configurable Google Drive Button Group */}
+      {/* Fixed Header Bar at top of screen containing Shadow Tech logo and navigation button group */}
       <motion.div 
-        initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={skip ? { duration: 0 } : { delay: 1.0, duration: 0.6, ease: "easeOut" }}
-        className="absolute top-3 left-3 right-3 md:top-12 md:right-12 md:left-auto z-30 flex items-center justify-between md:justify-end gap-1 md:gap-2 flex-row md:flex-wrap max-w-[calc(100%-24px)] md:max-w-[80vw]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.0, duration: 0.8, ease: "easeInOut" }}
+        className="fixed top-0 left-0 right-0 z-40 bg-neutral-950/95 backdrop-blur-md border-b border-purple-500/15 px-4 py-3 md:px-12 md:py-4 flex flex-row items-center justify-between gap-4 shadow-[0_4px_30px_rgba(0,0,0,0.6)]"
       >
-        <button
-          onClick={() => {
-            setIsAppointmentModalOpen(true);
-            setAptStep(1);
-          }}
-          className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-0.5 py-1.5 md:px-4 md:py-2 font-mono text-[7px] min-[350px]:text-[8px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-full md:w-auto"
-          id="appointment-scheduler-btn"
-        >
-          <Calendar size={10} className="text-purple-450 animate-pulse shrink-0" />
-          <span className="truncate">Appointment</span>
-        </button>
+        <div className="flex items-center gap-3 sm:gap-4 md:gap-5 shrink-0">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full border border-purple-500/35 shadow-[0_0_20px_rgba(168,85,247,0.45)] overflow-hidden flex items-center justify-center bg-black shrink-0">
+            <img 
+              src={shadowLogoLarge} 
+              alt="ShadowTech Logo" 
+              className="w-full h-full object-cover origin-[50%_30%] scale-[1.95] transition-transform duration-500 hover:scale-[2.1]"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+          <div className="flex flex-col items-start leading-[0.82] select-none font-sans">
+            <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-tighter text-white">
+              SHADOW
+            </span>
+            <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-tighter text-purple-500">
+              TECH.
+            </span>
+          </div>
+        </div>
 
-        <button
-          onClick={() => {
-            setIsSuggestionModalOpen(true);
-          }}
-          className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-0.5 py-1.5 md:px-4 md:py-2 font-mono text-[7px] min-[350px]:text-[8px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-full md:w-auto"
-          id="suggestion-system-btn"
+        <motion.div 
+          variants={headerBtnContainerVariants}
+          initial="hidden"
+          animate="visible"
+          className="flex-1 md:flex-initial flex items-center justify-end gap-1 md:gap-2 flex-row flex-wrap md:flex-nowrap max-w-[calc(100%-100px)] md:max-w-none"
         >
-          <Sparkles size={10} className="text-purple-450 animate-pulse shrink-0" />
-          <span className="truncate">Suggestions DB</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setTempName(shoutName || '');
-            setNameValidationError(null);
-            setIsNamePromptOpen(true);
-          }}
-          className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-0.5 py-1.5 md:px-4 md:py-2 font-mono text-[7px] min-[350px]:text-[8px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-full md:w-auto"
-          id="shout-box-toggle-btn"
-        >
-          <MessageSquare size={10} className="text-purple-450 animate-pulse shrink-0" />
-          <span className="truncate">Shout Out Box</span>
-        </button>
-
-        <button 
-          onClick={() => {
-            if (isAuthenticated) {
-              setIsModalOpen(true);
-            } else {
-              setShowPasswordModal(true);
-            }
-          }}
-          className={`flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-0.5 py-1.5 md:px-4 md:py-2 font-mono text-[7px] min-[350px]:text-[8px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none w-full md:w-auto ${
-            isAuthenticated 
-              ? 'bg-neutral-900 border-emerald-500/50 text-emerald-400 hover:bg-neutral-850 hover:border-emerald-400' 
-              : 'bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400'
-          }`}
-          id="google-drive-link-btn"
-        >
-          {isAuthenticated ? (
-            <Unlock size={10} className="text-emerald-400 animate-pulse shrink-0" />
-          ) : (
-            <Lock size={10} className="text-purple-450 animate-pulse shrink-0" />
-          )}
-          <span className="truncate">Admin Console</span>
-          <ExternalLink size={10} className="opacity-60 hidden min-[380px]:inline shrink-0" />
-        </button>
-
-        {isAuthenticated && !isAdmin && (
-          <button 
+          <motion.button
+            variants={headerBtnItemVariants}
             onClick={() => {
-              setIsAuthenticated(false);
-              setIsModalOpen(false);
+              setIsAppointmentModalOpen(true);
+              setAptStep(1);
             }}
-            className="p-1 md:p-2 bg-red-950/20 border border-red-500/20 hover:bg-red-950/40 text-red-400 font-mono text-[7px] min-[350px]:text-[8px] md:text-[9px] uppercase tracking-wider font-bold transition-all rounded cursor-pointer shrink-0"
-            title="Lock Console"
+            className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-auto"
+            id="appointment-scheduler-btn"
           >
-            Lock
-          </button>
-        )}
+            <Calendar size={10} className="text-purple-450 animate-pulse shrink-0" />
+            <span className="truncate">Appointment</span>
+          </motion.button>
+          
+          <motion.button
+            variants={headerBtnItemVariants}
+            onClick={() => {
+              setIsSuggestionModalOpen(true);
+            }}
+            className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-auto"
+            id="suggestion-system-btn"
+          >
+            <Sparkles size={10} className="text-purple-450 animate-pulse shrink-0" />
+            <span className="truncate">Suggestions DB</span>
+          </motion.button>
+          
+          <motion.button
+            variants={headerBtnItemVariants}
+            onClick={() => {
+              setTempName(shoutName || '');
+              setNameValidationError(null);
+              setIsNamePromptOpen(true);
+            }}
+            className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-auto"
+            id="shout-box-toggle-btn"
+          >
+            <MessageSquare size={10} className="text-purple-450 animate-pulse shrink-0" />
+            <span className="truncate">Shout Out Box</span>
+          </motion.button>
+          
+          <motion.button 
+            variants={headerBtnItemVariants}
+            onClick={() => {
+              if (isAuthenticated) {
+                setIsModalOpen(true);
+              } else {
+                setShowPasswordModal(true);
+              }
+            }}
+            className={`flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none w-auto ${
+              isAuthenticated 
+                ? 'bg-neutral-900 border-emerald-500/50 text-emerald-400 hover:bg-neutral-850 hover:border-emerald-400' 
+                : 'bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400'
+            }`}
+            id="google-drive-link-btn"
+          >
+            {isAuthenticated ? (
+              <Unlock size={10} className="text-emerald-400 animate-pulse shrink-0" />
+            ) : (
+              <Lock size={10} className="text-purple-450 animate-pulse shrink-0" />
+            )}
+            <span className="truncate">Admin Console</span>
+            <ExternalLink size={10} className="opacity-60 hidden min-[380px]:inline shrink-0" />
+          </motion.button>
+          
+          {isAuthenticated && !isAdmin && (
+            <motion.button 
+              variants={headerBtnItemVariants}
+              onClick={() => {
+                setIsAuthenticated(false);
+                setIsModalOpen(false);
+              }}
+              className="p-1 md:p-2 bg-red-950/20 border border-red-500/20 hover:bg-red-950/40 text-red-400 font-mono text-[7px] min-[350px]:text-[8px] md:text-[9px] uppercase tracking-wider font-bold transition-all rounded cursor-pointer shrink-0"
+              title="Lock Console"
+            >
+              Lock
+            </motion.button>
+          )}
+        </motion.div>
 
       </motion.div>
 
@@ -2920,6 +3162,21 @@ export default function ShadowProject({
                 </div>
                 
                 <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setShowLinkedSearch(prev => !prev);
+                      setActiveTab('linked');
+                    }}
+                    className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center justify-center ${
+                      showLinkedSearch 
+                        ? 'bg-purple-950/40 border-purple-500 text-purple-400' 
+                        : 'bg-neutral-900 border-neutral-800 hover:border-neutral-700 text-neutral-400 hover:text-white'
+                    }`}
+                    title="Search memory directory"
+                  >
+                    <Search size={14} />
+                  </button>
                   <div className="px-2.5 py-1 bg-neutral-900 border border-neutral-800 rounded-md text-[9px] uppercase tracking-wider text-neutral-300 flex items-center gap-1.5 font-bold">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     LINK: COMPATIBLE
@@ -2963,7 +3220,56 @@ export default function ShadowProject({
                     </span>
                   )}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('history')}
+                  className={`pb-2.5 px-2.5 font-mono text-[8.5px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.05em] md:tracking-[0.12em] font-bold border-b-2 transition-all cursor-pointer relative whitespace-nowrap ${
+                    activeTab === 'history'
+                      ? 'border-purple-500 text-purple-400 font-extrabold'
+                      : 'border-transparent text-neutral-500 hover:text-neutral-300'
+                  }`}
+                >
+                  [03] USER HISTORY CORE
+                  {(suggestions.length > 0 || appointments.length > 0 || shouts.length > 0) && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-purple-600 text-white font-black text-[7.5px] sm:text-[8.5px] rounded-full font-mono animate-pulse">
+                      {suggestions.length + appointments.length + shouts.length}
+                    </span>
+                  )}
+                </button>
               </div>
+
+              {/* Memory Query Search Bar */}
+              <AnimatePresence>
+                {showLinkedSearch && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    className="relative z-10 overflow-hidden w-full"
+                  >
+                    <div className="flex items-center gap-2 bg-neutral-950/80 border border-neutral-900 rounded-lg px-2.5 py-1.5 font-mono">
+                      <Search size={12} className="text-purple-400 shrink-0" />
+                      <input
+                        type="text"
+                        value={linkedSearchQuery}
+                        onChange={(e) => setLinkedSearchQuery(e.target.value)}
+                        placeholder="ENTER MEMORY QUERY (NAME, TYPE, OR PROTOCOL)..."
+                        className="w-full bg-transparent text-[10px] font-mono font-bold text-white uppercase outline-none placeholder:text-neutral-600"
+                        autoFocus
+                      />
+                      {linkedSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setLinkedSearchQuery('')}
+                          className="text-neutral-505 hover:text-purple-400 font-mono text-[9px] uppercase tracking-wider hover:bg-neutral-900 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {activeTab === 'uplink' && (
                 /* Configuration Terminal Form (Single Column Original UI) */
@@ -3000,7 +3306,7 @@ export default function ShadowProject({
                           <option value="ANIME" className="bg-neutral-950 text-white">ANIME DIRECTORY [02]</option>
                           <option value="TUTORIALS" className="bg-neutral-950 text-white">TUTORIALS DIRECTORY [03]</option>
                           <option value="TOOLS" className="bg-neutral-950 text-white">TOOLS DIRECTORY [04]</option>
-                          <option value="GAMES" className="bg-neutral-950 text-white">GAMES DIRECTORY [05]</option>
+                          <option value="GAMES" className="bg-neutral-950 text-white">MUSIC DIRECTORY [05]</option>
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-purple-400">
                           <ChevronRight size={13} className="rotate-90 text-purple-450" />
@@ -3013,7 +3319,7 @@ export default function ShadowProject({
                         [03] PROTOCOL TYPE
                       </label>
                       <div className="flex bg-neutral-900 border border-neutral-800 rounded-xl p-1 gap-1 h-[42px] items-center">
-                        {['G: DRIVE', 'FB', 'EXT'].map((opt) => (
+                        {['G: DRIVE'].map((opt) => (
                           <button
                             key={opt}
                             type="button"
@@ -3030,6 +3336,28 @@ export default function ShadowProject({
                       </div>
                     </div>
                   </div>
+                  
+                  {category === 'ANIME' && (
+                    <div className="p-3.5 bg-purple-950/20 border border-purple-500/20 rounded-xl space-y-1.5 animate-fade-in text-left">
+                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-purple-400 block font-mono">
+                        ⚙ ANIME DECRYPTION SEASON / CLASSIFICATION
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={animeSeason}
+                          onChange={(e) => setAnimeSeason(e.target.value)}
+                          className="w-full rounded-xl bg-neutral-950 border border-neutral-800 p-3 pr-10 text-white font-mono text-xs focus:border-purple-500 outline-none transition-all appearance-none cursor-pointer hover:bg-neutral-900 font-semibold"
+                        >
+                          <option value="SEASON 1" className="bg-neutral-950 text-white font-bold uppercase">SEASON 1 (SHADOW RESURRECTION)</option>
+                          <option value="SEASON 2" className="bg-neutral-950 text-purple-400 font-extrabold uppercase">SEASON 2 (NEON EMINENCE)</option>
+                          <option value="THEATRIC MOVIE" className="bg-neutral-950 text-rose-400 font-bold uppercase">THEATRIC MOVIE (LOST CHRONICLES)</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-purple-400">
+                          <ChevronRight size={13} className="rotate-90 text-purple-450" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* DESCRIPTION */}
                   <div>
@@ -3060,46 +3388,42 @@ export default function ShadowProject({
                           onChange={(e) => {
                             const val = e.target.value;
                             setSelectedDriveUrl(val);
-                            if (val !== 'CUSTOM_URL') {
-                              setGameFile(val);
-                            }
+                            setGameFile(val);
                           }}
-                          className="w-full rounded-xl bg-neutral-900 border border-neutral-800 p-3 pr-10 text-white font-mono text-xs focus:border-purple-500 outline-none transition-all appearance-none cursor-pointer hover:bg-neutral-850 font-semibold uppercase text-left"
+                          className="w-full rounded-xl bg-neutral-900 border border-neutral-800 p-3 pr-10 text-white font-mono text-xs focus:border-purple-500 outline-none transition-all appearance-none cursor-pointer hover:bg-neutral-850 font-semibold uppercase text-left text-neutral-300"
                         >
+                          <option value="" className="text-neutral-500 bg-neutral-950">
+                            MANUAL INPUT / CUSTOM URL
+                          </option>
                           {driveAccounts.map((account, index) => (
-                            <option key={index} value={account.url} className="text-white bg-neutral-950 uppercase">
+                            <option key={index} value={account.url} className="text-white bg-neutral-950 uppercase font-semibold">
                               {account.name}
                             </option>
                           ))}
-                          <option value="CUSTOM_URL" className="text-purple-400 bg-neutral-950 font-black uppercase">
-                            ⚙ [CUSTOM URL / MANUAL INPUT]
-                          </option>
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-purple-400">
                           <ChevronRight size={13} className="rotate-90 text-purple-450" />
                         </div>
                       </div>
 
-                      {/* Display / edit input URL based on selection */}
+                      {/* Display and edit selected URL */}
                       <div className="relative flex items-center sm:col-span-7">
-                        <LinkIcon size={13} className="text-neutral-555 absolute left-3.5" />
+                        <LinkIcon size={13} className="text-neutral-500 absolute left-3.5" />
                         <input 
                           type="text" 
                           value={gameFile}
                           onChange={(e) => {
                             const val = e.target.value;
                             setGameFile(val);
-                            // If user edits the text, check if it matches any pre-existing drive account URL, 
-                            // otherwise switch to CUSTOM_URL
-                            const matchedAccount = driveAccounts.find(acc => acc.url === val);
-                            if (matchedAccount) {
+                            // If it matches a drive account, sync dropdown
+                            if (driveAccounts.some(acc => acc.url === val)) {
                               setSelectedDriveUrl(val);
                             } else {
-                              setSelectedDriveUrl('CUSTOM_URL');
+                              setSelectedDriveUrl('');
                             }
                           }}
-                          placeholder="Enter your file destination URL (e.g. Google Drive link)"
-                          className="w-full rounded-xl border bg-neutral-900 border-neutral-800 focus:border-purple-500 placeholder:text-neutral-700 pl-10 pr-3 py-3 text-white font-mono text-xs outline-none transition-all font-semibold text-left"
+                          placeholder="Enter your file URL (manually or select preset above)"
+                          className="w-full rounded-xl border bg-neutral-900 border-neutral-800 focus:border-purple-500 text-white font-mono text-xs outline-none transition-all font-semibold text-left pl-10 pr-3 py-3"
                           required
                         />
                       </div>
@@ -3207,16 +3531,34 @@ export default function ShadowProject({
                 /* Linked Directory List */
                 <div className="space-y-4 relative z-10 flex flex-col h-[340px]">
                   <div className="flex-1 overflow-y-auto pr-1 space-y-3 select-none font-mono">
-                    {getLinkedItems().length === 0 ? (
+                    {getFilteredLinkedItems().length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-neutral-800 bg-neutral-900/40 rounded-2xl font-mono">
-                        <LinkIcon className="text-neutral-500 w-10 h-10 mb-2" />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 font-mono">No active links registered</span>
+                        {linkedSearchQuery ? (
+                          <Search className="text-neutral-500 w-10 h-10 mb-2 animate-pulse" />
+                        ) : (
+                          <LinkIcon className="text-neutral-500 w-10 h-10 mb-2" />
+                        )}
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 font-mono">
+                          {getLinkedItems().length === 0 ? 'No active links registered' : 'No memory query matches'}
+                        </span>
                         <p className="text-[9px] uppercase tracking-wider text-neutral-400 mt-1 max-w-xs font-mono">
-                          Uplink a software directory program or tool to populate terminal memory.
+                          {getLinkedItems().length === 0 
+                            ? 'Uplink a software directory program or tool to populate terminal memory.'
+                            : `Memory diagnostics found zero records matching "${linkedSearchQuery}".`
+                          }
                         </p>
+                        {getLinkedItems().length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setLinkedSearchQuery('')}
+                            className="mt-3 px-3 py-1 bg-purple-900/40 border border-purple-500/20 hover:border-purple-500/40 text-purple-300 text-[9px] uppercase tracking-widest font-bold rounded-lg transition-all cursor-pointer"
+                          >
+                            Reset Search
+                          </button>
+                        )}
                       </div>
                     ) : (
-                      getLinkedItems().map((item) => (
+                      getFilteredLinkedItems().map((item) => (
                         <div 
                           key={`${item.type}-${item.id}`}
                           className="p-4 rounded-xl bg-neutral-900/40 border border-neutral-900 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-neutral-800 transition-all group"
@@ -3229,12 +3571,12 @@ export default function ShadowProject({
                                   : item.type === 'ANIME'
                                   ? 'bg-rose-950/20 text-rose-450 border border-rose-900/30'
                                   : item.type === 'GAMES'
-                                  ? 'bg-sky-950/20 text-sky-400 border border-sky-900/30'
+                                  ? 'bg-purple-950/20 text-purple-400 border border-purple-900/30'
                                   : item.type === 'TUTORIALS'
                                   ? 'bg-emerald-950/20 text-emerald-400 border border-emerald-900/30'
                                   : 'bg-purple-950/20 text-purple-400 border border-purple-900/30'
                               }`}>
-                                {item.type}
+                                {item.type === 'GAMES' ? 'MUSIC' : item.type}
                               </span>
                               <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-500">
                                 {item.protocol}
@@ -3272,17 +3614,16 @@ export default function ShadowProject({
                                       <option value="ANIME" className="bg-neutral-950 text-white">ANIME DIRECTORY [02]</option>
                                       <option value="TUTORIALS" className="bg-neutral-950 text-white">TUTORIALS DIRECTORY [03]</option>
                                       <option value="TOOL" className="bg-neutral-950 text-white">TOOLS DIRECTORY [04]</option>
-                                      <option value="GAMES" className="bg-neutral-950 text-white">GAMES DIRECTORY [05]</option>
+                                      <option value="GAMES" className="bg-neutral-950 text-white">MUSIC DIRECTORY [05]</option>
                                     </select>
                                   </div>
                                   <div>
                                     <label className="text-[8px] font-bold text-neutral-400 uppercase tracking-wider block mb-0.5 font-mono">PROTOCOL TYPE</label>
                                     <input
                                       type="text"
-                                      value={editProtocolValue}
-                                      onChange={(e) => setEditProtocolValue(e.target.value)}
-                                      className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-[10px] uppercase font-bold text-white outline-none focus:border-purple-500 font-mono"
-                                      placeholder="e.g. EXT, G: DRIVE, FB"
+                                      value="G: DRIVE"
+                                      disabled
+                                      className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-[10px] uppercase font-bold text-neutral-500 outline-none font-mono cursor-not-allowed opacity-75"
                                     />
                                   </div>
                                 </div>
@@ -3296,6 +3637,20 @@ export default function ShadowProject({
                                     placeholder="Enter short description..."
                                   />
                                 </div>
+                                {editCategoryValue === 'ANIME' && (
+                                  <div className="p-2 border border-purple-900/35 bg-purple-950/10 rounded-lg">
+                                    <label className="text-[8px] font-bold text-neutral-400 uppercase tracking-wider block mb-0.5 font-mono">ANIME SEASON CLASSIFICATION</label>
+                                    <select
+                                      value={editAnimeSeason}
+                                      onChange={(e) => setEditAnimeSeason(e.target.value)}
+                                      className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2 py-1 text-[10px] uppercase font-bold text-purple-400 outline-none focus:border-purple-500 font-mono cursor-pointer"
+                                    >
+                                      <option value="SEASON 1" className="bg-neutral-950 text-white">SEASON 1 (SHADOW RESURRECTION)</option>
+                                      <option value="SEASON 2" className="bg-neutral-950 text-purple-400 font-extrabold">SEASON 2 (NEON EMINENCE)</option>
+                                      <option value="THEATRIC MOVIE" className="bg-neutral-950 text-rose-450 font-bold">THEATRIC MOVIE (LOST CHRONICLES)</option>
+                                    </select>
+                                  </div>
+                                )}
                                 <div>
                                   <label className="text-[8px] font-bold text-neutral-400 uppercase tracking-wider block mb-0.5 font-mono">FILE DESTINATION URL</label>
                                   <input
@@ -3303,9 +3658,8 @@ export default function ShadowProject({
                                     value={editLinkValue}
                                     onChange={(e) => setEditLinkValue(e.target.value)}
                                     className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-2.5 py-1 text-[10.5px] font-mono text-white outline-none focus:border-purple-500"
-                                    placeholder="Enter URL link..."
+                                    placeholder="Enter URL link manually..."
                                   />
-                                  {renderGoogleDriveDiagnostic(editLinkValue, setEditLinkValue)}
                                 </div>
                                 <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-neutral-800 font-mono">
                                   <button
@@ -3344,9 +3698,10 @@ export default function ShadowProject({
                                     setEditingItemId({ id: item.id, type: item.type });
                                     setEditNameValue(item.name || '');
                                     setEditDescValue(item.description || '');
-                                    setEditProtocolValue(item.protocol || 'EXT');
+                                    setEditProtocolValue('G: DRIVE');
                                     setEditCategoryValue(item.type);
                                     setEditLinkValue(item.link || '');
+                                    setEditAnimeSeason(item.season || 'SEASON 1');
                                   }}
                                   className="px-3 py-1.5 bg-neutral-900 border border-neutral-850 hover:bg-neutral-800 text-neutral-300 hover:text-white font-mono text-[9px] uppercase tracking-wider font-bold transition-all rounded-lg cursor-pointer flex items-center gap-1"
                                   title="Edit item attributes"
@@ -3377,6 +3732,264 @@ export default function ShadowProject({
                     )}
                   </div>
                   
+                  {/* Cancel Controls */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-neutral-900 mt-2 shrink-0 gap-3 w-full font-mono">
+                    <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+                      <button 
+                        type="button"
+                        onClick={() => setIsAdminSuggestionsOpen(true)}
+                        className="w-full sm:w-auto px-4 py-2 bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-950/40 text-purple-400 hover:text-purple-300 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Sparkles size={11} className="text-purple-400 animate-pulse" />
+                        <span>SUGGESTIONS</span>
+                        {suggestions.length > 0 && (
+                          <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[8px] font-black rounded font-mono leading-none">
+                            {suggestions.length}
+                          </span>
+                        )}
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={() => setIsAdminAppointmentsOpen(true)}
+                        className="w-full sm:w-auto px-4 py-2 bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-950/40 text-purple-400 hover:text-purple-300 rounded-xl font-mono text-[9px] uppercase tracking-[0.15em] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Calendar size={11} className="text-purple-400 animate-pulse" />
+                        <span>APPOINTMENTS</span>
+                        {appointments.length > 0 && (
+                          <span className="px-1.5 py-0.5 bg-purple-600 text-white text-[8px] font-black rounded font-mono leading-none">
+                            {appointments.length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                    
+                    <span className="text-[8px] uppercase tracking-[0.15em] text-neutral-500">
+                      SECURE TERMINAL DIRECTORY INDEX
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'history' && (
+                /* User History Database Synchronization and Persistence Terminal */
+                <div className="space-y-4 relative z-10 flex flex-col h-[340px] text-left">
+                  {(() => {
+                    // Extract unique list of users from activity logs
+                    const uniqUsers: string[] = [];
+                    activityLogs.forEach((log: any) => {
+                      let u = log.user;
+                      if (!u && log.text) {
+                        // try legacy parse: e.g. [User 01] prefix
+                        const match = /\[(?:User|USER)\s*(\d+)\]/i.exec(log.text);
+                        if (match) {
+                          u = 'User ' + match[1];
+                        }
+                      }
+                      if (u) {
+                        // normalize user tag
+                        const numPart = u.replace(/\D/g, '');
+                        const formattedUser = 'User ' + numPart.padStart(2, '0');
+                        if (!uniqUsers.includes(formattedUser)) {
+                          uniqUsers.push(formattedUser);
+                        }
+                      }
+                    });
+
+                    // Sort: current user visited goes to the top, then sort others numerically
+                    let currentUser = localStorage.getItem('shadow_user_number');
+                    if (currentUser) {
+                      const numPart = currentUser.replace(/\D/g, '');
+                      currentUser = 'User ' + numPart.padStart(2, '0');
+                    }
+
+                    uniqUsers.sort((a, b) => {
+                      if (a === currentUser) return -1;
+                      if (b === currentUser) return 1;
+                      return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+                    });
+
+                    // Now, filter logs for selected user
+                    const filteredLogs = selectedUserLog ? activityLogs.filter((log: any) => {
+                      let logUser = log.user;
+                      if (!logUser && log.text) {
+                        const match = /\[(?:User|USER)\s*(\d+)\]/i.exec(log.text);
+                        if (match) {
+                          logUser = 'User ' + match[1];
+                        }
+                      }
+                      if (!logUser) return false;
+                      const numPart = logUser.replace(/\D/g, '');
+                      const formattedUser = 'User ' + numPart.padStart(2, '0');
+                      return formattedUser === selectedUserLog;
+                    }) : [];
+
+                    return (
+                      <div className="flex-1 overflow-y-auto pr-1 space-y-4 select-none font-mono">
+                        {!selectedUserLog ? (
+                          /* 1. SELECT USER VIEW IN LIST FORMAT WITH INDIVIDUAL DELETE BUTTONS */
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between px-1 gap-2">
+                              <span className="text-[8.5px] uppercase tracking-wider text-purple-400 font-extrabold">
+                                [SELECT VIRTUAL SESSION USER TO STREAM LOGS]
+                              </span>
+                              {uniqUsers.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={handleDeleteAllHistory}
+                                  className="text-[7.5px] uppercase tracking-widest text-red-400 hover:text-red-300 transition-colors font-extrabold flex items-center gap-1 cursor-pointer bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 hover:border-red-500/40 px-2 py-1 rounded"
+                                  title="Delete all user logs"
+                                >
+                                  <Trash2 size={10} className="text-red-400" />
+                                  <span>Clear All Logs</span>
+                                </button>
+                              )}
+                            </div>
+
+                            {uniqUsers.length === 0 ? (
+                              <div className="p-12 rounded-xl border border-dashed border-neutral-800 text-center text-neutral-500 text-[8px] uppercase tracking-wider">
+                                NO INTERACTION SIGNALS REGISTERED IN CURRENT GUEST MEMORY BUFFER
+                                <span className="block mt-1.5 text-[7px] text-neutral-600 font-medium">Interaction database starts populating immediately once the user types in the welcome chatbot.</span>
+                              </div>
+                            ) : (
+                              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                                {uniqUsers.map((usr) => {
+                                  // Count how many logs belong to this user
+                                  const userLogsCount = activityLogs.filter((log: any) => {
+                                    let logUser = log.user;
+                                    if (!logUser && log.text) {
+                                      const match = /\[(?:User|USER)\s*(\d+)\]/i.exec(log.text);
+                                      if (match) logUser = 'User ' + match[1];
+                                    }
+                                    if (!logUser) return false;
+                                    const numPart = logUser.replace(/\D/g, '');
+                                    const formattedUser = 'User ' + numPart.padStart(2, '0');
+                                    return formattedUser === usr;
+                                  }).length;
+
+                                  const isCurrent = usr === currentUser;
+
+                                  return (
+                                    <div
+                                      key={usr}
+                                      className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                                        isCurrent 
+                                          ? 'bg-purple-950/25 border-purple-500/40 hover:bg-purple-950/35' 
+                                          : 'bg-neutral-900/60 border-neutral-800/80 hover:bg-neutral-900/80 hover:border-neutral-700/60'
+                                      }`}
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedUserLog(usr)}
+                                        className="flex-1 text-left flex items-center gap-3 cursor-pointer group"
+                                      >
+                                        <div className="flex flex-col">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black text-white group-hover:text-purple-300 transition-colors uppercase tracking-[0.1em]">
+                                              {usr}
+                                            </span>
+                                            {isCurrent && (
+                                              <span className="px-1.5 py-[1px] rounded bg-emerald-950/50 border border-emerald-500/30 text-[6.5px] text-emerald-400 tracking-wider font-extrabold uppercase">
+                                                Current Session
+                                              </span>
+                                            )}
+                                          </div>
+                                          <span className="text-[7.5px] text-purple-400 font-medium uppercase tracking-wider mt-0.5">
+                                            {userLogsCount} signals registered
+                                          </span>
+                                        </div>
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (window.confirm(`Are you sure you want to permanently delete all history for ${usr}?`)) {
+                                            handleDeleteSpecificUser(usr);
+                                          }
+                                        }}
+                                        className="p-2 text-neutral-500 hover:text-red-400 hover:bg-red-950/20 border border-transparent hover:border-red-900/30 rounded-lg transition-all cursor-pointer"
+                                        title={`Delete history for ${usr}`}
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          /* 2. SELECTED USER LOG TIMELINE VIEW */
+                          <div className="space-y-2.5">
+                            <div className="flex items-center justify-between px-1">
+                              <span className="text-[8px] uppercase tracking-wider text-purple-400 font-extrabold flex items-center gap-1.5">
+                                <span>[TIMELINE STREAM ({selectedUserLog})]</span>
+                                <span className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-[7px] text-purple-300 tracking-widest font-bold font-mono">
+                                  {filteredLogs.length} SIGNALS
+                                </span>
+                              </span>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(`Are you sure you want to permanently delete all history for ${selectedUserLog}?`)) {
+                                      handleDeleteSpecificUser(selectedUserLog!);
+                                    }
+                                  }}
+                                  className="text-[8px] uppercase tracking-widest text-red-400 hover:text-red-300 transition-colors font-extrabold flex items-center gap-1 cursor-pointer"
+                                  title={`Deletes all trace logs under ${selectedUserLog}`}
+                                >
+                                  <Trash2 size={10} />
+                                  <span>Clear This User</span>
+                                </button>
+                                <span className="text-neutral-700">|</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedUserLog(null)}
+                                  className="text-[8px] uppercase tracking-widest text-purple-400 hover:text-purple-300 transition-colors font-extrabold flex items-center gap-1 cursor-pointer"
+                                >
+                                  <span>← Back</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1 max-h-[220px] overflow-y-auto border border-neutral-900/80 bg-black/50 p-2.5 rounded-xl font-mono animate-fade-in">
+                              {filteredLogs.length === 0 ? (
+                                <div className="p-8 text-center text-neutral-600 text-[8px] uppercase tracking-wider">
+                                  No records found under this user session buffer
+                                </div>
+                              ) : (
+                                filteredLogs.map((log: any) => {
+                                  let badgeColor = "text-blue-400 bg-blue-950/40 border-blue-900/40";
+                                  if (log.type === "chat") badgeColor = "text-purple-400 bg-purple-950/40 border-purple-900/40";
+                                  if (log.type === "action") badgeColor = "text-emerald-400 bg-emerald-950/40 border-emerald-900/40";
+                                  if (log.type === "navigation") badgeColor = "text-blue-400 bg-blue-950/40 border-blue-900/40";
+                                  if (log.type === "modal") badgeColor = "text-amber-400 bg-amber-950/40 border-amber-900/40";
+                                  
+                                  // Clean up matching user prefix from user display text to stay super clean
+                                  const tidyText = log.text.replace(/^\[User \d+\]\s*/i, "");
+
+                                  return (
+                                    <div key={log.id} className="flex items-start gap-1.5 py-1 px-1.5 rounded hover:bg-neutral-900/30 text-[8.5px] border border-transparent hover:border-neutral-800/20 transition-colors">
+                                      <span className="text-neutral-500 shrink-0 font-bold">{log.date}</span>
+                                      <span className={`px-1.5 py-[1px] rounded border text-[7.5px] font-black uppercase tracking-wider shrink-0 mr-1 ${badgeColor}`}>
+                                        {log.type}
+                                      </span>
+                                      <span className="text-neutral-250 leading-relaxed font-sans font-medium text-left break-all select-text">
+                                        {tidyText}
+                                      </span>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* Cancel Controls */}
                   <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-neutral-900 mt-2 shrink-0 gap-3 w-full font-mono">
                     <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
@@ -5501,6 +6114,154 @@ export default function ShadowProject({
         )}
       </AnimatePresence>
 
+      {/* Section 2: Areas of Expertise (Replacing Why Sustain the Shadows) */}
+      {/* Positioned with perfect spacing to sit clear of upper buttons while resting higher */}
+      <div className="w-full relative z-10 pt-28 pb-16 md:pt-36 px-6 md:px-12">
+        <div className="relative z-10 max-w-5xl mx-auto w-full space-y-8">
+          
+          {/* Header Ribbon */}
+          <div className="flex flex-col items-center text-center space-y-3 pb-6 border-b border-neutral-900/30">
+            <div>
+              <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-neutral-100 via-white to-purple-300">
+                ONLINE COMPUTER REPAIR SERVICES
+              </h2>
+            </div>
+          </div>
+
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto text-white -mt-4 md:-mt-6 relative z-10">
+            
+            {/* Card 1: System Recovery & OS Configuration */}
+            <div className="relative w-full">
+              {/* Floating Scroll Down on the left side of Card 1 (only visible on lg and up) */}
+              <div className="hidden lg:flex absolute right-[calc(100%+1.25rem)] xl:right-[calc(100%+2.5rem)] top-1/2 -translate-y-1/2 flex-col items-center justify-center select-none pointer-events-none z-20">
+                <motion.div
+                  initial={skip ? { opacity: 0.6 } : { opacity: 0 }}
+                  animate={{ 
+                    opacity: [0.4, 1, 0.4],
+                    y: [0, 8, 0]
+                  }}
+                  transition={{
+                    duration: 2.0,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 2.0
+                  }}
+                  className="flex flex-col items-center gap-1.5"
+                >
+                  <span className="text-[10px] font-sans font-black tracking-[0.4em] text-purple-400 uppercase drop-shadow-[0_0_8px_rgba(168,85,247,0.55)]">
+                    Scroll Down
+                  </span>
+                  <div className="w-1.5 h-7 rounded-full bg-neutral-900 border border-purple-500/30 flex items-start justify-center p-0.5 shadow-[0_0_10px_rgba(168,85,247,0.25)] flex-shrink-0">
+                    <motion.div 
+                      animate={{
+                        y: [0, 10, 0]
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                      className="w-1 h-1.5 bg-amber-400 rounded-full"
+                    />
+                  </div>
+                  <span className="text-[8px] font-mono text-neutral-500 tracking-wider whitespace-nowrap">
+                    SWIPE TO DECRYPT BELOW
+                  </span>
+                </motion.div>
+              </div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="relative p-6 md:p-8 min-h-[260px] md:min-h-[300px] rounded-2xl border border-neutral-900/60 bg-neutral-950/80 backdrop-blur-sm shadow-2xl flex flex-col justify-between group overflow-hidden w-full"
+              >
+                <div 
+                  className="absolute inset-0 z-0 bg-cover bg-center opacity-10 mix-blend-luminosity group-hover:opacity-100 group-hover:mix-blend-normal group-hover:brightness-150 transition-all duration-700" 
+                  style={{ backgroundImage: `url(${hardwareBackground})` }}
+                />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 flex items-center justify-center border border-neutral-900/80 rounded-xl bg-neutral-950 text-purple-400 font-black shrink-0 relative overflow-hidden shadow-inner">
+                      <Cpu className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-extrabold uppercase tracking-tight text-sm md:text-base text-neutral-100 group-hover:text-white">System Recovery & OS Configuration</h3>
+                  </div>
+                  
+                  <ul className="space-y-2">
+                    {[
+                      "Blue Screen",
+                      "Boot Failure",
+                      "MBR to GPT Conversion",
+                      "Format / Reformat",
+                      "Data Recovery",
+                      "System and Files Backup",
+                      "O.S. Cloning",
+                      "O.S. Migration",
+                      "Password Removal",
+                      "BIOS Update",
+                      "Secure Boot Issue"
+                    ].map((item) => (
+                      <li key={item} className="flex items-center gap-3">
+                        <div className="w-1.5 h-1.5 rotate-45 bg-purple-500 transition-colors shadow-[0_0_6px_rgba(168,85,247,0.4)]" />
+                        <span className="text-[11px] font-black uppercase tracking-widest text-neutral-400 group-hover:text-neutral-300 transition-colors">
+                          {item}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Card 2: Software & Game Installation */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="relative p-6 md:p-8 min-h-[260px] md:min-h-[300px] rounded-2xl border border-neutral-900/60 bg-neutral-950/80 backdrop-blur-sm shadow-2xl flex flex-col justify-between group overflow-hidden"
+            >
+              <div 
+                className="absolute inset-0 z-0 bg-cover bg-center opacity-15 mix-blend-luminosity group-hover:opacity-100 group-hover:mix-blend-normal group-hover:brightness-150 transition-all duration-700" 
+                style={{ backgroundImage: `url(${computerSoftwareBg})` }}
+              />
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 flex items-center justify-center border border-neutral-900/80 rounded-xl bg-neutral-950 text-purple-400 font-black shrink-0 relative overflow-hidden shadow-inner">
+                    <Binary className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-extrabold uppercase tracking-tight text-sm md:text-base text-neutral-100 group-hover:text-white">Software & Game Installation</h3>
+                </div>
+                
+                <ul className="space-y-2">
+                  {[
+                    "Adobe Photoshop",
+                    "Microsoft Office 365 Installation & Activation",
+                    "Windows 11 Permanent Activation",
+                    "Game Installation"
+                  ].map((item) => (
+                    <li key={item} className="flex items-center gap-3">
+                      <div className="w-1.5 h-1.5 rotate-45 bg-purple-500 transition-colors shadow-[0_0_6px_rgba(168,85,247,0.4)]" />
+                      <span className="text-[11px] font-black uppercase tracking-widest text-neutral-400 group-hover:text-neutral-300 transition-colors">
+                        {item}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </motion.div>
+
+          </div>
+
+          {/* Spacer */}
+          <div className="h-4" />
+
+        </div>
+      </div>
+
       {/* Section 1: Hero Entry Lounge (Takes min-h-screen) */}
       <div className="min-h-screen w-full relative z-10 flex flex-col justify-between">
         {/* Centered text container to constraint screen stretch */}
@@ -5509,20 +6270,6 @@ export default function ShadowProject({
             
             {/* Main Column: Shadow Project Info */}
             <div className="lg:col-span-12 lg:max-w-4xl flex flex-col text-left">
-              <motion.h2 
-                initial={skip ? { opacity: 1, y: 0 } : { opacity: 0, y: -100 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={skip ? { duration: 0 } : { 
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 12,
-                  delay: 0.2
-                }}
-                className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.85] mb-4 text-white select-none"
-              >
-                Shadow<br />
-                <span className="text-purple-500">Tech.</span>
-              </motion.h2>
 
               <div className="flex flex-wrap items-center gap-2 mb-3 md:mb-5">
                 <motion.div 
@@ -5739,154 +6486,15 @@ export default function ShadowProject({
             </div>
 
           </div>
-
-          {/* Elegant vertical Scroll Down indicator in Left Gutter */}
-          <div className="absolute left-2 md:left-3 lg:left-4 bottom-8 md:bottom-14 z-20 flex flex-col items-center gap-6 select-none pointer-events-none">
-            <div className="flex flex-col items-center gap-1.5 md:gap-2">
-              {"SCROLL DOWN".split("").map((char, index) => {
-                if (char === " ") {
-                  return <div key={index} className="h-4 md:h-6" />;
-                }
-                return (
-                  <motion.span
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ 
-                      opacity: [0.35, 1, 0.35],
-                      scale: [0.95, 1.15, 0.95],
-                      textShadow: [
-                        "0 0 2px rgba(188,82,255,0.2)",
-                        "0 0 16px rgba(188,82,255,0.95), 0 0 24px rgba(188,82,255,0.6)",
-                        "0 0 2px rgba(188,82,255,0.2)"
-                      ],
-                      color: ["#c084fc", "#ffffff", "#c084fc"]
-                    }}
-                    transition={{
-                      opacity: { repeat: Infinity, duration: 2.5, delay: index * 0.12, ease: "easeInOut" },
-                      scale: { repeat: Infinity, duration: 2.5, delay: index * 0.12, ease: "easeInOut" },
-                      textShadow: { repeat: Infinity, duration: 2.5, delay: index * 0.12, ease: "easeInOut" },
-                      color: { repeat: Infinity, duration: 2.5, delay: index * 0.12, ease: "easeInOut" },
-                      initial: { delay: 1.5 + index * 0.05, duration: 0.5 }
-                    }}
-                    className="text-[16px] md:text-[20px] font-mono font-black uppercase text-purple-400 select-none inline-block leading-none"
-                  >
-                    {char}
-                  </motion.span>
-                );
-              })}
-            </div>
-            <motion.div 
-              animate={{ y: [0, 12, 0] }}
-              transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-              className="w-[2px] h-24 md:h-28 bg-gradient-to-b from-purple-500 to-transparent" 
-            />
-          </div>
         </div>
       </div>
 
-      {/* Section 2: Areas of Expertise (Replacing Why Sustain the Shadows) */}
-      <div className="w-full relative z-10 py-16 px-6 md:px-12">
-        <div className="relative z-10 max-w-5xl mx-auto w-full space-y-8">
+      {/* Footer Support Section - Centered at the absolute bottom of the scroll flow */}
+      <div className="w-full relative z-10 pt-16 pb-24 px-6 md:px-12 bg-black/45 border-t border-neutral-900/40">
+        <div className="relative z-10 max-w-5xl mx-auto w-full space-y-12">
           
-          {/* Header Ribbon */}
-          <div className="flex flex-col items-center text-center space-y-3 pb-6 border-b border-neutral-900/30">
-            <div>
-              <span className="text-[9px] font-mono tracking-[0.3em] uppercase text-purple-400 font-extrabold">// SYSTEM_PROFICIENCY</span>
-              <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-neutral-100 via-white to-purple-300">
-                ONLINE COMPUTER REPAIR SERVICES
-              </h2>
-            </div>
-          </div>
-
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-neutral-900/30 border border-neutral-900/40 text-white">
-            
-            {/* Card 1: System Recovery & OS Configuration */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="relative p-6 md:p-8 min-h-[260px] md:min-h-[300px] group transition-colors duration-500 overflow-hidden bg-neutral-950/90 text-white border border-neutral-900/40"
-            >
-              <div 
-                className="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-luminosity group-hover:opacity-45 transition-opacity duration-700" 
-                style={{ backgroundImage: `url(${shadowTechMagic})` }}
-              />
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 flex items-center justify-center transition-colors border border-neutral-800 rounded bg-neutral-900 text-purple-400 font-black">
-                    <Cpu className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-black uppercase tracking-tight text-xs md:text-sm text-neutral-100 group-hover:text-white">System Recovery & OS Configuration</h3>
-                </div>
-                
-                <ul className="space-y-2">
-                  {[
-                    "Blue Screen",
-                    "Boot Failure",
-                    "Boot Loop",
-                    "Format / Reformat",
-                    "Data Recovery",
-                    "System and Files Backup",
-                    "O.S. Cloning",
-                    "O.S. Migration",
-                    "Password Removal",
-                    "BIOS Update"
-                  ].map((item) => (
-                    <li key={item} className="flex items-center gap-2.5">
-                      <div className="w-1 h-1 rotate-45 bg-purple-500 transition-colors shrink-0" />
-                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-neutral-300 transition-all">
-                        {item}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </motion.div>
-
-            {/* Card 2: Software & Game Installation */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="relative p-6 md:p-8 min-h-[260px] md:min-h-[300px] group transition-colors duration-500 overflow-hidden bg-neutral-950/90 text-white border border-neutral-900/40"
-            >
-              <div 
-                className="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-luminosity group-hover:opacity-45 transition-opacity duration-700" 
-                style={{ backgroundImage: `url(${shadowDarkBlade})` }}
-              />
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 flex items-center justify-center transition-colors border border-neutral-800 rounded bg-neutral-900 text-purple-400 font-black">
-                    <Binary className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-black uppercase tracking-tight text-xs md:text-sm text-neutral-100 group-hover:text-white">Software & Game Installation</h3>
-                </div>
-                
-                <ul className="space-y-2">
-                  {[
-                    "Adobe Photoshop",
-                    "Microsoft Office 365 Installation & Activation",
-                    "Windows 11 Permanent Activation",
-                    "Game Installation"
-                  ].map((item) => (
-                    <li key={item} className="flex items-center gap-2.5">
-                      <div className="w-1 h-1 rotate-45 bg-purple-500 transition-colors shrink-0" />
-                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-neutral-300 transition-all">
-                        {item}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </motion.div>
-
-          </div>
-
           {/* Support Shadow Garden Button */}
-          <div className="flex justify-center pt-8 pb-4 relative z-10">
+          <div className="flex flex-col items-center justify-center pt-6 pb-4">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -5899,306 +6507,7 @@ export default function ShadowProject({
             </motion.button>
           </div>
 
-          {/* Bottom Watermark */}
-          <div className="text-center pt-8 border-t border-neutral-900/80">
-            <p className="text-[8px] md:text-[9px] uppercase tracking-[0.3em] font-black leading-relaxed text-neutral-500">
-              Technical proficiency verified via distributed testing protocols // last updated MAY 2026 // archive reference #EXP-772
-            </p>
-          </div>
-
         </div>
-      </div>
-
-      {/* Floating Tactical Soundtrack & Equalizer Module */}
-      <div className="fixed bottom-8 right-8 z-40 font-mono text-[10px] select-none flex flex-col items-end gap-3 pointer-events-auto">
-        <AnimatePresence>
-          {isSounddeckExpanded && (
-            <motion.div
-              initial={{ opacity: 0, y: 15, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 15, scale: 0.95 }}
-              className="bg-neutral-950/95 backdrop-blur-md border-2 border-purple-500/30 rounded-2xl p-4 w-[310px] shadow-[0_0_25px_rgba(168,85,247,0.2)] text-white relative flex flex-col gap-3.5 overflow-hidden"
-            >
-              {/* Grid backdrop and corners */}
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:16px_16px] opacity-25 pointer-events-none" />
-              <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-purple-500/40 pointer-events-none rounded-tl-lg" />
-              <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-purple-500/40 pointer-events-none rounded-tr-lg" />
-              <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-purple-500/40 pointer-events-none rounded-bl-lg" />
-              <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-purple-500/40 pointer-events-none rounded-br-lg" />
-
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-neutral-900 pb-2 relative z-10 shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <span className={`w-1.5 h-1.5 bg-purple-500 rounded-full block ${isPlaying ? 'animate-ping' : ''}`} />
-                    <span className="absolute -inset-0.5 bg-purple-500/30 rounded-full blur-[2px]" />
-                  </div>
-                  <span className="font-extrabold uppercase tracking-[0.2em] text-purple-400">SPECTRUM SOUNDDECK</span>
-                </div>
-                <button
-                  onClick={() => setIsSounddeckExpanded(false)}
-                  className="p-1 hover:bg-neutral-900 text-neutral-500 hover:text-white transition-all rounded cursor-pointer"
-                  title="Minimize player"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-
-              {/* Status & Sim tracking lines */}
-              <div className="bg-neutral-950 border border-neutral-900 p-2.5 rounded-lg flex flex-col gap-1.5 relative z-10">
-                <div className="flex justify-between items-center text-[8px] text-neutral-500 tracking-wider text-left">
-                  <span>SIGNAL CODE: SHADOW</span>
-                  <span className="text-purple-500 font-bold">{isPlaying ? 'TRANSMITTING' : 'MUTED'}</span>
-                </div>
-                <div className="truncate text-[10px] font-black tracking-widest text-neutral-100 uppercase animate-pulse text-left">
-                  ⚔ {activeTrack.name}
-                </div>
-                <div className="text-[8px] text-neutral-400 font-sans uppercase break-all font-medium leading-normal text-left">
-                  {activeTrack.desc}
-                </div>
-
-                {/* Simulated tracking line */}
-                <div className="h-1 bg-neutral-900 overflow-hidden relative rounded-full mt-1.5 w-full">
-                  <motion.div
-                    animate={isPlaying ? { x: ["-100%", "100%"] } : { x: "0%" }}
-                    transition={isPlaying ? { repeat: Infinity, duration: 3, ease: "linear" } : {}}
-                    className="absolute inset-y-0 w-2/5 bg-gradient-to-r from-transparent via-purple-500 to-transparent shadow-[0_0_8px_rgba(168,85,247,0.5)]"
-                  />
-                </div>
-              </div>
-
-              {/* Equalizer animation & Controls row */}
-              <div className="flex items-center justify-between px-1 relative z-10 shrink-0">
-                {/* Embedded style tag for equalizers */}
-                <style dangerouslySetInnerHTML={{__html: `
-                  @keyframes eq-bar-pulse {
-                    0%, 100% { height: 15%; }
-                    50% { height: 75%; }
-                  }
-                `}} />
-                
-                {/* Visualizer bars */}
-                <div className="flex items-end gap-1 h-5 overflow-hidden w-12 select-none">
-                  {[0.7, 0.4, 0.9, 0.5, 0.8].map((speed, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        animation: isPlaying ? `eq-bar-pulse ${speed}s ease-in-out infinite` : 'none',
-                        height: isPlaying ? '15%' : '20%',
-                      }}
-                      className="w-[3px] bg-purple-500/80 rounded-full transition-all duration-300"
-                    />
-                  ))}
-                </div>
-
-                {/* Main Playback controller row */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handlePrevTrack}
-                    className="p-1.5 rounded-lg border border-neutral-900 hover:border-purple-500/20 bg-neutral-950 text-neutral-400 hover:text-white active:scale-95 transition-all cursor-pointer"
-                    title="Previous track"
-                  >
-                    <SkipBack size={12} />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      if (!localAudioActive) {
-                        setLocalAudioActive(true);
-                      }
-                      setIsPlaying(!isPlaying);
-                    }}
-                    className={`p-2.5 rounded-full border shadow-md active:scale-95 transition-all duration-300 cursor-pointer ${
-                      isPlaying
-                        ? 'bg-purple-650 hover:bg-purple-500 border-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]'
-                        : 'bg-neutral-900 hover:bg-neutral-850 border-neutral-800 text-purple-400'
-                    }`}
-                    title={isPlaying ? 'Mute' : 'Play'}
-                  >
-                    {isPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} className="ml-0.5" />}
-                  </button>
-
-                  <button
-                    onClick={handleNextTrack}
-                    className="p-1.5 rounded-lg border border-neutral-900 hover:border-purple-500/20 bg-neutral-950 text-neutral-400 hover:text-white active:scale-95 transition-all cursor-pointer"
-                    title="Next track"
-                  >
-                    <SkipForward size={12} />
-                  </button>
-                </div>
-
-                {/* Audio Mode indicator */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!localAudioActive) setLocalAudioActive(true);
-                    setIsPlaying(!isPlaying);
-                  }}
-                  className="p-1 bg-neutral-950 hover:bg-neutral-900 border border-neutral-900 text-neutral-400 hover:text-white transition-all rounded flex items-center gap-1 cursor-pointer"
-                >
-                  {isPlaying ? (
-                    <>
-                      <Volume2 size={11} className="text-purple-400 animate-pulse" />
-                      <span className="text-[7.5px] font-black text-purple-400 uppercase">ON</span>
-                    </>
-                  ) : (
-                    <>
-                      <VolumeX size={11} className="text-neutral-500" />
-                      <span className="text-[7.5px] font-bold text-neutral-500 uppercase">MUTED</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Playlist Select list */}
-              <div className="border-t border-neutral-900/60 pt-2 flex flex-col gap-1 z-10 max-h-[110px] overflow-y-auto pr-1 no-scrollbar text-left font-mono">
-                <span className="text-[7.5px] uppercase tracking-[0.15em] text-neutral-500 pt-0.5 pb-1 block font-bold">FREQUENCY LIST ({playlist.length} FEEDS)</span>
-                {playlist.map((item, idx) => (
-                  <button
-                    key={`${item.id}-${idx}`}
-                    onClick={() => handleSelectTrack(idx)}
-                    className={`w-full p-2 text-left rounded-lg border text-[9px] flex items-center justify-between gap-2 cursor-pointer transition-all duration-200 group relative ${
-                      idx === currentTrackIndex
-                        ? 'bg-purple-950/20 border-purple-500/35 text-purple-300 font-extrabold shadow-[inset_0_0_8px_rgba(168,85,247,0.1)]'
-                        : 'bg-neutral-950 border-neutral-900 text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200 hover:border-neutral-800'
-                    }`}
-                  >
-                    <div className="truncate flex-1">
-                      <div className="truncate uppercase font-bold text-[9px]">
-                        {idx === currentTrackIndex ? '🔮 ' : ''}{item.name}
-                      </div>
-                      <div className="truncate text-[7.5px] text-neutral-500 font-sans">
-                        {item.desc}
-                      </div>
-                    </div>
-                    
-                    {/* Trash button for custom playlist entries */}
-                    {idx >= STATIC_PLAYLIST.length && (
-                      <button
-                        onClick={(e) => handlePurgeTrack(item.id, e)}
-                        className="p-1 hover:bg-red-955/40 text-neutral-600 hover:text-red-400 rounded-md transition-all self-center opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer border border-transparent hover:border-red-900/20"
-                        title="Purge custom signal"
-                      >
-                        <Trash2 size={10} />
-                      </button>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {/* Custom stream controller */}
-              <form onSubmit={handleInjectTrack} className="border-t border-neutral-900/60 pt-2.5 flex flex-col gap-1.5 z-10 shrink-0 text-left">
-                <span className="text-[7.5px] uppercase tracking-[0.15em] text-neutral-500 font-bold">INJECT CUSTOM SOUNDTRACK VIA YT LINK</span>
-                <div className="flex gap-1.5 items-center justify-between">
-                  <input
-                    type="text"
-                    value={soundtrackInput}
-                    disabled={isInjectingTrack}
-                    onChange={(e) => setSoundtrackInput(e.target.value)}
-                    placeholder={isInjectingTrack ? "INJECTING SIGNAL..." : "Paste YT Link or Video ID"}
-                    className={`flex-1 bg-neutral-950 text-[9px] font-sans text-neutral-100 placeholder:text-neutral-600 outline-none border border-neutral-900 focus:border-purple-500/30 px-2 py-1.5 transition-all text-left uppercase ${isInjectingTrack ? 'opacity-40 cursor-not-allowed' : ''}`}
-                  />
-                  {isInjectingTrack ? (
-                    <div className="flex items-center gap-1.5 px-2">
-                      {/* Circular Progress Loader */}
-                      <div className="relative flex items-center justify-center w-6 h-6">
-                        {/* Outer rotating ring */}
-                        <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/20 animate-spin [animation-duration:10s]" />
-                        
-                        {/* Inner SVG Circular Progress */}
-                        <svg className="w-5 h-5 transform -rotate-90" viewBox="0 0 80 80">
-                          {/* Background Track */}
-                          <circle
-                            cx="40"
-                            cy="40"
-                            r="34"
-                            className="stroke-neutral-900"
-                            strokeWidth="6"
-                            fill="transparent"
-                          />
-                          {/* Foreground Progress */}
-                          <circle
-                            cx="40"
-                            cy="40"
-                            r="34"
-                            className="stroke-purple-500 transition-all duration-100 ease-out"
-                            strokeWidth="6"
-                            fill="transparent"
-                            strokeDasharray="213.6"
-                            strokeDashoffset={213.6 * (1 - injectingTrackProgress / 100)}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        
-                        {/* Center text showing percentage */}
-                        <span className="absolute text-[5.5px] font-black text-purple-400 font-mono">
-                          {injectingTrackProgress}%
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      type="submit"
-                      disabled={!soundtrackInput.trim()}
-                      className={`px-3 py-1.5 flex items-center gap-1 border font-bold uppercase tracking-wider text-[8px] transition-all cursor-pointer ${
-                        soundtrackInput.trim()
-                          ? 'bg-purple-950/40 hover:bg-purple-900/50 border-purple-500/40 text-purple-300'
-                          : 'bg-neutral-900/20 border-neutral-950 text-neutral-600 cursor-not-allowed'
-                      }`}
-                    >
-                      <Plus size={10} />
-                      <span>INJECT</span>
-                    </button>
-                  )}
-                </div>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Floating Capsule trigger button */}
-        <motion.button
-          onClick={() => {
-            setIsSounddeckExpanded(!isSounddeckExpanded);
-            // Ensure soundtrack plays in response to clicking the trigger button
-            if (!isPlaying || !localAudioActive) {
-              setLocalAudioActive(true);
-              setIsPlaying(true);
-              setCurrentTrackIndex(0);
-              localStorage.setItem('shadow_soundtrack_active_index', '0');
-            }
-          }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className={`flex items-center gap-2.5 px-4 py-2.5 border-2 shadow-2xl transition-all select-none rounded-full cursor-pointer font-bold uppercase tracking-[0.15em] text-[10px] relative overflow-hidden ${
-            isSounddeckExpanded 
-              ? 'bg-purple-950/90 text-purple-400 border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.3)]' 
-              : 'bg-neutral-950 text-neutral-300 hover:text-white border-neutral-800 hover:border-purple-500/30 shadow-[0_0_15px_rgba(0,0,0,0.6)]'
-          }`}
-        >
-          {/* Pulsing indicator light */}
-          {!isSounddeckExpanded && isPlaying && (
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500" />
-            </span>
-          )}
-
-          {/* Equalizer or Static Music note */}
-          {isPlaying ? (
-            <div className="flex items-end gap-[2px] h-3 overflow-hidden select-none w-3">
-              <div className="w-[1.5px] bg-purple-400 rounded-full animate-[eq-bar-pulse_0.8s_ease-in-out_infinite]" />
-              <div className="w-[1.5px] bg-purple-400 rounded-full animate-[eq-bar-pulse_0.5s_ease-in-out_infinite]" style={{ animationDelay: '0.2s' }} />
-              <div className="w-[1.5px] bg-purple-400 rounded-full animate-[eq-bar-pulse_0.7s_ease-in-out_infinite]" style={{ animationDelay: '0.4s' }} />
-            </div>
-          ) : (
-            <Music size={12} className={isSounddeckExpanded ? "text-purple-400" : "text-neutral-500"} />
-          )}
-
-          <div className="flex items-center gap-1.5 font-semibold text-[9.5px]">
-            <span>{isSounddeckExpanded ? 'SOUND CONSOLE ENABLED' : (isPlaying ? `OST: ${activeTrack.name.substring(0, 11)}..` : 'SOUND DECK OFF')}</span>
-          </div>
-        </motion.button>
       </div>
 
       {/* Community Violation Warning popup */}

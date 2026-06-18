@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Tv, ExternalLink, Film, ArrowLeft, RefreshCw, Download } from 'lucide-react';
+import { Play, Tv, ExternalLink, Film, ArrowLeft, RefreshCw, Download, Copy, Check } from 'lucide-react';
 import { getDownloadCount, incrementDownloadCount } from '../utils/downloadTracker';
 
 import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
@@ -9,6 +9,24 @@ import shadowBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
 import shadowMoonRain from '../assets/images/shadow_moon_rain_1779250676888.png';
 import shadowElectricity from '../assets/images/shadow_neon_electricity_1779250694461.png';
 import shadowClockTower from '../assets/images/shadow_clock_tower_1779250710506.png';
+
+// Import newly available unique character and action backgrounds
+import shadowOnThrone from '../assets/images/shadow_on_throne_1781612271107.jpg';
+import shadowReadingGrimoire from '../assets/images/shadow_reading_grimoire_1781612288711.jpg';
+import shadowDivingMoon from '../assets/images/shadow_diving_moon_1781612308237.jpg';
+import shadowControllingStrings from '../assets/images/shadow_controlling_strings_1781612325928.jpg';
+
+import shadowSoloBg from '../assets/images/shadow_solo_bg_1780190187431.png';
+import alphaSoloBg from '../assets/images/alpha_solo_bg_1780190207110.png';
+import betaSoloBg from '../assets/images/beta_solo_bg_1780190226477.png';
+import gammaSoloBg from '../assets/images/gamma_solo_bg_1780190246677.png';
+import deltaSoloBg from '../assets/images/delta_solo_bg_1780190266500.png';
+import epsilonSoloBg from '../assets/images/epsilon_solo_bg_1780190286312.png';
+import zetaSoloBg from '../assets/images/zeta_solo_bg_1780190306077.png';
+import shadowGardenCharacters from '../assets/images/shadow_garden_characters_1780189909589.png';
+import shadowMasterAtomic from '../assets/images/shadow_master_atomic_1779279129608.png';
+import shadowBackground from '../assets/images/shadow_background_1779198051469.png';
+import shadowTechMagic from '../assets/images/shadow_tech_magic_1780090755590.png';
 
 function getEmbedUrl(url: string, title?: string) {
   if (!url) return '';
@@ -97,7 +115,7 @@ const getNormalizedSeason = (anime: any): 'S1' | 'S2' | 'MOVIE' => {
   if (title.includes('season 1') || title.includes('s1') || protocol.includes('s1') || title.includes('episode 1')) {
     return 'S1';
   }
-  if (title.includes('season 2') || title.includes('s2') || protocol.includes('s2') || title.includes('episode 2')) {
+  if (title.includes('season 2') || title.includes('s2') || protocol.includes('s2') || (title.includes('episode 2') && !/episode 2\d/.test(title))) {
     return 'S2';
   }
   if (title.includes('movie') || protocol.includes('movie') || title.includes('echoes')) {
@@ -131,7 +149,7 @@ function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
             autoPlay
             playsInline
             onError={() => {
-              console.warn("Direct video streaming failed, falling back to secure iframe player.");
+              console.log("Direct video streaming fallback initiated.");
               setUseIframe(true);
             }}
             className="w-full h-full object-contain animate-fade-in"
@@ -213,15 +231,6 @@ export default function AnimeView() {
 
     const defaultAnime = [
       {
-        id: 'default-anime-s2',
-        title: 'Xado Episode 2',
-        season: 'SEASON 2',
-        description: 'Deep archive decryption protocol active. Stream high-definition video directly.',
-        protocol: 'S2 FULL',
-        link: getEpisodeStreamLink(adminLink, 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'),
-        image: shadowClockTower
-      },
-      {
         id: 'default-anime-movie',
         title: 'Xado: Lost Echoes',
         season: 'THEATRIC MOVIE',
@@ -259,7 +268,8 @@ export default function AnimeView() {
         description: item.description || matchedDefault?.description || '',
         protocol: item.protocol || matchedDefault?.protocol || 'EXT LINK',
         link: getEpisodeStreamLink(item.link || adminLink, resolvedDefaultLink),
-        image: item.image || matchedDefault?.image || fallbackImages[idx % fallbackImages.length],
+        downloadLink: item.link || adminLink,
+        image: item.image || matchedDefault?.image || null,
         season: item.season || matchedDefault?.season || ''
       };
     }).filter((item: any) => normalizeTitle(item.title) !== 'xadoepisode1');
@@ -267,7 +277,10 @@ export default function AnimeView() {
     // Merge default list while filtering duplicates by title
     return [
       ...customList,
-      ...defaultAnime.filter(def => !customList.some((l: any) => normalizeTitle(l.title) === normalizeTitle(def.title)))
+      ...defaultAnime.filter(def => !customList.some((l: any) => normalizeTitle(l.title) === normalizeTitle(def.title))).map(def => ({
+        ...def,
+        downloadLink: def.link || adminLink
+      }))
     ];
   };
 
@@ -331,7 +344,59 @@ export default function AnimeView() {
     }
     
     return true;
+  }).sort((a, b) => {
+    return (a.title || '').localeCompare(b.title || '', undefined, { numeric: true, sensitivity: 'base' });
   });
+
+  const resolvedAnimeBgImages = useMemo(() => {
+    const fallbackAnimeBgImages = [
+      shadowOnThrone,             // Posture: Sitting relaxed holding a purple chalice (Throne Room)
+      shadowReadingGrimoire,      // Posture: Reading ancient spellbook, mysterious workspace
+      shadowDivingMoon,           // Posture: Diving mid-air, coat like bat-wings (Gothic Skyline)
+      shadowControllingStrings,   // Posture: Puppeteer stance controlling thin slime lines
+      shadowOnRoof,               // Posture: Rooftop stand observing under moon
+      alphaSoloBg,                // Character: Alpha blonde elf leader stance
+      shadowClockTower,           // Posture: Dark silhouette leaning on giant clock face
+      betaSoloBg,                 // Character: Beta silver literature researcher stance
+      shadowElectricity,          // Posture: High-tech matrix energy workspace
+      gammaSoloBg,                // Character: Gamma dark-haired elegant shadow posture
+      shadowMasterAtomic,         // Posture: Giant nuclear magic eruption sphere stance
+      deltaSoloBg,                // Character: Delta wild wolf-beast beast-girl stance
+      shadowMoonRain,             // Posture: Grim rain-slicked umbrella walk stance
+      epsilonSoloBg,              // Character: Epsilon pink keyboard/shield stance
+      shadowGardenCharacters,     // Stance: Dynamic Seven Shadows team ensemble group shot
+      zetaSoloBg,                 // Character: Zeta cat-girl stance
+      shadowAura,                 // Posture: Hovering wrapped in deep purple high-intensity fire aura
+      shadowTechMagic,            // Posture: Manifesting cybernetic code hologram screens
+      shadowBlade,                // Posture: Sword-drawn shadow stance in dramatic temple
+      shadowSoloBg,               // Posture: Profile stance dark shadow coat
+      shadowBackground            // Posture: Hooded close up look
+    ];
+    const result: any[] = [];
+    filteredAnimeList.forEach((anime, idx) => {
+      let chosen = anime.image;
+      if (!chosen) {
+        chosen = fallbackAnimeBgImages[idx % fallbackAnimeBgImages.length];
+      }
+      
+      const prev1 = idx >= 1 ? result[idx - 1] : null;
+      const prev2 = idx >= 2 ? result[idx - 2] : null;
+      const prev3 = idx >= 3 ? result[idx - 3] : null;
+      
+      if (chosen === prev1 || chosen === prev2 || chosen === prev3) {
+        let altIndex = (idx + 1) % fallbackAnimeBgImages.length;
+        for (let attempt = 0; attempt < fallbackAnimeBgImages.length; attempt++) {
+          const candidate = fallbackAnimeBgImages[(altIndex + attempt) % fallbackAnimeBgImages.length];
+          if (candidate !== prev1 && candidate !== prev2 && candidate !== prev3) {
+            chosen = candidate;
+            break;
+          }
+        }
+      }
+      result.push(chosen);
+    });
+    return result;
+  }, [filteredAnimeList]);
 
   return (
     <div className="h-full flex flex-col bg-neutral-950">
@@ -414,23 +479,16 @@ export default function AnimeView() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 min-h-full border-b border-neutral-900 bg-neutral-950 flex-1">
           {filteredAnimeList.map((anime, idx) => {
-          const fallbackAnimeBgImages = [
-            shadowOnRoof,
-            shadowAura,
-            shadowBlade,
-            shadowMoonRain,
-            shadowElectricity,
-            shadowClockTower
-          ];
-          const animeBgImage = anime.image || fallbackAnimeBgImages[idx % fallbackAnimeBgImages.length];
+          const animeBgImage = resolvedAnimeBgImages[idx];
           const hasBgImage = !!animeBgImage;
           const Tag = motion.div;
           const adminLink = localStorage.getItem('admin_console_link') || 'https://drive.google.com';
           const targetLink = anime.link || adminLink;
-          const driveId = getGoogleDriveId(targetLink);
+          const downloadTargetLink = anime.downloadLink || targetLink;
+          const driveId = getGoogleDriveId(downloadTargetLink);
           const downloadUrl = driveId 
             ? `https://drive.google.com/uc?export=download&id=${driveId}`
-            : targetLink;
+            : downloadTargetLink;
 
           const handleClick = (e: React.MouseEvent) => {
             e.preventDefault();
@@ -438,6 +496,32 @@ export default function AnimeView() {
               ...anime,
               link: targetLink
             });
+          };
+
+          const handleDownloadClick = (e: React.MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            incrementDownloadCount('anime', anime.id, anime.title);
+            if (typeof window !== 'undefined' && (window as any).logUserMovement) {
+              (window as any).logUserMovement('action', `Downloaded "${anime.title}" from Anime Catalog`);
+            }
+            
+            // Resolve safe download link that redirects to file page instead of playing video
+            let finalDownloadLink = downloadTargetLink;
+            const driveId = getGoogleDriveId(downloadTargetLink);
+            if (driveId) {
+              // Direct download URL on Google Drive (forces direct file download, completely bypasses video player)
+              finalDownloadLink = `https://drive.google.com/uc?export=download&id=${driveId}`;
+            } else if (isDirectVideo(downloadTargetLink)) {
+              // Direct video links are fallback assets - redirect to the actual Google Drive technical files repo instead, to show files for download
+              finalDownloadLink = adminLink;
+            }
+
+            if (typeof window !== 'undefined' && (window as any).triggerRedirectLoader) {
+              (window as any).triggerRedirectLoader(finalDownloadLink, anime.title);
+            } else {
+              window.open(finalDownloadLink, '_blank', 'noopener,noreferrer');
+            }
           };
 
           return (
@@ -452,17 +536,31 @@ export default function AnimeView() {
                   : 'bg-neutral-900/35 hover:bg-neutral-900/80 text-white'
               }`}
             >
-              {animeBgImage && (
-                <div className="absolute inset-0 z-0 overflow-hidden">
+              {/* Original Cinematic Widescreen Widespan Background */}
+              <div className="absolute inset-0 z-0 overflow-hidden bg-neutral-950">
+                {animeBgImage && (
                   <img 
                     src={animeBgImage} 
                     alt="" 
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 brightness-[0.7] group-hover:brightness-[0.8]"
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000 brightness-[0.85] group-hover:brightness-[1.0] saturate-[0.95] group-hover:saturate-[1.1] contrast-[1.05]"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/35 group-hover:from-black/100 group-hover:via-black/70 group-hover:to-black/45 transition-all duration-300" />
-                </div>
-              )}
+                )}
+                
+                {/* Widescreen Cinematic Vignette and Film Mask Overlay */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.05)_20%,rgba(0,0,0,0.5)_80%)] pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/95 via-neutral-950/45 to-transparent group-hover:from-neutral-950/90 group-hover:via-neutral-950/20 transition-all duration-500 z-10" />
+
+                {/* Simulated Anamorphic Rose Lens Flare */}
+                <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-rose-500/30 to-transparent blur-[1px] group-hover:via-rose-400/50 transition-all duration-500 z-10 transform -translate-y-1/2 scale-x-[1.3]" />
+                <div className="absolute top-1/2 left-1/4 right-1/4 h-[12px] bg-rose-500/10 blur-[8px] group-hover:bg-rose-400/20 transition-all duration-500 z-10 transform -translate-y-1/2" />
+
+                {/* Theater dust / floating embers look */}
+                <div className="absolute top-0 right-0 left-0 bottom-0 pointer-events-none opacity-[0.08] group-hover:opacity-[0.15] transition-opacity duration-500 z-10 bg-[radial-gradient(rgba(244,63,94,0.15)_1px,transparent_1px)] [background-size:16px_16px] animate-[pulse_3s_infinite]" />
+
+                {/* Laser light sweep across from left to right on hover */}
+                <div className="absolute inset-0 w-[45%] h-full bg-gradient-to-r from-transparent via-rose-500/10 to-transparent -skew-x-12 -translate-x-[150%] group-hover:translate-x-[250%] transition-transform duration-[1200ms] ease-out pointer-events-none z-15" />
+              </div>
 
               <div className="relative z-10 flex-1 flex flex-col justify-between">
                 <div>
@@ -481,7 +579,7 @@ export default function AnimeView() {
                         if (lowerTitle.includes('season 1') || lowerTitle.includes('s1') || lowerProtocol.includes('s1') || lowerTitle.includes('episode 1')) {
                           return 'SEASON 1';
                         }
-                        if (lowerTitle.includes('season 2') || lowerTitle.includes('s2') || lowerProtocol.includes('s2') || lowerTitle.includes('episode 2')) {
+                        if (lowerTitle.includes('season 2') || lowerTitle.includes('s2') || lowerProtocol.includes('s2') || (lowerTitle.includes('episode 2') && !/episode 2\d/.test(lowerTitle))) {
                           return 'SEASON 2';
                         }
                         if (lowerTitle.includes('movie') || lowerProtocol.includes('movie') || lowerTitle.includes('echoes')) {
@@ -505,14 +603,8 @@ export default function AnimeView() {
                 
                 <div className="pt-6 flex justify-end items-end mt-auto animate-fade-in">
                   <div className="flex gap-1.5 items-center shrink-0">
-                    <a
-                      href={downloadUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        incrementDownloadCount('anime', anime.id, anime.title);
-                      }}
+                    <button
+                      onClick={handleDownloadClick}
                       className={`h-10 px-3.5 shrink-0 flex items-center justify-center gap-2 border transition-all duration-300 cursor-pointer shadow-md rounded-xl font-mono text-[11px] font-extrabold uppercase tracking-wide ${
                         hasBgImage
                           ? 'bg-neutral-900/45 hover:bg-neutral-800/85 border-neutral-700/50 hover:border-rose-500/50 text-neutral-400 hover:text-rose-450'
@@ -522,8 +614,20 @@ export default function AnimeView() {
                     >
                       <Download size={14} className="shrink-0" />
                       <span>{getDownloadCount('anime', anime.id, anime.title)}</span>
-                    </a>
+                    </button>
                     
+                    <button
+                      onClick={handleDownloadClick}
+                      className={`h-10 w-10 shrink-0 flex items-center justify-center border transition-all duration-300 cursor-pointer shadow-md rounded-none ${
+                        hasBgImage
+                          ? 'bg-rose-950/40 hover:bg-rose-900/60 border-rose-500/40 text-rose-300 hover:text-white shadow-[0_0_15px_rgba(244,63,94,0.12)] hover:shadow-[0_0_20px_rgba(244,63,94,0.35)] hover:border-rose-400'
+                          : 'bg-purple-950/40 hover:bg-purple-900/60 border-purple-500/40 text-purple-300 hover:text-white shadow-[0_0_15px_rgba(168,85,247,0.12)] hover:shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:border-purple-400'
+                      }`}
+                      title="Download episode"
+                    >
+                      <Download size={14} className="shrink-0" />
+                    </button>
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

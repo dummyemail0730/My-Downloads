@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Copy, Check, ArrowLeft, Smartphone, QrCode, ShieldCheck, X } from 'lucide-react';
 import shadowDarkBlade from '../assets/images/shadow_dark_blade_1779250640689.png';
+import instapayQrCode from '../assets/images/instapay_qr_code_1781345661729.jpg';
 
 interface SupportViewProps {
   onBack: () => void;
@@ -161,7 +162,14 @@ export default function SupportView({ onBack }: SupportViewProps) {
                   {/* Outer glowing target scan effect */}
                   <div className="absolute top-0 inset-x-0 h-0.5 bg-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.6)] animate-[bounce_3s_infinite] pointer-events-none" />
 
-                  <QrCode className="w-16 h-16 text-purple-400 opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-300" strokeWidth={1.5} />
+                  <div className="w-64 h-52 rounded-xl overflow-hidden bg-white p-2 border-2 border-purple-500/40 flex items-center justify-center shadow-[0_0_25px_rgba(168,85,247,0.4)] transition-transform duration-300 group-hover:scale-105 shrink-0">
+                    <img 
+                      src={instapayQrCode} 
+                      alt="GCash instaPay QR Code" 
+                      className="w-full h-full object-contain select-none"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
                   
                   <span className="text-[9px] text-neutral-400 uppercase tracking-widest mt-2.5">
                     SCAN QR OR COPY INFO BELOW
