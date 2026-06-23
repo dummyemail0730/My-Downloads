@@ -1,0 +1,29 @@
+{
+  "entities": {
+    "GlobalConfig": {
+      "title": "GlobalConfig",
+      "description": "Global settings for the ShadowTech Portal",
+      "type": "object",
+      "properties": {
+        "admin_console_link": { "type": "string" },
+        "custom_projects": { "type": "array" },
+        "custom_anime": { "type": "array" },
+        "custom_games": { "type": "array" },
+        "shadow_master_tutorials": { "type": "array" },
+        "custom_tools": { "type": "array" },
+        "deleted_item_ids": { "type": "array" },
+        "user_suggestions": { "type": "array" },
+        "user_appointments": { "type": "array" },
+        "user_shout_outs": { "type": "array" },
+        "user_activity_logs": { "type": "array" },
+        "chatbot_passcodes": { "type": "array" }
+      }
+    }
+  },
+  "firestore": {
+    "/portalSettings/globalConfigs": {
+      "schema": "GlobalConfig",
+      "description": "Dynamic configurations for ShadowTech portal"
+    }
+  }
+}

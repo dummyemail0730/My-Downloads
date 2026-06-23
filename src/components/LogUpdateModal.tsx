@@ -8,7 +8,7 @@ interface LogUpdateModalProps {
 }
 
 export default function LogUpdateModal({ isOpen, onClose }: LogUpdateModalProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'suggestions' | 'appointments' | 'shoutouts' | 'downloads' | 'changes'>('suggestions');
+  const [activeSubTab, setActiveSubTab ] = useState<'suggestions' | 'appointments' | 'shoutouts' | 'downloads'>('suggestions');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [shoutouts, setShoutouts] = useState<any[]>([]);
@@ -141,7 +141,6 @@ export default function LogUpdateModal({ isOpen, onClose }: LogUpdateModalProps)
               { id: 'appointments', label: 'Appointments', count: appointments.length, icon: Calendar, color: 'text-cyan-400 border-cyan-500/20 bg-cyan-950/25' },
               { id: 'shoutouts', label: 'Shoutout Box', count: shoutouts.length, icon: MessageSquare, color: 'text-pink-400 border-pink-500/20 bg-pink-950/25' },
               { id: 'downloads', label: 'Archive Downloads', count: downloads.length, icon: Download, color: 'text-emerald-400 border-emerald-500/20 bg-emerald-950/25' },
-              { id: 'changes', label: 'Console Changes', count: changes.length, icon: Terminal, color: 'text-amber-400 border-amber-500/20 bg-amber-950/25' },
             ].map((tab) => {
               const TabIcon = tab.icon;
               const isActive = activeSubTab === tab.id;
@@ -351,39 +350,7 @@ export default function LogUpdateModal({ isOpen, onClose }: LogUpdateModalProps)
                   </>
                 )}
 
-                {activeSubTab === 'changes' && (
-                  <>
-                    {changes.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500 font-mono text-center">
-                        <Terminal className="w-10 h-10 text-amber-500/40 mb-3" />
-                        <p className="text-xs font-black text-amber-400/80 uppercase">No Admin Console Changes On-disk</p>
-                        <p className="text-[10px] text-zinc-600 mt-1">Actions in the secure dashboard will generate on-disk logs</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {changes.map((log: any, idx: number) => (
-                          <div
-                            key={log.id || idx}
-                            className="p-2.5 rounded-lg border border-amber-950/40 bg-[#16120b] flex items-center justify-between gap-4 font-mono text-[11px]"
-                          >
-                            <div className="flex items-center gap-2.5 truncate">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                              <span className="text-zinc-200 truncate">{log.text || 'System Event'}</span>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-[9px] text-amber-400 bg-amber-950/60 px-1 rounded border border-amber-900">
-                                {log.user || 'Admin'}
-                              </span>
-                              <span className="text-[10px] text-zinc-500">
-                                {log.date || 'n/a'}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
+
               </motion.div>
             </AnimatePresence>
           </div>

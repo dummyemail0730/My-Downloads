@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Permit public read and write access to portalSettings/globalConfigs for container orchestration and client-side syncing.
+    match /portalSettings/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

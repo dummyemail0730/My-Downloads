@@ -70,7 +70,6 @@ export const TOOLS: Tool[] = [
   { id: '2', name: '3DP CHIP', version: '1.2.1', description: 'driver utility', category: 'W10 & OLDER' },
   { id: '3', name: 'DDU', version: '0.8.5', description: 'Display Driver Uninstaller', category: 'W11, W10, W8, W7,' },
   { id: '4', name: 'CPU-Z', version: '1.0.2', description: 'system profiling and monitoring utility', category: 'W11, W10, W8,W7, Vista, & XP' },
-  { id: '5', name: 'HWINFO', version: '7.42.0', description: 'professional hardware analysis, monitoring, and reporting utility', category: 'W11, W10, W8, W7' },
   { id: '6', name: 'RUFUS', version: '4.1.0', description: 'utility that helps format and create bootable USB flash drives', category: 'W11, W10' },
-  { id: '7', name: 'NOVA DASHBOARD', version: '1.0.0', description: 'Real-time analytics engine with modular layout components and D3 integrations.', category: 'TypeScript, D3.js, React' }
+  { id: '7', name: 'MEMTEST86', version: '1.0.0', description: 'The absolute standard for system memory diagnostics and RAM stability testing.', category: 'MEMORY' }
 ];

@@ -3,6 +3,9 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
+import { initializeApp as initClientApp, getApps as getClientApps, getApp as getClientApp } from "firebase/app";
+import { getFirestore as getClientFirestore, doc as getClientDoc, getDoc as getClientGetDoc, setDoc as getClientSetDoc } from "firebase/firestore";
+import fs from "fs";
 
 async function startServer() {
   const app = express();
@@ -392,16 +395,220 @@ async function startServer() {
     };
   }
 
-  // Helper to persist generated passcodes to custom_configs.json
+  let dbClient: any = null;
+
+  function getFirebaseDB() {
+    if (dbClient) return dbClient;
+    try {
+      const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+      if (fs.existsSync(configPath)) {
+        const configRaw = fs.readFileSync(configPath, "utf-8");
+        const config = JSON.parse(configRaw);
+        
+        const firebaseConfig = {
+          apiKey: config.apiKey,
+          authDomain: config.authDomain,
+          projectId: config.projectId,
+          storageBucket: config.storageBucket,
+          messagingSenderId: config.messagingSenderId,
+          appId: config.appId
+        };
+
+        if (getClientApps().length === 0) {
+          initClientApp(firebaseConfig);
+        }
+        
+        const app = getClientApp();
+        if (config.firestoreDatabaseId) {
+          dbClient = getClientFirestore(app, config.firestoreDatabaseId);
+        } else {
+          dbClient = getClientFirestore(app);
+        }
+        console.log("[FIREBASE] Client initialized successfully with database ID:", config.firestoreDatabaseId || "(default)");
+      } else {
+        console.warn("[FIREBASE] firebase-applet-config.json not found! Falling back to local file storage.");
+      }
+    } catch (err) {
+      console.error("[FIREBASE] Client initialization failed:", err);
+    }
+    return dbClient;
+  }
+
+  function sanitizeConfig(config: any) {
+    if (!config) return config;
+
+    // Strict constraint: Filter out any mock/fake/automated suggestions
+    if (Array.isArray(config.user_suggestions)) {
+      const prevLength = config.user_suggestions.length;
+      config.user_suggestions = config.user_suggestions.filter((item: any) => {
+        if (!item || !item.text) return false;
+        const t = item.text.toLowerCase();
+        if (t.includes("shadow driver updater") || 
+            t.includes("fallback mirror link") || 
+            t.includes("sound bite rate") || 
+            t.includes("live tv/anime") ||
+            t.includes("automatic shadow driver") ||
+            t.includes("heavy usage limit") ||
+            t.includes("audio channel")) {
+          return false;
+        }
+        return true;
+      });
+      if (config.user_suggestions.length !== prevLength) {
+        console.log(`[SANITIZER] Purged ${prevLength - config.user_suggestions.length} mock suggestions as mandated by user intent safety guidelines.`);
+      }
+    }
+
+    // Strict constraint: Filter out any mock/fake/automated appointments
+    if (Array.isArray(config.user_appointments)) {
+      const prevLength = config.user_appointments.length;
+      config.user_appointments = config.user_appointments.filter((item: any) => {
+        if (!item) return false;
+        const name = (item.name || '').toLowerCase();
+        const contact = (item.contact || item.email || '').toLowerCase();
+        const specs = (item.specs || '').toLowerCase();
+        const problem = (item.problem || '').toLowerCase();
+        const desc = (item.description || '').toLowerCase();
+        const id = (item.id || '').toLowerCase();
+
+        if (name.includes("alpha") || name.includes("sherry") || name.includes("barnett") || name.includes("cid kagenou") || name.includes("cid")) {
+          return false;
+        }
+        if (contact.includes("shadow-garden") || contact.includes("academic.net") || contact === 'n/a') {
+          return false;
+        }
+        if (specs.includes("i9-13900k") || specs.includes("ryzen 7") || specs === 'n/a') {
+          return false;
+        }
+        if (problem.includes("slow performance") || problem.includes("freezing") || problem === 'n/a') {
+          return false;
+        }
+        if (desc.includes("compilation of system files") || desc.includes("large gcc builds") || desc.includes("io storage") || desc.includes("io bottleneck")) {
+          return false;
+        }
+        if (id.includes("ap-1") || id.includes("ap-2") || id.includes("ap-")) {
+          // Remove default/dummy appointment IDs
+          return false;
+        }
+        return true;
+      });
+      if (config.user_appointments.length !== prevLength) {
+        console.log(`[SANITIZER] Purged ${prevLength - config.user_appointments.length} mock appointments as mandated by user intent safety guidelines.`);
+      }
+    }
+
+    // Strict constraint: Filter out any mock/fake/automated shoutout or guestbook entries
+    if (Array.isArray(config.user_shout_outs)) {
+      const prevLength = config.user_shout_outs.length;
+      config.user_shout_outs = config.user_shout_outs.filter((item: any) => {
+        if (!item || !item.text) return false;
+        const t = item.text.toLowerCase();
+        const sender = (item.sender || '').toLowerCase();
+        if (t.includes("test message") || t.includes("auto-generated") || sender.includes("bot") || sender.includes("system")) {
+          return false;
+        }
+        return true;
+      });
+      if (config.user_shout_outs.length !== prevLength) {
+        console.log(`[SANITIZER] Purged ${prevLength - config.user_shout_outs.length} mock shoutouts as mandated by user intent safety guidelines.`);
+      }
+    }
+
+    return config;
+  }
+
+  async function getDurableConfig() {
+    const firebaseDb = getFirebaseDB();
+    const localPath = path.join(process.cwd(), "custom_configs.json");
+    const { promises: fsPromises } = await import("fs");
+    
+    // Read local fallback as base
+    let currentLocal: any = {};
+    try {
+      const localData = await fsPromises.readFile(localPath, "utf-8");
+      currentLocal = JSON.parse(localData);
+    } catch (e) {
+      currentLocal = {
+        admin_console_link: "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing",
+        custom_projects: [],
+        custom_anime: [],
+        custom_games: [],
+        shadow_master_tutorials: [],
+        custom_tools: [],
+        deleted_item_ids: [],
+        user_suggestions: [],
+        user_appointments: [],
+        user_shout_outs: [],
+        user_activity_logs: [],
+        chatbot_passcodes: []
+      };
+    }
+
+    let mergedConfig = currentLocal;
+
+    if (firebaseDb) {
+      try {
+        const docRef = getClientDoc(firebaseDb, "portalSettings", "globalConfigs");
+        const docSnap = await getClientGetDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          mergedConfig = { ...currentLocal, ...data };
+        } else {
+          console.log("[FIREBASE] No existing config found in Firestore. Seeding database with current local configurations...");
+          await getClientSetDoc(docRef, currentLocal);
+          mergedConfig = currentLocal;
+        }
+      } catch (err) {
+        console.warn("[FIREBASE] Failed to fetch config from Firestore, using local fallback:", err);
+        mergedConfig = currentLocal;
+      }
+    }
+
+    // Apply strict sanitization before returning
+    const sanitized = sanitizeConfig(mergedConfig);
+    
+    // If anything was modified, update local and Firestore durably
+    const rawClean = JSON.stringify(sanitized);
+    const rawIncoming = JSON.stringify(mergedConfig);
+    if (rawClean !== rawIncoming) {
+      console.log("[SANITIZER] Config cleanup triggered. Writing sanitized config back to Firestore & local storage.");
+      await saveDurableConfig(sanitized);
+    }
+
+    return sanitized;
+  }
+
+  async function saveDurableConfig(newConfig: any) {
+    const firebaseDb = getFirebaseDB();
+    const localPath = path.join(process.cwd(), "custom_configs.json");
+    const { promises: fsPromises } = await import("fs");
+
+    // Pre-sanitize any incoming saves
+    const sanitizedConfig = sanitizeConfig(newConfig);
+
+    try {
+      await fsPromises.writeFile(localPath, JSON.stringify(sanitizedConfig, null, 2), "utf-8");
+    } catch (err) {
+      console.warn("[FIREBASE] Failed to save config to local fallback file:", err);
+    }
+
+    if (!firebaseDb) {
+      return;
+    }
+
+    try {
+      const docRef = getClientDoc(firebaseDb, "portalSettings", "globalConfigs");
+      await getClientSetDoc(docRef, sanitizedConfig);
+      console.log("[FIREBASE] Config updated in Firestore durably and sanitized perfectly.");
+    } catch (err) {
+      console.error("[FIREBASE] Failed to save config to Firestore:", err);
+    }
+  }
+
+  // Helper to persist generated passcodes
   async function savePasscodesToConfig(codes: string[]) {
     try {
-      const configPath = path.join(process.cwd(), "custom_configs.json");
-      const { promises: fsPromises } = await import("fs");
-      let config: any = {};
-      try {
-        const existingData = await fsPromises.readFile(configPath, "utf-8");
-        config = JSON.parse(existingData);
-      } catch (e) {}
+      const config = await getDurableConfig();
 
       if (!config.chatbot_passcodes) {
         config.chatbot_passcodes = [];
@@ -419,10 +626,10 @@ async function startServer() {
       });
 
       if (updated) {
-        await fsPromises.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
+        await saveDurableConfig(config);
       }
     } catch (err) {
-      console.warn("Failed to persist passcodes to custom_configs.json:", err);
+      console.warn("Failed to persist passcodes:", err);
     }
   }
 
@@ -436,14 +643,7 @@ async function startServer() {
     const enteredLower = entered.toLowerCase();
 
     try {
-      const configPath = path.join(process.cwd(), "custom_configs.json");
-      const { promises: fsPromises } = await import("fs");
-      let config: any = {};
-      try {
-        const existingData = await fsPromises.readFile(configPath, "utf-8");
-        config = JSON.parse(existingData);
-      } catch (e) {}
-
+      const config = await getDurableConfig();
       const passcodesList: string[] = config.chatbot_passcodes || [];
       const found = passcodesList.find(c => 
         c && (entered === c || enteredLower === c.toLowerCase())
@@ -453,7 +653,7 @@ async function startServer() {
         return res.json({ valid: true, matchedCode: found });
       }
     } catch (err) {
-      console.warn("Error reading custom_configs.json for passcode validation:", err);
+      console.warn("Error reading passcode validation:", err);
     }
 
     return res.json({ valid: false });
@@ -727,12 +927,9 @@ async function startServer() {
 
 
       // Dynamically load updated custom configuration for absolute up-to-date knowledge
-      const configPath = path.join(process.cwd(), "custom_configs.json");
-      const { promises: fsPromises } = await import("fs");
       let customConfig: any = {};
       try {
-        const fileContent = await fsPromises.readFile(configPath, "utf-8");
-        customConfig = JSON.parse(fileContent);
+        customConfig = await getDurableConfig();
       } catch (err) {
         console.warn("Could not read custom_configs.json for Shadow knowledge-base, using empty fallback.");
       }
@@ -1110,17 +1307,47 @@ async function startServer() {
         let confirmToken = "";
         let uuidToken = "";
 
-        const confirmMatch = htmlText.match(/name="confirm"\s+value="([^"]+)"/) || 
-                             htmlText.match(/value="([^"]+)"\s+name="confirm"/) ||
-                             htmlText.match(/confirm=([^&'"\s>]+)/);
+        console.log(`[Video Proxy] HTML warning response received, size: ${htmlText.length}. Parsing tokens for fileId: ${fileId}...`);
+
+        const confirmMatch = htmlText.match(/name=["']confirm["']\s+value=["']([^"']+)["']/i) || 
+                             htmlText.match(/value=["']([^"']+)["']\s+name=["']confirm["']/i) ||
+                             htmlText.match(/id=["']confirm["']\s+value=["']([^"']+)["']/i) ||
+                             htmlText.match(/confirm=([^&'"\s>]+)/i);
         if (confirmMatch) {
           confirmToken = confirmMatch[1];
+          console.log(`[Video Proxy] Extracted focus confirm token: "${confirmToken}"`);
         }
 
-        const uuidMatch = htmlText.match(/name="uuid"\s+value="([^"]+)"/) || 
-                          htmlText.match(/value="([^"]+)"\s+name="uuid"/);
+        const uuidMatch = htmlText.match(/name=["']uuid["']\s+value=["']([^"']+)["']/i) || 
+                          htmlText.match(/value=["']([^"']+)["']\s+name=["']uuid["']/i);
         if (uuidMatch) {
           uuidToken = uuidMatch[1];
+        }
+
+        if (!confirmToken) {
+          // Extensive array of extraction attempts for robust token parsing
+          const extractionRegexes: [string, RegExp][] = [
+            ["url-query", /confirm=([^&'"\s>]+)/],
+            ["href-attrs-double", /href="[^"]*?confirm=([^&"]+)/],
+            ["href-attrs-single", /href='[^']*?confirm=([^&']+)/],
+            ["action-attrs-double", /action="[^"]*?confirm=([^&"]+)/],
+            ["action-attrs-single", /action='[^']*?confirm=([^&']+)/],
+            ["js-var-confirm_token", /confirm_token\s*=\s*['"]([^'"]+)['"]/i],
+            ["js-var-confirm", /confirm\s*=\s*['"]([^'"]+)['"]/i],
+            ["js-var-_confirm_token", /_confirm_token\s*=\s*['"]([^'"]+)['"]/i],
+            ["js-var-confirmToken", /confirmToken\s*=\s*['"]([^'"]+)['"]/i],
+            ["js-object-confirm", /['"]?confirm['"]?\s*:\s*['"]([^'"]+)['"]/i],
+            ["js-array-confirm", /['"]?confirm['"]?\s*,\s*['"]([^'"]+)['"]/i]
+          ];
+
+          for (const [label, reg] of extractionRegexes) {
+            const match = htmlText.match(reg);
+            if (match && match[1]) {
+              confirmToken = match[1];
+              console.log(`[Video Proxy] SUCCESS: Extracted confirm token fallback using regex [${label}]: "${confirmToken}"`);
+              break;
+            }
+          }
         }
 
         if (confirmToken) {
@@ -1163,7 +1390,12 @@ async function startServer() {
       for (const h of copyHeaders) {
         const val = streamResponse.headers.get(h);
         if (val) {
-          res.setHeader(h, val);
+          if (h === "content-type" && val === "application/octet-stream") {
+            // Force browser native video engine to recognize video container streams rather than standard binaries
+            res.setHeader(h, "video/mp4");
+          } else {
+            res.setHeader(h, val);
+          }
         }
       }
 
@@ -1407,76 +1639,8 @@ async function startServer() {
   // API Route - Get Configs
   app.get("/api/configs", async (req, res) => {
     try {
-      const configPath = path.join(process.cwd(), "custom_configs.json");
-      const { promises: fsPromises } = await import("fs");
-      
-      let localConfig: any = {
-        admin_console_link: "https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing",
-        custom_projects: [],
-        custom_anime: [],
-        custom_games: [],
-        shadow_master_tutorials: [],
-        custom_tools: [],
-        deleted_item_ids: [],
-        user_suggestions: [],
-        user_appointments: [],
-        user_shout_outs: [],
-        user_activity_logs: []
-      };
-
-      try {
-        const data = await fsPromises.readFile(configPath, "utf-8");
-        localConfig = JSON.parse(data);
-      } catch (err) {
-        // Fallback to defaults if file is missing
-      }
-
-      // If already forwarded, avoid circular queries
-      if (req.headers["x-sync-forwarded"]) {
-        return res.json(localConfig);
-      }
-
-      // Query cross-container counterpart to merge latest runtime dynamic additions
-      const hostHeader = req.get("host") || (req.headers.host as string);
-      const partnerUrl = getCounterpartUrl(hostHeader);
-
-      if (partnerUrl) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout to allow counterpart container cold start
-
-          const response = await fetch(partnerUrl, {
-            headers: { "x-sync-forwarded": "true" },
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-
-          if (response.ok) {
-            const partnerConfig = await response.json();
-            const mergedConfig = mergeConfigs(localConfig, partnerConfig);
-
-            // If partner has more/different items, write the merged results to our local disk
-            let hasChanges = false;
-            const keysToComp = ["custom_projects", "custom_anime", "custom_games", "custom_tools", "deleted_item_ids", "user_suggestions", "user_appointments", "user_shout_outs", "user_activity_logs"];
-            for (const k of keysToComp) {
-              if (JSON.stringify(localConfig[k]) !== JSON.stringify(mergedConfig[k])) {
-                hasChanges = true;
-                break;
-              }
-            }
-
-            if (hasChanges) {
-              await fsPromises.writeFile(configPath, JSON.stringify(mergedConfig, null, 2), "utf-8");
-            }
-
-            return res.json(mergedConfig);
-          }
-        } catch (partnerErr) {
-          console.log("[SYSTEM SYNC] Counterpart server offline or warming up.");
-        }
-      }
-
-      return res.json(localConfig);
+      const config = await getDurableConfig();
+      return res.json(config);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -1486,36 +1650,9 @@ async function startServer() {
   app.post("/api/configs", async (req, res) => {
     try {
       const newConfig = req.body;
-      const configPath = path.join(process.cwd(), "custom_configs.json");
-      const { promises: fsPromises } = await import("fs");
-      
-      let currentConfig: any = {};
-      try {
-        const existingData = await fsPromises.readFile(configPath, "utf-8");
-        currentConfig = JSON.parse(existingData);
-      } catch (e) {}
-
+      const currentConfig = await getDurableConfig();
       const updatedConfig = { ...currentConfig, ...newConfig };
-      await fsPromises.writeFile(configPath, JSON.stringify(updatedConfig, null, 2), "utf-8");
-
-      // Instantly propagate update to counterpart container
-      if (!req.headers["x-sync-forwarded"]) {
-        const hostHeader = req.get("host") || (req.headers.host as string);
-        const partnerUrl = getCounterpartUrl(hostHeader);
-        if (partnerUrl) {
-          fetch(partnerUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-sync-forwarded": "true"
-            },
-            body: JSON.stringify(newConfig)
-          }).catch(() => {
-            // Quiet fail if the partner container is sleeping/terminating
-          });
-        }
-      }
-
+      await saveDurableConfig(updatedConfig);
       return res.json({ success: true, config: updatedConfig });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

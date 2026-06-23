@@ -15,6 +15,18 @@ import shadowOnThrone from '../assets/images/shadow_on_throne_1781612271107.jpg'
 import shadowReadingGrimoire from '../assets/images/shadow_reading_grimoire_1781612288711.jpg';
 import shadowDivingMoon from '../assets/images/shadow_diving_moon_1781612308237.jpg';
 import shadowControllingStrings from '../assets/images/shadow_controlling_strings_1781612325928.jpg';
+import shadowRooftopSword from '../assets/images/shadow_rooftop_sword_1782197321011.jpg';
+import shadowRunicMastermind from '../assets/images/shadow_runic_mastermind_1782197344532.jpg';
+import elizabethBloodQueen from '../assets/images/elizabeth_blood_queen_1782196938058.jpg';
+import deltaBeastBlade from '../assets/images/delta_beast_blade_1782196956033.jpg';
+import epsilonPipeOrgan from '../assets/images/epsilon_pipe_organ_1782196970673.jpg';
+import johnSmithStrings from '../assets/images/john_smith_strings_1782196983941.jpg';
+import lawlessCitySkyline from '../assets/images/lawless_city_skyline_1782197000218.jpg';
+import yukimeFoxGod from '../assets/images/yukime_fox_god_1782197021212.jpg';
+import auroraVoidSanctuary from '../assets/images/aurora_void_sanctuary_1782197036617.jpg';
+import epsilonDynamicWhips from '../assets/images/epsilon_dynamic_whips_1782197579460.jpg';
+import zetaPredatorCrouch from '../assets/images/zeta_predator_crouch_1782197596342.jpg';
+import gammaElegantDeflect from '../assets/images/gamma_elegant_deflect_1782197611834.jpg';
 
 import shadowSoloBg from '../assets/images/shadow_solo_bg_1780190187431.png';
 import alphaSoloBg from '../assets/images/alpha_solo_bg_1780190207110.png';
@@ -128,16 +140,18 @@ interface GoogleDrivePlayerProps {
   driveId: string;
   title: string;
   key?: string;
+  mode?: 'gdrive' | 'proxy';
+  onFallback?: () => void;
 }
 
-function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
-  const [useIframe, setUseIframe] = useState<boolean>(false);
+function GoogleDrivePlayer({ driveId, title, mode = 'gdrive', onFallback }: GoogleDrivePlayerProps) {
+  const [useIframe, setUseIframe] = useState<boolean>(mode === 'gdrive');
   const videoUrl = `/api/video-proxy?id=${driveId}`;
   const iframeUrl = `https://drive.google.com/file/d/${driveId}/preview?autoplay=1&vq=hd720`;
 
   useEffect(() => {
-    setUseIframe(false);
-  }, [driveId]);
+    setUseIframe(mode === 'gdrive');
+  }, [mode, driveId]);
 
   return (
     <div className="relative w-full h-full bg-black flex flex-col justify-center items-center overflow-hidden">
@@ -149,8 +163,11 @@ function GoogleDrivePlayer({ driveId, title }: GoogleDrivePlayerProps) {
             autoPlay
             playsInline
             onError={() => {
-              console.log("Direct video streaming fallback initiated.");
+              console.log("Direct video streaming fallback initiated due to error.");
               setUseIframe(true);
+              if (onFallback) {
+                onFallback();
+              }
             }}
             className="w-full h-full object-contain animate-fade-in"
             referrerPolicy="no-referrer"
@@ -204,6 +221,10 @@ const getEpisodeStreamLink = (url: string, defaultVideo: string) => {
     lower.includes('windows') || 
     lower.includes('win10') || 
     lower.includes('ezazhgs') ||
+    lower.endsWith('.iso') ||
+    lower.endsWith('.zip') ||
+    lower.endsWith('.rar') ||
+    lower.endsWith('.exe') ||
     lower === 'https://drive.google.com' || 
     lower === 'https://drive.google.com/' || 
     lower === 'https://drive.google.com/drive' ||
@@ -219,6 +240,18 @@ export default function AnimeView() {
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
   const [inlineLinkInput, setInlineLinkInput] = useState('');
   const [selectedTab, setSelectedTab] = useState<'S1' | 'S2' | 'MOVIE'>('S1');
+  const [playerMode, setPlayerMode] = useState<'gdrive' | 'proxy'>('gdrive');
+
+  useEffect(() => {
+    if (activeVideo) {
+      const season = getNormalizedSeason(activeVideo);
+      if (season === 'S2') {
+        setPlayerMode('proxy');
+      } else {
+        setPlayerMode('gdrive');
+      }
+    }
+  }, [activeVideo?.id]);
 
   const loadAnime = () => {
     const saved = localStorage.getItem('custom_anime');
@@ -226,6 +259,66 @@ export default function AnimeView() {
     try {
       loaded = saved ? JSON.parse(saved) : [];
     } catch (e) {}
+
+    // Self-healing: restore original Google Drive links if they were mutated to generic Sintel sample fallbacks or Windows 10 recovery ISO links
+    const cleanMutatedLink = (title: string, currentLink: string, itemSeason?: string) => {
+      const lowerLink = (currentLink || '').toLowerCase();
+      if (
+        !lowerLink || 
+        lowerLink.includes('sample') || 
+        lowerLink.includes('sintel') || 
+        lowerLink.includes('tearsofsteel') || 
+        lowerLink.includes('gtv-videos-bucket') ||
+        lowerLink.includes('ezazhgs')
+      ) {
+        const lowerTitle = (title || '').toLowerCase().trim();
+        const isS2 = 
+          (itemSeason && (itemSeason.toUpperCase().includes('SEASON 2') || itemSeason.toUpperCase().includes('S2'))) ||
+          lowerTitle.includes('season 2') || 
+          lowerTitle.includes('s2') ||
+          false;
+
+        // Extremely robust regex helpers to match episode numbers (ep2, ep 2, episode2, episode 2, etc.)
+        const matchEp = (epNum: number) => {
+          const regex = new RegExp(`\\b(episode|ep)\\s*${epNum}\\b`, 'i');
+          return regex.test(lowerTitle);
+        };
+
+        if (isS2) {
+          if (matchEp(12)) return 'https://drive.google.com/file/d/13n1GtCSLb54oJCAfLQYou_-JApa2FR0d/view?usp=sharing';
+          if (matchEp(11)) return 'https://drive.google.com/file/d/1ZYzQGgdLZFQ_psT0eOXiEj8Jrb8HNWnB/view?usp=sharing';
+          if (matchEp(10)) return 'https://drive.google.com/file/d/1a15iOwyxblUJg_buG3Y7oM-okeQ4H7lV/view?usp=sharing';
+          if (matchEp(9)) return 'https://drive.google.com/file/d/12g5iCTOnxpAVKsSeYm34eTQXiJXVln9b/view?usp=sharing';
+          if (matchEp(8)) return 'https://drive.google.com/file/d/15L9Owf5kM4MdvAWxCAns9kZf1bnYzi6_/view?usp=sharing';
+          if (matchEp(7)) return 'https://drive.google.com/file/d/1PfwEK9R349RLK7G9hauUQ4nI6AqOv4Qj/view?usp=sharing';
+          if (matchEp(6)) return 'https://drive.google.com/file/d/1qhr4oIxgYizhDcWTPD_7z2fJDyxP2O7L/view?usp=sharing';
+          if (matchEp(5)) return 'https://drive.google.com/file/d/1p4hoog_1jZ58bqpXzfc7SEo7ueNyPGlk/view?usp=sharing';
+          if (matchEp(4)) return 'https://drive.google.com/file/d/1VpsEqqTfGSdB2XEVOzDC5teIhRdNmZ-C/view?usp=sharing';
+          if (matchEp(3)) return 'https://drive.google.com/file/d/1wi5qyUCo0qm6QrxYbbu-keFrqTmMYFP2/view?usp=sharing';
+          if (matchEp(2)) return 'https://drive.google.com/file/d/1F-8ASSeSZoCTGfU4pNBWoHQ7skPfow72/view?usp=sharing';
+          if (matchEp(1)) return 'https://drive.google.com/file/d/1s-qUZGHPFSEBe8sxsEJlDMoVkpGEon5W/view?usp=sharing';
+        }
+      }
+      return currentLink;
+    };
+
+    let isHealed = false;
+    loaded = loaded.map((item: any) => {
+      const originalLink = item.link || '';
+      const cleaned = cleanMutatedLink(item.title, originalLink, item.season);
+      if (cleaned !== originalLink) {
+        isHealed = true;
+        return { ...item, link: cleaned };
+      }
+      return item;
+    });
+
+    if (isHealed) {
+      localStorage.setItem('custom_anime', JSON.stringify(loaded));
+      setTimeout(() => {
+        window.dispatchEvent(new Event('shadow_sync_update'));
+      }, 100);
+    }
 
     const adminLink = localStorage.getItem('admin_console_link') || 'https://drive.google.com';
 
@@ -349,7 +442,26 @@ export default function AnimeView() {
   });
 
   const resolvedAnimeBgImages = useMemo(() => {
-    const fallbackAnimeBgImages = [
+    const fallbackAnimeBgImages = selectedTab === 'S2' ? [
+      elizabethBloodQueen,        // Unique S2: Blood Queen Elizabeth on gothic throne under red moon
+      deltaBeastBlade,            // Unique S2: Delta atypical dynamic blast pose
+      epsilonPipeOrgan,           // Unique S2: Epsilon atypical massive gothic pipe organ
+      johnSmithStrings,           // Unique S2: John Smith controlling wire strings atypically
+      shadowRooftopSword,         // Unique S2: Legendary rooftop position drawing glowing sword (Original Atypical, Non-musical)
+      shadowRunicMastermind,      // Unique S2: Supreme runic mastermind circle activation posture (Original Atypical, Non-musical)
+      lawlessCitySkyline,         // Unique S2: Lawless city crimson skyline vista
+      yukimeFoxGod,               // Unique S2: Yukime beautiful fox-spirit white tails
+      auroraVoidSanctuary,        // Unique S2: Aurora Witch of Calamity void-runes look
+      epsilonDynamicWhips,        // Unique S2: Epsilon atypical highly dynamic magic whip posture
+      zetaPredatorCrouch,         // Unique S2: Zeta atypical low crouching gargoyle pose
+      gammaElegantDeflect,        // Unique S2: Gamma atypical elegant magical sphere deflection pose
+      deltaSoloBg,                // Character: Delta wild animal combat posture
+      shadowAura,                 // Posture: Hovering wrapped in deep purple high-intensity fire aura
+      shadowTechMagic,            // Posture: Manifesting cybernetic code hologram screens
+      shadowBlade,                // Posture: Sword-drawn shadow stance in dramatic temple
+      shadowSoloBg,               // Posture: Profile stance dark shadow coat
+      shadowBackground            // Posture: Hooded close up look
+    ] : [
       shadowOnThrone,             // Posture: Sitting relaxed holding a purple chalice (Throne Room)
       shadowReadingGrimoire,      // Posture: Reading ancient spellbook, mysterious workspace
       shadowDivingMoon,           // Posture: Diving mid-air, coat like bat-wings (Gothic Skyline)
@@ -551,9 +663,7 @@ export default function AnimeView() {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.05)_20%,rgba(0,0,0,0.5)_80%)] pointer-events-none" />
                 <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/95 via-neutral-950/45 to-transparent group-hover:from-neutral-950/90 group-hover:via-neutral-950/20 transition-all duration-500 z-10" />
 
-                {/* Simulated Anamorphic Rose Lens Flare */}
-                <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-rose-500/30 to-transparent blur-[1px] group-hover:via-rose-400/50 transition-all duration-500 z-10 transform -translate-y-1/2 scale-x-[1.3]" />
-                <div className="absolute top-1/2 left-1/4 right-1/4 h-[12px] bg-rose-500/10 blur-[8px] group-hover:bg-rose-400/20 transition-all duration-500 z-10 transform -translate-y-1/2" />
+                {/* Simulated Anamorphic Rose Lens Flare is removed */}
 
                 {/* Theater dust / floating embers look */}
                 <div className="absolute top-0 right-0 left-0 bottom-0 pointer-events-none opacity-[0.08] group-hover:opacity-[0.15] transition-opacity duration-500 z-10 bg-[radial-gradient(rgba(244,63,94,0.15)_1px,transparent_1px)] [background-size:16px_16px] animate-[pulse_3s_infinite]" />
@@ -704,22 +814,25 @@ export default function AnimeView() {
               {activeVideo.link && !isDirectVideo(activeVideo.link) && (
                 <div className="flex flex-col sm:flex-row border-b border-neutral-800 bg-neutral-950 font-mono text-[9px] tracking-wider shrink-0 p-1.5 gap-1.5">
                   <button
-                    className="flex-1 py-2 px-3 text-center transition-all flex items-center justify-center gap-1.5 uppercase font-extrabold rounded-lg border bg-rose-950/50 text-white border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)] cursor-default"
+                    onClick={() => setPlayerMode('gdrive')}
+                    className={`flex-1 py-2 px-3 text-center transition-all flex items-center justify-center gap-1.5 uppercase font-extrabold rounded-lg border cursor-pointer active:scale-95 ${
+                      playerMode === 'gdrive'
+                        ? 'bg-rose-950/50 text-white border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.2)]'
+                        : 'border-neutral-800 hover:border-rose-500/30 bg-neutral-900/60 text-neutral-400 hover:text-rose-300'
+                    }`}
                   >
                     <Tv size={12} />
                     <span>Google Drive Player</span>
                   </button>
                   <button
-                    onClick={() => {
-                      const isMovie = activeVideo.title.toLowerCase().includes('echoes') || activeVideo.title.toLowerCase().includes('movie');
-                      const fbLink = isMovie 
-                        ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4' 
-                        : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4';
-                      handleUpdateEpisodeLink(activeVideo.id, fbLink);
-                    }}
-                    className="flex-1 py-2 px-3 text-center border border-neutral-800 hover:border-purple-500/50 bg-neutral-900/60 hover:bg-purple-950/40 text-neutral-400 hover:text-purple-300 font-extrabold rounded-lg transition-all flex items-center justify-center gap-1.5 uppercase cursor-pointer shadow-[0_0_5px_rgba(0,0,0,0.5)] active:scale-95"
+                    onClick={() => setPlayerMode('proxy')}
+                    className={`flex-1 py-2 px-3 text-center border font-extrabold rounded-lg transition-all flex items-center justify-center gap-1.5 uppercase cursor-pointer active:scale-95 ${
+                      playerMode === 'proxy'
+                        ? 'bg-purple-950/50 text-white border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.25)]'
+                        : 'border-neutral-800 hover:border-purple-500/50 bg-neutral-900/60 text-neutral-400 hover:text-purple-300'
+                    }`}
                   >
-                    <RefreshCw size={11} className="animate-spin [animation-duration:6s]" />
+                    <RefreshCw size={11} className={playerMode === 'proxy' ? "animate-spin [animation-duration:6s]" : ""} />
                     <span>Switch to Instant High-Speed Direct Stream</span>
                   </button>
                 </div>
@@ -746,6 +859,8 @@ export default function AnimeView() {
                             key={driveId}
                             driveId={driveId}
                             title={activeVideo.title}
+                            mode={playerMode}
+                            onFallback={() => setPlayerMode('gdrive')}
                           />
                         );
                       } else {

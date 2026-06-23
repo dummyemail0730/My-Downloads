@@ -135,7 +135,6 @@ export default function ToolsView() {
     '2': 'https://www.3dpchip.com',
     '3': 'https://www.wagnardsoft.com/display-driver-uninstaller-ddu',
     '4': 'https://www.cpuid.com/softwares/cpu-z.html',
-    '5': 'https://www.hwinfo.com/download/',
     '6': 'https://rufus.ie/en/',
     '7': 'https://github.com/topics/dashboard',
   };

@@ -250,6 +250,46 @@ export default function App() {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
+  // Synchronize and persist chatbot dialogue live to localStorage under user number
+  useEffect(() => {
+    let userNumStr = localStorage.getItem('shadow_user_number');
+    if (!userNumStr) {
+      userNumStr = 'User 01';
+    }
+    const numPart = userNumStr.replace(/\D/g, '');
+    const formattedUser = 'User ' + numPart.padStart(2, '0');
+    try {
+      localStorage.setItem(`shadow_chat_history_${formattedUser}`, JSON.stringify(chatMessages));
+      // Dispatch sync update event so that open admin consoles can immediately update lists
+      window.dispatchEvent(new Event('shadow_sync_update'));
+    } catch (e) {
+      console.error("Failed to save chat history to local storage", e);
+    }
+  }, [chatMessages]);
+
+  // Load chat history of current user on startup if exists
+  useEffect(() => {
+    let userNumStr = localStorage.getItem('shadow_user_number');
+    if (userNumStr) {
+      const numPart = userNumStr.replace(/\D/g, '');
+      const formattedUser = 'User ' + numPart.padStart(2, '0');
+      const saved = localStorage.getItem(`shadow_chat_history_${formattedUser}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setChatMessages(parsed.map((m: any) => ({
+              ...m,
+              timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+            })));
+          }
+        } catch (e) {
+          console.error("Failed to restore saved chat messages", e);
+        }
+      }
+    }
+  }, []);
+
   // Speech to Text state and refs
   const [isListening, setIsListening] = useState(false);
   const [speechHelperText, setSpeechHelperText] = useState('');
@@ -733,6 +773,22 @@ export default function App() {
             hasMadeChanges = true;
           }
         }
+
+        // Force update the tool ID '7' to match MEMTEST86 (replacing NOVA DASHBOARD) if it exists with older content
+        const memtestIdx = toolsList.findIndex((t: any) => t.id === '7');
+        if (memtestIdx !== -1) {
+          const t = toolsList[memtestIdx];
+          if (t.name !== 'MEMTEST86' || t.category !== 'MEMORY') {
+            toolsList[memtestIdx] = {
+              ...t,
+              name: 'MEMTEST86',
+              category: 'MEMORY',
+              description: 'The absolute standard for system memory diagnostics and RAM stability testing.'
+            };
+            hasMadeChanges = true;
+          }
+        }
+
         if (hasMadeChanges) {
           localStorage.setItem('custom_tools', JSON.stringify(toolsList));
         }
@@ -1764,11 +1820,13 @@ export default function App() {
 
                 {/* Messages Body Scroll Area */}
                 <div className="flex-1 bg-[#101119] p-4 overflow-y-auto space-y-4 scroll-smooth">
-                  {chatMessages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
+                  {chatMessages.map((msg, msgIndex) => {
+                    const isLastBotMsg = msg.sender === 'bot' && msgIndex === chatMessages.map(m => m.sender).lastIndexOf('bot');
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
                       {msg.sender === 'bot' && (
                         <div className="w-7 h-7 rounded-full overflow-hidden border border-purple-500/40 bg-[#12101e] shrink-0 mt-0.5 shadow-sm flex items-center justify-center">
                           <img
@@ -1815,28 +1873,16 @@ export default function App() {
                         })()}
 
                         {/* Log Update button for Owner/Boss queries */}
-                        {msg.sender === 'bot' && isChatBossMode && (() => {
-                          const textLower = msg.text.toLowerCase();
-                          const isUpdateLog = textLower.includes('suggestions') || 
-                                              textLower.includes('appointment') || 
-                                              textLower.includes('shout') || 
-                                              textLower.includes('update') || 
-                                              textLower.includes('system status') ||
-                                              textLower.includes('item(s) total');
-                          if (isUpdateLog) {
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => setShowLogUpdateModal(true)}
-                                className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 hover:from-purple-500 hover:via-fuchsia-500 hover:to-indigo-500 text-white rounded-lg text-[10px] sm:text-xs font-bold font-mono tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.45)] hover:shadow-[0_0_22px_rgba(168,85,247,0.6)] transition-all duration-300 cursor-pointer border border-purple-400/30 active:scale-95 select-none"
-                              >
-                                <Terminal className="w-3.5 h-3.5 animate-pulse" />
-                                <span>LOG UPDATE</span>
-                              </button>
-                            );
-                          }
-                          return null;
-                        })()}
+                        {isLastBotMsg && isChatBossMode && (
+                          <button
+                            type="button"
+                            onClick={() => setShowLogUpdateModal(true)}
+                            className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 hover:from-purple-500 hover:via-fuchsia-500 hover:to-indigo-500 text-white rounded-lg text-[10px] sm:text-xs font-bold font-mono tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.45)] hover:shadow-[0_0_22px_rgba(168,85,247,0.6)] transition-all duration-300 cursor-pointer border border-purple-400/30 active:scale-95 select-none"
+                          >
+                            <Terminal className="w-3.5 h-3.5 animate-pulse" />
+                            <span>LOG UPDATE</span>
+                          </button>
+                        )}
 
 
                         {/* Golden coin emoji next to user bubbles as in reference image */}
@@ -1847,7 +1893,8 @@ export default function App() {
                         )}
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
 
                   {/* Typing Indicator */}
                   {chatLoading && (
@@ -2496,6 +2543,12 @@ export default function App() {
             </motion.div>
           )}
         </div>
+        
+        {/* Boss Logs Portal Update Modal */}
+        <LogUpdateModal
+          isOpen={showLogUpdateModal}
+          onClose={() => setShowLogUpdateModal(false)}
+        />
       </div>
     );
   }
@@ -2655,7 +2708,7 @@ export default function App() {
                   </a>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h1 className="text-xs sm:text-lg md:text-xl font-black uppercase tracking-wide leading-none text-white">ShadowTech</h1>
+                      <h1 className="text-xs sm:text-lg md:text-xl font-black uppercase tracking-wide leading-none text-white">Digital Archive</h1>
                       {isGuestMode ? (
                         <div className="px-2 py-0.5 bg-purple-950/80 border border-purple-500/50 rounded-md flex items-center gap-1.5 animate-pulse text-[8px] sm:text-[9px] font-mono text-purple-300 font-bold shadow-[0_0_10px_rgba(168,85,247,0.2)]">
                           <Clock size={10} className="text-purple-400" />
@@ -2668,7 +2721,7 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                    <p className="text-[8px] sm:text-[10px] uppercase tracking-widest text-neutral-400 leading-none mt-1">Design & Development // 2026 Edition</p>
+                    <p className="text-[8px] sm:text-[10px] uppercase tracking-widest text-neutral-400 leading-none mt-1">Digital Archive // 2026 Edition</p>
                   </div>
                 </div>
                 <div className="flex flex-col items-end pointer-events-auto">

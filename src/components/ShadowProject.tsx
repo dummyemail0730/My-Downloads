@@ -39,6 +39,7 @@ export default function ShadowProject({
   isAdmin = false,
   autoOpenAppointment = false,
   onAppointmentOpened,
+  initialActiveTab,
 }: { 
   onEnter: () => void; 
   hasPlayed?: boolean; 
@@ -53,6 +54,7 @@ export default function ShadowProject({
   isAdmin?: boolean;
   autoOpenAppointment?: boolean;
   onAppointmentOpened?: () => void;
+  initialActiveTab?: 'uplink' | 'linked' | 'tutorials' | 'history';
 }) {
   const skip = hasPlayed;
 
@@ -347,6 +349,7 @@ export default function ShadowProject({
   const [showLinkedSearch, setShowLinkedSearch] = useState(false);
   const [linkedSearchQuery, setLinkedSearchQuery] = useState('');
   const [unlinkTrigger, setUnlinkTrigger] = useState(0);
+  const [viewingChatUser, setViewingChatUser] = useState<string | null>(null);
   const [isAdminSuggestionsOpen, setIsAdminSuggestionsOpen] = useState(false);
   const [isAdminAppointmentsOpen, setIsAdminAppointmentsOpen] = useState(false);
   const [isAdminKeysOpen, setIsAdminKeysOpen] = useState(false);
@@ -1943,14 +1946,21 @@ export default function ShadowProject({
 
   const getFilteredLinkedItems = () => {
     const items = getLinkedItems();
-    if (!linkedSearchQuery.trim()) return items;
-    const q = linkedSearchQuery.toLowerCase();
-    return items.filter(item => 
-      (item.name || '').toLowerCase().includes(q) || 
-      (item.description || '').toLowerCase().includes(q) || 
-      (item.type || '').toLowerCase().includes(q) || 
-      (item.protocol || '').toLowerCase().includes(q)
-    );
+    const filtered = !linkedSearchQuery.trim()
+      ? [...items]
+      : items.filter(item => {
+          const q = linkedSearchQuery.toLowerCase();
+          return (
+            (item.name || '').toLowerCase().includes(q) || 
+            (item.description || '').toLowerCase().includes(q) || 
+            (item.type || '').toLowerCase().includes(q) || 
+            (item.protocol || '').toLowerCase().includes(q)
+          );
+        });
+
+    return filtered.sort((a, b) => {
+      return (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
   };
 
   const renderGoogleDriveDiagnostic = (url: string, setUrlValue?: (val: string) => void) => {
@@ -2530,69 +2540,131 @@ export default function ShadowProject({
           animate="visible"
           className="flex-1 md:flex-initial flex items-center justify-end gap-1 md:gap-2 flex-row flex-wrap md:flex-nowrap max-w-[calc(100%-100px)] md:max-w-none"
         >
-          <motion.button
-            variants={headerBtnItemVariants}
-            onClick={() => {
-              setIsAppointmentModalOpen(true);
-              setAptStep(1);
-            }}
-            className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-auto"
-            id="appointment-scheduler-btn"
-          >
-            <Calendar size={10} className="text-purple-450 animate-pulse shrink-0" />
-            <span className="truncate">Appointment</span>
-          </motion.button>
+          <div className="flex-1 md:flex-initial relative group/btn">
+            <motion.button
+              variants={headerBtnItemVariants}
+              onClick={() => {
+                setIsAppointmentModalOpen(true);
+                setAptStep(1);
+              }}
+              className="w-full flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
+              id="appointment-scheduler-btn"
+            >
+              <Calendar size={10} className="text-purple-450 animate-pulse shrink-0" />
+              <span className="truncate">Appointment</span>
+            </motion.button>
+            {/* Appointment Dropdown Details */}
+            <div className="absolute top-[110%] right-0 md:left-0 md:right-auto w-60 md:w-64 p-3 bg-neutral-950/95 border border-purple-500/30 text-left rounded-lg opacity-0 invisible group-hover/btn:opacity-100 group-hover/btn:visible transition-all duration-300 z-50 shadow-[0_4px_30px_rgba(168,85,247,0.35)] backdrop-blur-md font-mono pointer-events-none">
+              <div className="text-[10px] uppercase font-bold text-purple-400 mb-1.5 flex items-center justify-between border-b border-purple-500/20 pb-1">
+                <span className="flex items-center gap-1">
+                  <Calendar size={10} className="text-purple-400 animate-pulse" />
+                  Appointment Scheduler
+                </span>
+                <span className="text-[8px] text-emerald-400">● SECURE</span>
+              </div>
+              <div className="text-[9px] text-zinc-400 leading-normal">
+                Dito ka pwedeng pumili ng date at oras para magpaayos ng PC o computer mo—physical man o online assistance.
+              </div>
+            </div>
+          </div>
           
-          <motion.button
-            variants={headerBtnItemVariants}
-            onClick={() => {
-              setIsSuggestionModalOpen(true);
-            }}
-            className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-auto"
-            id="suggestion-system-btn"
-          >
-            <Sparkles size={10} className="text-purple-450 animate-pulse shrink-0" />
-            <span className="truncate">Suggestions DB</span>
-          </motion.button>
+          <div className="flex-1 md:flex-initial relative group/btn">
+            <motion.button
+              variants={headerBtnItemVariants}
+              onClick={() => {
+                setIsSuggestionModalOpen(true);
+              }}
+              className="w-full flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
+              id="suggestion-system-btn"
+            >
+              <Sparkles size={10} className="text-purple-450 animate-pulse shrink-0" />
+              <span className="truncate">Suggestions</span>
+            </motion.button>
+            {/* Suggestions Dropdown Details */}
+            <div className="absolute top-[110%] right-0 md:left-1/2 md:-translate-x-1/2 w-60 md:w-64 p-3 bg-neutral-950/95 border border-purple-500/30 text-left rounded-lg opacity-0 invisible group-hover/btn:opacity-100 group-hover/btn:visible transition-all duration-300 z-50 shadow-[0_4px_30px_rgba(168,85,247,0.35)] backdrop-blur-md font-mono pointer-events-none">
+              <div className="text-[10px] uppercase font-bold text-purple-400 mb-1.5 flex items-center justify-between border-b border-purple-500/20 pb-1">
+                <span className="flex items-center gap-1">
+                  <Sparkles size={10} className="text-purple-400 animate-pulse" />
+                  Suggestions
+                </span>
+                <span className="text-[8px] text-amber-400">● INGESTING</span>
+              </div>
+              <div className="text-[9px] text-zinc-400 leading-normal">
+                Dito pwedeng mag-iwan ng suggestions, tulad ng request para sa bagong features, report sa mga sira o error, at iba pang feedback.
+              </div>
+            </div>
+          </div>
           
-          <motion.button
-            variants={headerBtnItemVariants}
-            onClick={() => {
-              setTempName(shoutName || '');
-              setNameValidationError(null);
-              setIsNamePromptOpen(true);
-            }}
-            className="flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400 w-auto"
-            id="shout-box-toggle-btn"
-          >
-            <MessageSquare size={10} className="text-purple-450 animate-pulse shrink-0" />
-            <span className="truncate">Shout Out Box</span>
-          </motion.button>
-          
-          <motion.button 
-            variants={headerBtnItemVariants}
-            onClick={() => {
-              if (isAuthenticated) {
-                setIsModalOpen(true);
-              } else {
-                setShowPasswordModal(true);
-              }
-            }}
-            className={`flex-1 md:flex-initial flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none w-auto ${
-              isAuthenticated 
-                ? 'bg-neutral-900 border-emerald-500/50 text-emerald-400 hover:bg-neutral-850 hover:border-emerald-400' 
-                : 'bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400'
-            }`}
-            id="google-drive-link-btn"
-          >
-            {isAuthenticated ? (
-              <Unlock size={10} className="text-emerald-400 animate-pulse shrink-0" />
-            ) : (
-              <Lock size={10} className="text-purple-450 animate-pulse shrink-0" />
-            )}
-            <span className="truncate">Admin Console</span>
-            <ExternalLink size={10} className="opacity-60 hidden min-[380px]:inline shrink-0" />
-          </motion.button>
+          <div className="flex-1 md:flex-initial relative group/btn">
+            <motion.button
+              variants={headerBtnItemVariants}
+              onClick={() => {
+                setTempName(shoutName || '');
+                setNameValidationError(null);
+                setIsNamePromptOpen(true);
+              }}
+              className="w-full flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
+              id="shout-box-toggle-btn"
+            >
+              <MessageSquare size={10} className="text-purple-450 animate-pulse shrink-0" />
+              <span className="truncate">Shout Out Box</span>
+            </motion.button>
+            {/* Shout Out Box Dropdown Details */}
+            <div className="absolute top-[110%] right-0 md:left-1/2 md:-translate-x-1/2 w-60 md:w-64 p-3 bg-neutral-950/95 border border-purple-500/30 text-left rounded-lg opacity-0 invisible group-hover/btn:opacity-100 group-hover/btn:visible transition-all duration-300 z-50 shadow-[0_4px_30px_rgba(168,85,247,0.35)] backdrop-blur-md font-mono pointer-events-none">
+              <div className="text-[10px] uppercase font-bold text-purple-400 mb-1.5 flex items-center justify-between border-b border-purple-500/20 pb-1">
+                <span className="flex items-center gap-1">
+                  <MessageSquare size={10} className="text-purple-400 animate-pulse" />
+                  Shout Out Box
+                </span>
+                <span className="text-[8px] text-cyan-400">● LIVE FEED</span>
+              </div>
+              <div className="text-[9px] text-zinc-400 leading-normal">
+                Dito mo makikita ang message board para sa quick updates, kwentohan, o pag-iwan ng hi o hello ng mga bumibisita rito.
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 md:flex-initial relative group/btn">
+            <motion.button 
+              variants={headerBtnItemVariants}
+              onClick={() => {
+                if (isAuthenticated) {
+                  setIsModalOpen(true);
+                } else {
+                  setShowPasswordModal(true);
+                }
+              }}
+              className={`w-full flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none ${
+                isAuthenticated 
+                  ? 'bg-neutral-900 border-emerald-500/50 text-emerald-400 hover:bg-neutral-850 hover:border-emerald-400' 
+                  : 'bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400'
+              }`}
+              id="google-drive-link-btn"
+            >
+              {isAuthenticated ? (
+                <Unlock size={10} className="text-emerald-400 animate-pulse shrink-0" />
+              ) : (
+                <Lock size={10} className="text-purple-450 animate-pulse shrink-0" />
+              )}
+              <span className="truncate">Admin Console</span>
+              <ExternalLink size={10} className="opacity-60 hidden min-[380px]:inline shrink-0" />
+            </motion.button>
+            {/* Admin Console Dropdown Details */}
+            <div className="absolute top-[110%] right-0 w-60 md:w-64 p-3 bg-neutral-950/95 border border-purple-500/30 text-left rounded-lg opacity-0 invisible group-hover/btn:opacity-100 group-hover/btn:visible transition-all duration-300 z-50 shadow-[0_4px_30px_rgba(168,85,247,0.35)] backdrop-blur-md font-mono pointer-events-none">
+              <div className="text-[10px] uppercase font-bold text-purple-400 mb-1.5 flex items-center justify-between border-b border-purple-500/20 pb-1">
+                <span className="flex items-center gap-1">
+                  {isAuthenticated ? <Unlock size={10} className="text-emerald-400 animate-pulse" /> : <Lock size={10} className="text-purple-500 animate-pulse" />}
+                  Admin Controls
+                </span>
+                <span className={isAuthenticated ? "text-[8px] text-emerald-400" : "text-[8px] text-red-500 animate-pulse"}>
+                  {isAuthenticated ? "● KEY DECRYPTED" : "● PRIVILEGED"}
+                </span>
+              </div>
+              <div className="text-[9px] text-zinc-400 leading-normal">
+                Dito nakalagay lahat ng logs, security settings at mga Link files sa Cloud Storage.
+              </div>
+            </div>
+          </div>
           
           {isAuthenticated && !isAdmin && (
             <motion.button 
@@ -3833,17 +3905,6 @@ export default function ShadowProject({
                               <span className="text-[8.5px] uppercase tracking-wider text-purple-400 font-extrabold">
                                 [SELECT VIRTUAL SESSION USER TO STREAM LOGS]
                               </span>
-                              {uniqUsers.length > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={handleDeleteAllHistory}
-                                  className="text-[7.5px] uppercase tracking-widest text-red-400 hover:text-red-300 transition-colors font-extrabold flex items-center gap-1 cursor-pointer bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 hover:border-red-500/40 px-2 py-1 rounded"
-                                  title="Delete all user logs"
-                                >
-                                  <Trash2 size={10} className="text-red-400" />
-                                  <span>Clear All Logs</span>
-                                </button>
-                              )}
                             </div>
 
                             {uniqUsers.length === 0 ? (
@@ -3854,8 +3915,7 @@ export default function ShadowProject({
                             ) : (
                               <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                                 {uniqUsers.map((usr) => {
-                                  // Count how many logs belong to this user
-                                  const userLogsCount = activityLogs.filter((log: any) => {
+                                  const userRelatedLogs = activityLogs.filter((log: any) => {
                                     let logUser = log.user;
                                     if (!logUser && log.text) {
                                       const match = /\[(?:User|USER)\s*(\d+)\]/i.exec(log.text);
@@ -3865,7 +3925,33 @@ export default function ShadowProject({
                                     const numPart = logUser.replace(/\D/g, '');
                                     const formattedUser = 'User ' + numPart.padStart(2, '0');
                                     return formattedUser === usr;
-                                  }).length;
+                                  });
+                                  const userLogsCount = userRelatedLogs.length;
+
+                                  // Extract date from log or fallback to current local date
+                                  let userDateStr = "June 19, 2026";
+                                  if (userRelatedLogs.length > 0) {
+                                    const newest = userRelatedLogs[0];
+                                    if (newest.id && newest.id.startsWith('log_')) {
+                                      const parts = newest.id.split('_');
+                                      if (parts[1]) {
+                                        const ts = parseInt(parts[1], 10);
+                                        if (!isNaN(ts)) {
+                                          userDateStr = new Date(ts).toLocaleDateString('en-US', {
+                                            month: 'long',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                          });
+                                        }
+                                      }
+                                    } else {
+                                      userDateStr = new Date().toLocaleDateString('en-US', {
+                                        month: 'long',
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                      });
+                                    }
+                                  }
 
                                   const isCurrent = usr === currentUser;
 
@@ -3895,9 +3981,21 @@ export default function ShadowProject({
                                             )}
                                           </div>
                                           <span className="text-[7.5px] text-purple-400 font-medium uppercase tracking-wider mt-0.5">
-                                            {userLogsCount} signals registered
+                                            {userLogsCount} signals registered • {userDateStr}
                                           </span>
                                         </div>
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setViewingChatUser(usr);
+                                        }}
+                                        className="mr-1.5 p-2 text-fuchsia-400 hover:text-fuchsia-300 hover:bg-fuchsia-950/20 border border-transparent hover:border-fuchsia-900/30 rounded-lg transition-all cursor-pointer"
+                                        title={`View chatbot conversation for ${usr}`}
+                                      >
+                                        <MessageSquare size={12} />
                                       </button>
 
                                       <button
@@ -3925,11 +4023,42 @@ export default function ShadowProject({
                             <div className="flex items-center justify-between px-1">
                               <span className="text-[8px] uppercase tracking-wider text-purple-400 font-extrabold flex items-center gap-1.5">
                                 <span>[TIMELINE STREAM ({selectedUserLog})]</span>
+                                <span className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-[7px] text-neutral-400 font-bold uppercase tracking-widest font-mono">
+                                  {(() => {
+                                    let dStr = "June 19, 2026";
+                                    if (filteredLogs && filteredLogs.length > 0) {
+                                      const newest = filteredLogs[0];
+                                      if (newest.id && newest.id.startsWith('log_')) {
+                                        const pts = newest.id.split('_');
+                                        if (pts[1]) {
+                                          const ts = parseInt(pts[1], 10);
+                                          if (!isNaN(ts)) {
+                                            dStr = new Date(ts).toLocaleDateString('en-US', {
+                                              month: 'long',
+                                              day: 'numeric',
+                                              year: 'numeric'
+                                            });
+                                          }
+                                        }
+                                      }
+                                    }
+                                    return dStr;
+                                  })()}
+                                </span>
                                 <span className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-[7px] text-purple-300 tracking-widest font-bold font-mono">
                                   {filteredLogs.length} SIGNALS
                                 </span>
                               </span>
                               <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingChatUser(selectedUserLog)}
+                                  className="text-[8px] uppercase tracking-widest text-fuchsia-400 hover:text-fuchsia-300 transition-colors font-extrabold flex items-center gap-1.5 cursor-pointer bg-fuchsia-950/20 hover:bg-fuchsia-950/40 border border-fuchsia-900/30 hover:border-fuchsia-500/40 px-2.5 py-1 rounded"
+                                >
+                                  <MessageSquare size={10} />
+                                  <span>Chat Transcript</span>
+                                </button>
+                                <span className="text-neutral-700">|</span>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -6567,6 +6696,150 @@ export default function ShadowProject({
             </motion.div>
           </div>
         )}
+
+        {viewingChatUser && (() => {
+          let messagesList: Array<{ sender: 'user' | 'bot' | 'system'; text: string; timestamp?: string }> = [];
+          
+          // 1. Try to load saved chat history
+          const saved = localStorage.getItem(`shadow_chat_history_${viewingChatUser}`);
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                messagesList = parsed.map((m: any) => ({
+                  sender: m.sender,
+                  text: m.text,
+                  timestamp: m.timestamp ? new Date(m.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
+                }));
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }
+
+          // 2. If empty or no saved session, parse from activityLogs as fallback to reconstruct
+          if (messagesList.length === 0) {
+            const filtered = activityLogs.filter((log: any) => {
+              let logUser = log.user;
+              if (!logUser && log.text) {
+                const match = /\[(?:User|USER)\s*(\d+)\]/i.exec(log.text);
+                if (match) logUser = 'User ' + match[1];
+              }
+              if (!logUser) return false;
+              const numPart = logUser.replace(/\D/g, '');
+              const formattedUser = 'User ' + numPart.padStart(2, '0');
+              return formattedUser === viewingChatUser;
+            });
+
+            // Reconstruct messages
+            messagesList = filtered
+              .filter((log: any) => log.type === 'chat' || (log.text && log.text.includes('chatbot')))
+              .map((log: any) => {
+                const rawText = log.text || '';
+                const match = /(?:Typed in chatbot:|Typed in chatbot|chatbot):\s*"(.*)"/i.exec(rawText);
+                let msgText = match ? match[1] : rawText.replace(/^\[[^\]]+\]\s*/, '');
+                if (!msgText && rawText.includes('chatbot:')) {
+                  msgText = rawText.split('chatbot:')[1]?.trim();
+                }
+                return {
+                  sender: 'user' as const,
+                  text: msgText || rawText,
+                  timestamp: log.date || ''
+                };
+              });
+          }
+
+          return (
+            <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto w-full" id="chatbot-transcript-modal">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.96, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 30 }}
+                transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                className="bg-[#0b0c13] border-2 border-neutral-900 w-full max-w-xl rounded-3xl shadow-[0_0_50px_rgba(168,85,247,0.3)] relative z-50 overflow-hidden p-6 md:p-8 text-white font-mono flex flex-col max-h-[90vh]"
+              >
+                {/* Visual Corner borders */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:18px_18px] pointer-events-none opacity-20" />
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-fuchsia-500/30 rounded-tl-xl pointer-events-none" />
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-fuchsia-500/30 rounded-tr-xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-fuchsia-500/30 rounded-bl-xl pointer-events-none" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-fuchsia-500/30 rounded-br-xl pointer-events-none" />
+
+                <div className="flex items-center justify-between mb-4 border-b border-neutral-900 pb-3 shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-fuchsia-950/40 border border-fuchsia-500/30 text-fuchsia-400">
+                      <MessageSquare size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black uppercase tracking-[0.2em] text-white">CHAT TRANSCRIPT CORE</h4>
+                      <p className="text-[7.5px] uppercase tracking-wider text-neutral-500 font-bold font-mono mt-0.5">
+                        SESSION SPECTRUM // TARGET: {viewingChatUser}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setViewingChatUser(null)}
+                    className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-neutral-700 hover:text-red-400 transition-all cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                {/* Message list area */}
+                <div className="flex-1 overflow-y-auto pr-1 space-y-3.5 my-3 py-1 scrollbar-thin scrollbar-thumb-neutral-900 max-h-[50vh] min-h-[180px]">
+                  {messagesList.length === 0 ? (
+                    <div className="py-12 px-4 rounded-xl border border-dashed border-neutral-900/80 text-center text-neutral-600 text-[9px] uppercase tracking-wider font-bold">
+                      NO CONVERSATION DATA DETECTED IN STORAGE DISK SECTORS
+                      <span className="block mt-1.5 text-[7px] text-neutral-700 font-medium font-sans">Chat history records begin populating as soon as guests submit requests in the welcome assistant portal.</span>
+                    </div>
+                  ) : (
+                    messagesList.map((msg, index) => {
+                      const isBot = msg.sender === 'bot';
+                      return (
+                        <div 
+                          key={index} 
+                          className={`flex flex-col max-w-[85%] ${isBot ? 'mr-auto items-start' : 'ml-auto items-end'}`}
+                        >
+                          {/* Label info */}
+                          <div className="flex items-center gap-1.5 mb-1 select-none">
+                            <span className={`text-[7px] font-black uppercase tracking-wider ${isBot ? 'text-fuchsia-400' : 'text-purple-400'}`}>
+                              {isBot ? 'SHADOW BOT' : viewingChatUser}
+                            </span>
+                            {msg.timestamp && (
+                              <span className="text-[6.5px] text-neutral-600 font-semibold font-mono tracking-widest uppercase">
+                                • {msg.timestamp}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Text Chatbubble */}
+                          <div className={`p-3 rounded-2xl border text-[10.5px] leading-relaxed font-sans font-medium whitespace-pre-wrap select-text ${
+                            isBot 
+                              ? 'bg-[#12101e]/90 border-fuchsia-500/20 text-neutral-100 rounded-tl-none shadow-[0_0_15px_rgba(236,72,153,0.04)]' 
+                              : 'bg-[#181a25]/95 border-purple-500/20 text-neutral-200 rounded-tr-none'
+                          }`}>
+                            {msg.text}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-neutral-950 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setViewingChatUser(null)}
+                    className="w-full py-2 bg-neutral-900 hover:bg-neutral-850 hover:text-white border border-neutral-800 hover:border-neutral-700 text-neutral-400 font-black uppercase tracking-widest text-[9px] rounded-xl transition-all cursor-pointer active:scale-98"
+                  >
+                    Acknowledge & Close
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
       </AnimatePresence>
 
     </div>
