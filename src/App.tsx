@@ -13,6 +13,7 @@ import LoadingScreen from './components/LoadingScreen';
 import ShadowLoreView from './components/ShadowLoreView';
 import RedirectLoader from './components/RedirectLoader';
 import LogUpdateModal from './components/LogUpdateModal';
+import MoePortal from './components/MoePortal';
 import shadowBg from './assets/images/shadow_master_atomic_1779279129608.png';
 import ownerIdPhoto from './assets/images/owner_id_photo_1779279731967.png';
 import shadowChibiAvatar from './assets/images/shadow_eminence_chibi_1779532936009.png';
@@ -1004,6 +1005,7 @@ export default function App() {
   const [copiedText, setCopiedText] = useState<'EMAIL' | 'KEY' | 'PHONE' | null>(null);
   const [showSupportPage, setShowSupportPage] = useState(false);
   const [autoOpenAppointment, setAutoOpenAppointment] = useState(false);
+  const [showMoePortal, setShowMoePortal] = useState(false);
 
   const [redirectLoaderState, setRedirectLoaderState] = useState<{ isOpen: boolean; targetUrl: string; itemTitle: string }>({
     isOpen: false,
@@ -3475,14 +3477,13 @@ export default function App() {
               {/* Header Section */}
               <header className="h-24 border-b border-neutral-900 flex items-center justify-between px-4 md:px-8 bg-neutral-950/95 backdrop-blur-md shrink-0 sm:pointer-events-auto">
                 <div className="flex items-center gap-4">
-                  <a 
-                    href="https://everythingmoe.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button 
+                    onClick={() => setShowMoePortal(true)}
                     className="w-10 h-10 bg-neutral-900 border border-neutral-800 flex items-center justify-center cursor-pointer hover:bg-neutral-800 transition-colors pointer-events-auto"
+                    title="Open Portal Index"
                   >
                     <Folder className="text-purple-400" size={20} strokeWidth={2.5} />
-                  </a>
+                  </button>
                   <div>
                     <div className="flex items-center gap-2">
                       <h1 className="text-xs sm:text-lg md:text-xl font-black uppercase tracking-wide leading-none text-white">Digital Archive</h1>
@@ -3785,6 +3786,16 @@ export default function App() {
         isOpen={showLogUpdateModal}
         onClose={() => setShowLogUpdateModal(false)}
       />
+
+      {/* Universal Moe Index Portal */}
+      <AnimatePresence>
+        {showMoePortal && (
+          <MoePortal
+            isOpen={showMoePortal}
+            onClose={() => setShowMoePortal(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Floating Circular Chathead with image 1 as picture - placed in the middle right part of the main page, fully draggable */}
       <div

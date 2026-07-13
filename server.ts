@@ -530,7 +530,7 @@ async function startServer() {
 
   async function getDurableConfig() {
     const firebaseDb = getFirebaseDB();
-    const localPath = path.join(process.cwd(), "custom_configs.json");
+    const localPath = path.join(process.cwd(), "public/custom_configs.json");
     const { promises: fsPromises } = await import("fs");
     
     // Read local fallback as base
@@ -591,7 +591,7 @@ async function startServer() {
 
   async function saveDurableConfig(newConfig: any) {
     const firebaseDb = getFirebaseDB();
-    const localPath = path.join(process.cwd(), "custom_configs.json");
+    const localPath = path.join(process.cwd(), "public/custom_configs.json");
     const { promises: fsPromises } = await import("fs");
 
     // Pre-sanitize any incoming saves

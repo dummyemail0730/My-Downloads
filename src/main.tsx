@@ -65,7 +65,17 @@ const root = createRoot(document.getElementById('root')!);
 
 // Fetch latest server configurations first so all React components initialize with correct shared values outside of AI Studio
 fetch('/api/configs')
-  .then(res => res.json())
+  .then(res => {
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+      throw new Error('Endpoint returned HTML, falling back to static custom_configs.json');
+    }
+    return res.json();
+  })
+  .catch(err => {
+    console.warn('API configs endpoint not available or returned non-JSON, falling back to static custom_configs.json:', err);
+    return fetch('/custom_configs.json').then(res => res.json());
+  })
   .then(data => {
     if (data) {
       if (data.admin_console_link) {
