@@ -253,7 +253,7 @@ export default function ShadowProject({
   // Google Drive Accounts dropdown list - strictly Primary G-Drive, Secondary G-Drive Mirror and Tertiary G-Drive
   const driveAccounts = [
     { name: 'PRIMARY G-DRIVE // MAIN CLOUD', url: 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing' },
-    { name: 'SECONDARY G-DRIVE // CLOUD MIRROR', url: 'https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing' },
+    { name: 'SECONDARY G-DRIVE // CLOUD MIRROR', url: 'https://drive.google.com/file/d/1JOkYke7BPH_i8A6biBkw3hclsnAwFrOv/view?usp=sharing' },
     { name: 'TERTIARY G-DRIVE // RECOVERY MIRROR', url: 'https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing' },
   ];
   const [selectedDriveUrl, setSelectedDriveUrl] = useState<string>('');
@@ -4807,7 +4807,7 @@ export default function ShadowProject({
                                         setAptName(e.target.value);
                                         if (appointmentValidationError) setAppointmentValidationError(null);
                                       }}
-                                      placeholder="e.g. Sherry Barnett or Cid Kagenou"
+                                      placeholder="e.g. Sherry Barnett or Ian Collantes"
                                       required
                                       autoFocus
                                       className="w-full text-xs font-mono bg-neutral-900/60 border border-neutral-850 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/10 text-white px-3.5 py-3 rounded-xl outline-none transition-all placeholder:text-neutral-700 placeholder:text-[9.5px]"
@@ -6411,7 +6411,7 @@ export default function ShadowProject({
                   }}
                   className="inline-block px-3 py-1 bg-neutral-900 border border-neutral-800 text-purple-400 font-mono text-[10px] uppercase tracking-[0.3em] font-bold"
                 >
-                  By: Cid Kagenou // V.1.0
+                  By: Ian Collantes // V.1.0
                 </motion.div>
 
                 {isAdmin ? (

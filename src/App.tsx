@@ -159,6 +159,59 @@ export default function App() {
     sessionStorage.removeItem('chat_boss_mode');
   }, []);
 
+  // Disable F12, Right-click, and DevTools keyboard shortcuts globally
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 1. Prevent F12
+      if (e.key === 'F12' || e.keyCode === 123) {
+        e.preventDefault();
+        return false;
+      }
+
+      // 2. Prevent Ctrl+Shift+I / Cmd+Opt+I (Inspect)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
+        e.preventDefault();
+        return false;
+      }
+
+      // 3. Prevent Ctrl+Shift+J / Cmd+Opt+J (Console)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
+        e.preventDefault();
+        return false;
+      }
+
+      // 4. Prevent Ctrl+Shift+C / Cmd+Opt+C (Element Selector)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) {
+        e.preventDefault();
+        return false;
+      }
+
+      // 5. Prevent Ctrl+U / Cmd+Opt+U (View Source)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+        e.preventDefault();
+        return false;
+      }
+
+      // 6. Prevent Ctrl+Shift+K / Cmd+Opt+K (Firefox/Safari Console/Network)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'K' || e.key === 'k' || e.keyCode === 75)) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    window.addEventListener('contextmenu', handleContextMenu, { capture: true });
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+
+    return () => {
+      window.removeEventListener('contextmenu', handleContextMenu, { capture: true });
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+    };
+  }, []);
+
   const activeTrack = playlist[currentTrackIndex] || playlist[0] || STATIC_PLAYLIST[0];
 
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
@@ -249,6 +302,7 @@ export default function App() {
   ]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [isFloatingChatOpen, setIsFloatingChatOpen] = useState(false);
 
   // Synchronize and persist chatbot dialogue live to localStorage under user number
   useEffect(() => {
@@ -726,8 +780,8 @@ export default function App() {
         // Ensure Microsoft Office (id '3') has its permanent correct link in local storage
         const msofficeIdx = projectsList.findIndex((p: any) => p.id === '3' || (p.title && p.title.toLowerCase().includes('microsoft office')));
         if (msofficeIdx !== -1) {
-          if (!projectsList[msofficeIdx].link) {
-            projectsList[msofficeIdx].link = 'https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing';
+          if (!projectsList[msofficeIdx].link || projectsList[msofficeIdx].link.includes('1PQ2CG9r')) {
+            projectsList[msofficeIdx].link = 'https://drive.google.com/file/d/1JOkYke7BPH_i8A6biBkw3hclsnAwFrOv/view?usp=sharing';
           }
         }
 
@@ -1872,6 +1926,25 @@ export default function App() {
                           return null;
                         })()}
 
+                        {/* Book Appointment button */}
+                        {msg.sender === 'bot' && (msg.isAppointmentRequest || msg.text.toLowerCase().includes('schedule') || msg.text.toLowerCase().includes('appointment') || msg.text.toLowerCase().includes('matingnan po natin ang computer ninyo')) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!isAuthorized) {
+                                setIsAuthorized(true);
+                                setIsGuestMode(true);
+                              }
+                              setShowArchive(false);
+                              setAutoOpenAppointment(true);
+                            }}
+                            className="mt-2.5 flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 border border-emerald-400/20 text-white font-mono text-[9px] sm:text-[10px] uppercase font-black tracking-wider rounded-lg shadow-[0_0_12px_rgba(16,185,129,0.35)] transition-all cursor-pointer active:scale-95 select-none"
+                          >
+                            <Calendar size={11} className="text-emerald-100 animate-pulse" />
+                            <span>BOOK APPOINTMENT</span>
+                          </button>
+                        )}
+
                         {/* Log Update button for Owner/Boss queries */}
                         {isLastBotMsg && isChatBossMode && (
                           <button
@@ -2259,7 +2332,7 @@ export default function App() {
                           "sira", "broken", "pc won't", "boot", "black screen", "blue screen", "bsod", "slow", "lag", "hang", 
                           "overheat", "overheating", "init", "mainit", "mabilis uminit", "cpu temp", "gpu temp", "crash", 
                           "virus", "malware", "bios", "mbr", "gpt", "partition", "deleted", "recover", "restoration", "lost file",
-                          "clone", "cloning", "backup", "image", "windows install", "reformat", "format", "password reset", 
+                          "clone", "cloning", "backup", "system image", "os image", "iso image", "windows image", "backup image", "windows install", "reformat", "format", "password reset", 
                           "reset password", "forgot password", "unblock", "lock screen", "assemble", "build pc", "parts", 
                           "compatibility", "compatible", "upgrade", "thermal", "pindot", "ayaw mag-open", "ayaw bumukas", 
                           "no power", "restart", "restarting"
@@ -2351,9 +2424,27 @@ export default function App() {
                           "mag-book", "reserve", "reservation", "slot", "pabook", "sched", "calendar", "kailan ka pwede"
                         ].some(keyword => norm.includes(keyword));
 
+                        const isImageGenerationRequest = 
+                          (norm.includes("gawa ka") && (norm.includes("image") || norm.includes("larawan") || norm.includes("drawing") || norm.includes("picture") || norm.includes("photo") || norm.includes("sining") || norm.includes("gupit"))) ||
+                          (norm.includes("create") && (norm.includes("image") || norm.includes("picture") || norm.includes("photo") || norm.includes("drawing") || norm.includes("logo") || norm.includes("avatar"))) ||
+                          (norm.includes("generate") && (norm.includes("image") || norm.includes("picture") || norm.includes("photo") || norm.includes("drawing") || norm.includes("logo") || norm.includes("avatar"))) ||
+                          norm.includes("draw") ||
+                          norm.includes("drawing");
+
                         let isReplyAppointment = false;
 
-                        if (isCodeWanted) {
+                        if (isImageGenerationRequest) {
+                          let subject = "image";
+                          const match = norm.match(/(?:gawa ka|create|generate|draw|painting of|picture of|photo of)\s+(?:ng\s+)?([a-z0-9\s\-]+?)\s+(?:image|picture|photo|drawing|draw)/i) 
+                                        || norm.match(/(?:gawa ka|create|generate|draw)\s+(?:ng\s+)?([a-z0-9\s\-]+)/i);
+                          if (match && match[1]) {
+                            const cleanSubj = match[1].trim();
+                            if (cleanSubj.length > 2 && cleanSubj.length < 30 && cleanSubj !== "ng" && cleanSubj !== "ka") {
+                              subject = `${cleanSubj} image`;
+                            }
+                          }
+                          replyText = `Pasensya na po, wala po akong capability na gumawa ng ${subject}, ako ay chatbot lamang. 😅 Pero kung may tanong po kayo tungkol sa system o PC diagnostics, sabihan niyo lang po ako!`;
+                        } else if (isCodeWanted) {
                           // code logic already handled above or can be left or handled here cleanly.
                           // Since we processed code in the original block, we'll keep the chain consistent
                         } else if (norm.includes("cpu")) {
@@ -2552,6 +2643,696 @@ export default function App() {
       </div>
     );
   }
+
+  const renderChatbot = (isFloating: boolean = false) => {
+    return (
+      <motion.div
+        key={isFloating ? "chatbot-card-floating" : "chatbot-card"}
+        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: -15 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className={
+          isFloating
+            ? "fixed bottom-24 left-6 md:bottom-auto md:left-24 md:top-1/2 md:-translate-y-1/2 z-[999] w-[280px] sm:w-[330px] h-[390px] sm:h-[450px] bg-[#1d1f2b] border-2 border-purple-500/70 rounded-[1.75rem] shadow-[0_0_40px_rgba(168,85,247,0.5),0_0_15px_rgba(139,92,246,0.3),0_10px_40px_rgba(147,51,234,0.2)] flex flex-col overflow-visible font-sans text-white backdrop-blur-md"
+            : "w-[74%] min-[360px]:w-[78%] min-[400px]:w-[80%] sm:w-full max-w-[245px] min-[360px]:max-w-[275px] min-[400px]:max-w-[315px] sm:max-w-[380px] h-[430px] min-[360px]:h-[455px] min-[400px]:h-[485px] sm:h-[515px] bg-[#1d1f2b] border-2 border-purple-500/70 rounded-[2rem] shadow-[0_0_60px_rgba(168,85,247,0.65),0_0_20px_rgba(139,92,246,0.35),0_15px_50px_rgba(147,51,234,0.25)] flex flex-col overflow-visible relative font-sans text-white backdrop-blur-md"
+        }
+      >
+        {!isFloating && (
+          <>
+            {/* Left Side vertical glowing banner (Visible on Mobile + Desktop) */}
+            <div className="absolute -left-6 min-[350px]:-left-8 sm:-left-12 lg:-left-16 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 sm:gap-3 select-none pointer-events-none z-30 w-8">
+              {/* Ambient Cyber Light Nodes travelling vertically */}
+              <div className="absolute inset-x-0 h-40 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden flex items-center justify-center">
+                <motion.div
+                  animate={{ y: [-80, 80] }}
+                  transition={{ duration: 3.5, repeat: Infinity, ease: "linear" }}
+                  className="w-1.5 h-1.5 rounded-full bg-gradient-to-t from-fuchsia-400 to-purple-500 blur-[1px] absolute"
+                />
+                <motion.div
+                  animate={{ y: [80, -80] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "linear", delay: 1.5 }}
+                  className="w-1 h-1 rounded-full bg-pink-400 blur-[0.5px] absolute"
+                />
+              </div>
+
+              {/* Behind-the-line Rotating Cyber Magic Seal */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 w-28 h-28 lg:w-36 lg:h-36 flex items-center justify-center opacity-40 select-none pointer-events-none">
+                <motion.svg
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                  className="w-full h-full text-purple-500/40 drop-shadow-[0_0_12px_rgba(168,85,247,0.35)]"
+                  viewBox="0 0 100 100"
+                >
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="0.75" strokeDasharray="4, 4" />
+                  <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                  <line x1="50" y1="5" x2="50" y2="15" stroke="currentColor" strokeWidth="0.75" />
+                  <line x1="50" y1="85" x2="50" y2="95" stroke="currentColor" strokeWidth="0.75" />
+                  <line x1="5" y1="50" x2="15" y2="50" stroke="currentColor" strokeWidth="0.75" />
+                  <line x1="85" y1="50" x2="95" y2="50" stroke="currentColor" strokeWidth="0.75" />
+                  <polygon points="50,18 78,68 22,68" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                  <polygon points="50,82 78,32 22,32" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                  <circle cx="50" cy="50" r="8" fill="none" stroke="currentColor" strokeWidth="0.75" />
+                </motion.svg>
+              </div>
+
+              <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-purple-500 shadow-[0_0_12px_#a855f7] animate-ping" />
+              <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-b from-purple-500/20 via-purple-500 to-pink-500/80 animate-pulse" />
+              
+              {/* Vertically gliding banner - Eminence in Shadow Slime magic style */}
+              <motion.div
+                animate={{ 
+                  y: [-120, -80, 80, 120],
+                  opacity: [0, 1, 1, 0]
+                }}
+                transition={{ 
+                  duration: 5.5, 
+                  repeat: Infinity, 
+                  ease: "easeInOut"
+                }}
+                className="flex flex-col items-center"
+              >
+                <div 
+                  className="flex items-center gap-1 sm:gap-2 py-1.5 sm:py-2" 
+                  style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
+                >
+                  <span className="text-[8.5px] min-[360px]:text-[10.5px] sm:text-[13px] lg:text-[15px] font-mono font-black tracking-[0.25em] min-[360px]:tracking-[0.35em] bg-gradient-to-b from-white via-purple-300 to-fuchsia-400 bg-clip-text text-transparent uppercase whitespace-nowrap drop-shadow-[0_0_12px_rgba(168,85,247,0.95)] animate-[pulse_1.5s_infinite]">
+                    USE PASSWORD IN CHAT TO ENTER
+                  </span>
+                  <Key className="text-fuchsia-400 rotate-90 stroke-[3] drop-shadow-[0_0_10px_rgba(244,63,94,0.9)] animate-bounce w-3 h-3 sm:w-4 sm:h-4" />
+                </div>
+              </motion.div>
+
+              <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-t from-purple-500/20 via-purple-500 to-pink-500/80 animate-pulse" />
+              <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-pink-500 shadow-[0_0_12px_#ec4899] animate-ping" />
+            </div>
+
+            {/* Right Side vertical glowing banner (Visible on Mobile + Desktop) */}
+            <div className="absolute -right-6 min-[350px]:-right-8 sm:-right-12 lg:-right-16 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 sm:gap-3 select-none pointer-events-none z-30 w-8">
+              {/* Ambient Cyber Light Nodes travelling vertically */}
+              <div className="absolute inset-x-0 h-40 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden flex items-center justify-center">
+                <motion.div
+                  animate={{ y: [80, -80] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                  className="w-1.5 h-1.5 rounded-full bg-gradient-to-t from-pink-400 to-purple-500 blur-[1px] absolute"
+                />
+                <motion.div
+                  animate={{ y: [-80, 80] }}
+                  transition={{ duration: 5.5, repeat: Infinity, ease: "linear", delay: 1 }}
+                  className="w-1 h-1 rounded-full bg-fuchsia-400 blur-[0.5px] absolute"
+                />
+              </div>
+
+              {/* Behind-the-line Rotating Cyber Magic Seal (Counter Rotating) */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 w-28 h-28 lg:w-36 lg:h-36 flex items-center justify-center opacity-40 select-none pointer-events-none">
+                <motion.svg
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                  className="w-full h-full text-pink-500/40 drop-shadow-[0_0_12px_rgba(236,72,153,0.35)]"
+                  viewBox="0 0 100 100"
+                >
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="0.75" strokeDasharray="3, 3" />
+                  <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                  <circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="12, 4" />
+                  <line x1="50" y1="5" x2="50" y2="15" stroke="currentColor" strokeWidth="0.75" />
+                  <line x1="50" y1="85" x2="50" y2="95" stroke="currentColor" strokeWidth="0.75" />
+                  <line x1="5" y1="50" x2="15" y2="50" stroke="currentColor" strokeWidth="0.75" />
+                  <line x1="85" y1="50" x2="95" y2="50" stroke="currentColor" strokeWidth="0.75" />
+                  <polygon points="50,22 76,41 66,73 34,73 24,41" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                  <circle cx="50" cy="50" r="6" fill="none" stroke="currentColor" strokeWidth="0.75" />
+                </motion.svg>
+              </div>
+
+              <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-pink-500 shadow-[0_0_12px_#ec4899] animate-ping" />
+              <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-b from-pink-500/20 via-pink-500 to-purple-500/80 animate-pulse" />
+              
+              {/* Vertically gliding banner - Eminence in Shadow Slime magic style (Staggered) */}
+              <motion.div
+                animate={{ 
+                  y: [-120, -80, 80, 120],
+                  opacity: [0, 1, 1, 0]
+                }}
+                transition={{ 
+                  duration: 5.5, 
+                  repeat: Infinity, 
+                  ease: "easeInOut",
+                  delay: 0.8
+                }}
+                className="flex flex-col items-center"
+              >
+                <div 
+                  className="flex items-center gap-1 sm:gap-2 py-1.5 sm:py-2" 
+                  style={{ writingMode: 'vertical-lr' }}
+                >
+                  <span className="text-[8.5px] min-[360px]:text-[10.5px] sm:text-[13px] lg:text-[15px] font-mono font-black tracking-[0.25em] min-[360px]:tracking-[0.35em] bg-gradient-to-b from-white via-purple-300 to-fuchsia-400 bg-clip-text text-transparent uppercase whitespace-nowrap drop-shadow-[0_0_12px_rgba(168,85,247,0.95)] animate-[pulse_1.5s_infinite]">
+                    USE PASSWORD IN CHAT TO ENTER
+                  </span>
+                  <Key className="text-fuchsia-400 -rotate-90 stroke-[3] drop-shadow-[0_0_10px_rgba(244,63,94,0.9)] animate-bounce w-3 h-3 sm:w-4 sm:h-4" />
+                </div>
+              </motion.div>
+
+              <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-t from-pink-500/20 via-pink-500 to-purple-500/80 animate-pulse" />
+              <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-purple-500 shadow-[0_0_12px_#a855f7] animate-ping" />
+            </div>
+          </>
+        )}
+
+        {/* Chatbot Header */}
+        <div className={`bg-[#151722] ${isFloating ? 'p-3 rounded-t-[1.75rem]' : 'p-4 rounded-t-[2rem]'} flex items-center justify-between border-b border-[#252838] select-none shrink-0 relative animate-none`}>
+          <div className="flex items-center">
+            {/* Floating Circular Chathead character that goes beyond the chatbox with clean rounded-full overflow-hidden */}
+            <div className={`absolute ${isFloating ? '-top-3.5 -left-3.5' : '-top-4 -left-4'} z-30 select-none group`}>
+              <div className="relative flex items-center justify-center">
+                {/* Outer shining border frame of the avatar (glowing circle matching design mockups perfectly) */}
+                <div className={`${isFloating ? 'w-[64px] h-[64px]' : 'w-[82px] h-[82px]'} rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-500 to-indigo-500 p-[2.5px] shadow-[0_4px_18px_rgba(168,85,247,0.5)] relative`}>
+                  <div className="w-full h-full rounded-full bg-[#12101e] border-2 border-white overflow-hidden flex items-center justify-center relative shadow-inner">
+                    {/* The Circular Shadow Chibi (Sticker) perfectly clipped to absolute circle, dropping white corners */}
+                    <img
+                      src={shadowChibiSticker}
+                      alt="Shadow Avatar Circular"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover scale-[1.05] transform group-hover:scale-112 transition-transform duration-300"
+                    />
+                  </div>
+                </div>
+
+                {/* Online Status Badge sitting on the bottom-right of the circular ring */}
+                <span className={`absolute ${isFloating ? 'bottom-0.5 right-0.5 w-3.5 h-3.5' : 'bottom-1 right-1 w-4.5 h-4.5'} bg-[#42b783] border-2 border-[#151722] rounded-full flex items-center justify-center shadow-lg`}>
+                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-75" />
+                </span>
+              </div>
+            </div>
+
+            {/* Chatbot Title and online label, indented generously to match the floating avatar */}
+            <div className={`${isFloating ? 'pl-16' : 'pl-20 sm:pl-24'} text-left`}>
+              <h3 className={`${isFloating ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'} font-extrabold text-white uppercase tracking-widest leading-none font-sans filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]`}>
+                Shadow
+              </h3>
+              <div className={`flex items-center gap-1.5 ${isFloating ? 'mt-1' : 'mt-2'}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
+                <span className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest font-mono">Online</span>
+                {isChatBossMode && (
+                  <span className={`ml-2.5 ${isFloating ? 'text-[8px] px-1 py-0' : 'text-[9px] px-1.5 py-0.5'} text-purple-400 font-extrabold uppercase tracking-wider font-mono rounded border border-purple-500/30 bg-purple-950/40 animate-pulse`}>
+                    Boss Active
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {isFloating && (
+            <button
+              type="button"
+              onClick={() => setIsFloatingChatOpen(false)}
+              className="text-neutral-500 hover:text-purple-400 p-1 hover:bg-neutral-900/40 rounded-lg transition-colors cursor-pointer relative z-50 ml-auto flex items-center justify-center"
+              title="Close Chat"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Messages Body Scroll Area */}
+        <div className={`flex-1 bg-[#101119] ${isFloating ? 'p-3 space-y-3' : 'p-4 space-y-4'} overflow-y-auto scroll-smooth`}>
+          {chatMessages.map((msg, msgIndex) => {
+            const isLastBotMsg = msg.sender === 'bot' && msgIndex === chatMessages.map(m => m.sender).lastIndexOf('bot');
+            return (
+              <div
+                key={msg.id}
+                className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {msg.sender === 'bot' && (
+                  <div className={`${isFloating ? 'w-6 h-6' : 'w-7 h-7'} rounded-full overflow-hidden border border-purple-500/40 bg-[#12101e] shrink-0 mt-0.5 shadow-sm flex items-center justify-center`}>
+                    <img
+                      src={shadowChibiSticker}
+                      alt="Shadow Chathead"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover transform scale-[1.05]"
+                    />
+                  </div>
+                )}
+                
+                <div className="relative max-w-[80%] select-text flex flex-col items-start">
+                  <div
+                    className={`${isFloating ? 'p-2 rounded-xl text-[10.5px] leading-relaxed' : 'p-3 rounded-2xl text-[11.5px] leading-relaxed'} font-medium tracking-wide w-full ${
+                      msg.sender === 'user'
+                        ? 'bg-gradient-to-r from-teal-400 via-indigo-500 to-purple-600 text-white rounded-tr-none shadow-md'
+                        : 'bg-[#1b1c25] border border-[#262835] text-slate-100 rounded-tl-none shadow-sm'
+                    }`}
+                  >
+                    {renderMessageContent(msg.text, msg.sender)}
+                  </div>
+
+                  {/* Guest Login button under bot bubbles which have a passcode */}
+                  {msg.sender === 'bot' && !isFloating && (() => {
+                    const code = extractPasscode(msg.text);
+                    if (code) {
+                      return (
+                        <button
+                          type="button"
+                          id="guest-login-modal-btn"
+                          onClick={() => {
+                            setGuestAuthError('');
+                            setGuestPasscode('');
+                            setShowGuestPopup(true);
+                          }}
+                          className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 border border-purple-500/25 text-white font-sans text-[10px] uppercase font-bold tracking-wider rounded-lg shadow-md transition-all cursor-pointer select-none"
+                        >
+                          <Unlock size={11} className="text-purple-200" />
+                          <span>GUEST LOGIN</span>
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
+
+                  {/* Book Appointment button */}
+                  {msg.sender === 'bot' && (msg.isAppointmentRequest || msg.text.toLowerCase().includes('schedule') || msg.text.toLowerCase().includes('appointment') || msg.text.toLowerCase().includes('matingnan po natin ang computer ninyo')) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isAuthorized) {
+                          setIsAuthorized(true);
+                          setIsGuestMode(true);
+                        }
+                        setShowArchive(false);
+                        setAutoOpenAppointment(true);
+                      }}
+                      className="mt-2.5 flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 border border-emerald-400/20 text-white font-mono text-[9px] sm:text-[10px] uppercase font-black tracking-wider rounded-lg shadow-[0_0_12px_rgba(16,185,129,0.35)] transition-all cursor-pointer active:scale-95 select-none"
+                    >
+                      <Calendar size={11} className="text-emerald-100 animate-pulse" />
+                      <span>BOOK APPOINTMENT</span>
+                    </button>
+                  )}
+
+                  {/* Log Update button for Owner/Boss queries */}
+                  {isLastBotMsg && isChatBossMode && (
+                    <button
+                      type="button"
+                      onClick={() => setShowLogUpdateModal(true)}
+                      className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 hover:from-purple-500 hover:via-fuchsia-500 hover:to-indigo-500 text-white rounded-lg text-[10px] sm:text-xs font-bold font-mono tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.45)] hover:shadow-[0_0_22px_rgba(168,85,247,0.6)] transition-all duration-300 cursor-pointer border border-purple-400/30 active:scale-95 select-none"
+                    >
+                      <Terminal className="w-3.5 h-3.5 animate-pulse" />
+                      <span>LOG UPDATE</span>
+                    </button>
+                  )}
+
+                  {/* Golden coin emoji next to user bubbles as in reference image */}
+                  {msg.sender === 'user' && (
+                    <div className={`absolute ${isFloating ? '-right-1.5 top-1.5 w-3.5 h-3.5 text-[8.5px]' : '-right-2 top-2 w-4 h-4 text-[10px]'} bg-[#fcd34d] text-neutral-900 rounded-full flex items-center justify-center shadow-sm select-none`}>
+                      🪙
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Typing Indicator */}
+          {chatLoading && (
+            <div className="flex items-start gap-2.5 justify-start">
+              <div className={`${isFloating ? 'w-6 h-6' : 'w-7 h-7'} rounded-full overflow-hidden border border-purple-500/40 bg-[#12101e] shrink-0 mt-0.5 shadow-sm flex items-center justify-center animate-pulse`}>
+                <img
+                  src={shadowChibiSticker}
+                  alt="Shadow Chathead typing"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover transform scale-[1.05]"
+                />
+              </div>
+              <div className={`bg-[#1b1c25] border border-[#262835] ${isFloating ? 'p-2 rounded-xl text-[10px]' : 'p-3 rounded-2xl text-[11px]'} text-zinc-400 flex items-center gap-1 shadow-sm`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Empty Element for Auto-Scroller Pin */}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Suggestions / Hot Chips for easier interactive navigation - Always visible */}
+        <div className={`${isFloating ? 'px-3 pb-2 pt-0.5 gap-1' : 'px-4 pb-2.5 pt-1 gap-1.5'} bg-[#101119] flex flex-wrap justify-center shrink-0`}>
+          {[
+            "Anong mayroon dito?",
+            "Hingi ng passcode, pre"
+          ].map((chip, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                setChatInput(chip);
+              }}
+              className={`${isFloating ? 'px-2 py-0.5 text-[9px] rounded-md' : 'px-2.5 py-1 text-[10px] rounded-lg'} bg-[#1b1c25] hover:bg-purple-950/40 border border-[#262835] hover:border-purple-500/30 text-zinc-300 hover:text-white font-medium transition-all duration-200 cursor-pointer`}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+
+        {/* Form Input Footer */}
+        <div className={`bg-[#151722] ${isFloating ? 'p-2.5 rounded-b-[1.75rem]' : 'p-3 rounded-b-[2rem]'} border-t border-[#252838] flex flex-col gap-2 shrink-0`}>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!chatInput.trim() || chatLoading) return;
+
+              const userMsgText = chatInput;
+              setChatInput('');
+
+              let enteredTextClean = userMsgText.trim();
+              let isPasscodeMatched = false;
+              try {
+                const msgBuffer = new TextEncoder().encode(enteredTextClean);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                if (hashHex === 'cf7a14191ac01a39913eadfae86c9e032ec7bd69fe01d452113f54ea6eef68ef') {
+                  isPasscodeMatched = true;
+                }
+              } catch (e) {
+                console.error(e);
+              }
+
+              let currentBossState = isChatBossMode;
+              if (isPasscodeMatched || userMsgText.toLowerCase().trim() === 'kgab0730') {
+                setIsChatBossMode(true);
+                currentBossState = true;
+              }
+
+              // Append user message
+              const userMsg = {
+                id: `user-${Date.now()}`,
+                sender: 'user' as const,
+                text: userMsgText,
+                timestamp: new Date()
+              };
+              setChatMessages((prev) => [...prev, userMsg]);
+              if ((window as any).logUserMovement) {
+                (window as any).logUserMovement('chat', `Typed in chatbot: "${userMsgText}"`);
+              }
+              setChatLoading(true);
+
+              const normText = userMsgText.toLowerCase().trim();
+              const physicalHW = [
+                "ram", "memory", "ddr4", "ddr5", "ddr3",
+                "motherboard", "mobo", "mainboard", "board", "board-level",
+                "cpu", "processor", "intel", "ryzen", "amd", "i5", "i7", "i9", "ryzen 5", "ryzen 7",
+                "gpu", "video card", "videocard", "graphics card", "nvidia", "rtx", "gtx", "radeon",
+                "power supply", "psu", "power cord", "charger",
+                "hard drive", "hdd", "ssd", "m.2", "nvme",
+                "fan", "cooler", "heatsink", "liquid cooling", "fan motor", "cooling fan",
+                "screen", "monitor", "display", "panel", "lcd",
+                "keyboard", "mouse", "headset", "speaker", "webcam", "camera", "microphone", "mic",
+                "case", "chassis", "tower", "cables", "wire"
+              ];
+
+              const isHardwareWord = physicalHW.some(hw => {
+                return normText === hw || 
+                       normText.includes(" " + hw + " ") || 
+                       normText.startsWith(hw + " ") || 
+                       normText.endsWith(" " + hw) || 
+                       normText.includes("-" + hw) || 
+                       normText.includes(hw + "-") ||
+                       normText.includes(" " + hw) ||
+                       normText.includes(hw + " ");
+              });
+
+              const isHwRepairQuery = normText.includes("hardware repair") || 
+                normText.includes("hardware na sira") || 
+                normText.includes("ayusin ang hardware") || 
+                normText.includes("paggawa ng hardware") || 
+                normText.includes("ayusin ang ram") ||
+                normText.includes("nag aayos kayo ng ram") ||
+                normText.includes("nag aayos kayo ng gpu") ||
+                (normText.includes("hardware") && (normText.includes("repair") || normText.includes("ayos") || normText.includes("sira") || normText.includes("gawa") || normText.includes("palit") || normText.includes("unbox"))) ||
+                (isHardwareWord && (
+                  normText.includes("repair") || 
+                  normText.includes("ayos") || 
+                  normText.includes("sira") || 
+                  normText.includes("gawa") || 
+                  normText.includes("palit") || 
+                  normText.includes("linis") || 
+                  normText.includes("basag") ||
+                  normText.includes("burnt") ||
+                  normText.includes("sunog") ||
+                  normText.includes("kabit") ||
+                  normText.includes("isaksak") ||
+                  normText.includes("pundido") ||
+                  normText.includes("basa") ||
+                  normText.includes("water damage") ||
+                  normText.includes("ipagawa") ||
+                  normText.includes("mag-ayos") ||
+                  normText.includes("magaayos") ||
+                  normText.includes("magpagawa") ||
+                  normText.includes("pagawa") ||
+                  normText.includes("upgrade") ||
+                  normText.includes("palitan") ||
+                  normText.includes("kabitan") ||
+                  normText.includes("cleaning") ||
+                  normText.includes("thermal paste") ||
+                  normText.includes("overheat") ||
+                  normText.includes("mainit")
+                ));
+
+              try {
+                const response = await fetch('/api/shadow-chat', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    message: userMsgText,
+                    isBossMode: currentBossState,
+                    history: chatMessages.slice(-10).map(msg => ({
+                      role: msg.sender === 'user' ? 'user' : 'model',
+                      parts: [{ text: msg.text }]
+                    }))
+                  })
+                });
+
+                const data = await response.json();
+                
+                // Dynamically discover and cache chatbot-generated passwords
+                if (data.reply) {
+                  const codesFound: string[] = [];
+                  const pattern = /\b[A-Z0-9]{8}\b/g;
+                  let m;
+                  while ((m = pattern.exec(data.reply)) !== null) {
+                    const candidate = m[0];
+                    if (candidate !== "SECURITY" && candidate !== "DATABASE" && candidate !== "TERMINAL" && candidate !== "PASSWORD") {
+                      codesFound.push(candidate);
+                    }
+                  }
+
+                  if (codesFound.length > 0) {
+                    try {
+                      const savedRaw = localStorage.getItem('chatbot_generated_passwords');
+                      let savedList: string[] = [];
+                      if (savedRaw) {
+                        savedList = JSON.parse(savedRaw);
+                      }
+                      codesFound.forEach(code => {
+                        if (!savedList.includes(code)) {
+                          savedList.push(code);
+                        }
+                      });
+                      localStorage.setItem('chatbot_generated_passwords', JSON.stringify(savedList));
+                      setAvailablePasscodes(savedList);
+                      
+                      // Also push this newly discovered passcode to the backend config dynamically!
+                      const payload = {
+                        admin_console_link: localStorage.getItem('admin_console_link') || 'https://drive.google.com',
+                        user_suggestions: JSON.parse(localStorage.getItem('shadow_suggestions') || '[]'),
+                        user_appointments: JSON.parse(localStorage.getItem('shadow_appointments') || '[]'),
+                        user_shout_outs: JSON.parse(localStorage.getItem('shadow_shout_outs_v3') || '[]'),
+                        user_activity_logs: JSON.parse(localStorage.getItem('shadow_user_movements') || '[]'),
+                        chatbot_passcodes: savedList
+                      };
+                      fetch('/api/configs', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                      }).catch(err => console.error("Config background passcode sync error:", err));
+
+                    } catch (err) {
+                      console.error("Error storing chatbot-generated passwords:", err);
+                    }
+                  }
+                }
+
+                if (isHwRepairQuery) {
+                  let alreadyRegistered = false;
+                  try {
+                    const suggestionsRaw = localStorage.getItem('shadow_suggestions');
+                    if (suggestionsRaw) {
+                      const parsed = JSON.parse(suggestionsRaw);
+                      if (Array.isArray(parsed)) {
+                        alreadyRegistered = parsed.some((s: any) => 
+                          s.text && (
+                            s.text.toLowerCase().includes("hardware repair") || 
+                            s.text.toLowerCase().includes("ram") || 
+                            s.text.toLowerCase().includes("motherboard") || 
+                            s.text.toLowerCase().includes("cpu") || 
+                            s.text.toLowerCase().includes("gpu")
+                          )
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    console.error("Error checking hardware suggestions:", e);
+                  }
+
+                  if (!alreadyRegistered) {
+                    const fakeSuggestionId = 'sug-' + Math.random().toString(36).substr(2, 9);
+                    const newSuggestion = {
+                      id: fakeSuggestionId,
+                      text: `[Remote Hardware Inquiry] Customer asks for diagnostic/repair service: "${userMsgText}"`,
+                      votes: 1,
+                      timestamp: new Date().toISOString()
+                    };
+                    try {
+                      const suggestionsRaw = localStorage.getItem('shadow_suggestions');
+                      let savedList = [];
+                      if (suggestionsRaw) savedList = JSON.parse(suggestionsRaw);
+                      savedList.push(newSuggestion);
+                      localStorage.setItem('shadow_suggestions', JSON.stringify(savedList));
+                      window.dispatchEvent(new Event('shadow_sync_update'));
+
+                      const payload = {
+                        admin_console_link: localStorage.getItem('admin_console_link') || 'https://drive.google.com',
+                        user_suggestions: savedList,
+                        user_appointments: JSON.parse(localStorage.getItem('shadow_appointments') || '[]'),
+                        user_shout_outs: JSON.parse(localStorage.getItem('shadow_shout_outs_v3') || '[]'),
+                        user_activity_logs: JSON.parse(localStorage.getItem('shadow_user_movements') || '[]')
+                      };
+                      fetch('/api/configs', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                      }).catch(err => console.error("Hardware suggestion background sync error:", err));
+
+                    } catch (err) {
+                      console.error("Failed to add automatic hardware diagnostic request:", err);
+                    }
+                  }
+                }
+
+                setChatMessages((prev) => [
+                  ...prev,
+                  {
+                    id: `bot-${Date.now()}`,
+                    sender: 'bot',
+                    text: data.reply || 'Dito lang ako, pre. Tanong ka lang.',
+                    timestamp: new Date()
+                  }
+                ]);
+
+              } catch (error) {
+                console.error('Chat error:', error);
+                setChatMessages((prev) => [
+                  ...prev,
+                  {
+                    id: `bot-err-${Date.now()}`,
+                    sender: 'bot',
+                    text: 'Pasensya ka na pre, nagka-error sa gateway connection ko. Ulitin natin mamaya.',
+                    timestamp: new Date()
+                  }
+                ]);
+              } finally {
+                setChatLoading(false);
+              }
+            }}
+            className="flex items-center gap-2"
+          >
+            <div className={`relative flex-1 flex items-center bg-[#101119] ${isFloating ? 'rounded-lg px-2 py-1' : 'rounded-xl px-3 py-1.5'} border border-[#252838] focus-within:border-purple-500/50 transition-all min-w-0`}>
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder={isListening ? "Magsalita na po..." : "Type your message..."}
+                disabled={chatLoading}
+                className="flex-1 bg-transparent text-white font-medium text-xs outline-none placeholder:text-zinc-500/80 min-w-0 pr-8"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (isListening) {
+                    setIsListening(false);
+                    if ((window as any).recognitionInstance) {
+                      try {
+                        (window as any).recognitionInstance.stop();
+                      } catch (_) {}
+                    }
+                    return;
+                  }
+
+                  const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                  if (!SpeechRec) {
+                    alert("Speech recognition is not supported in this browser.");
+                    return;
+                  }
+
+                  try {
+                    const rec = new SpeechRec();
+                    rec.continuous = false;
+                    rec.interimResults = false;
+                    rec.lang = 'fil-PH';
+
+                    rec.onstart = () => {
+                      setIsListening(true);
+                    };
+
+                    rec.onresult = (event: any) => {
+                      const transcript = event.results[0][0].transcript;
+                      if (transcript) {
+                        setChatInput(transcript);
+                      }
+                    };
+
+                    rec.onerror = () => {
+                      setIsListening(false);
+                    };
+
+                    rec.onend = () => {
+                      setIsListening(false);
+                    };
+
+                    (window as any).recognitionInstance = rec;
+                    rec.start();
+                  } catch (err) {
+                    console.error("Speech recognition error:", err);
+                    setIsListening(false);
+                  }
+                }}
+                className={`absolute right-2 p-1.5 rounded-lg transition-all cursor-pointer select-none ${
+                  isListening 
+                    ? 'bg-red-500/20 text-red-400 animate-pulse' 
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+                title={isListening ? "Stop listening" : "Speech to Text"}
+              >
+                {isListening ? <MicOff size={11} /> : <Mic size={11} />}
+              </button>
+            </div>
+            <button
+              type="submit"
+              disabled={chatLoading}
+              className={`${isFloating ? 'px-3.5 py-2 text-[10.5px] rounded-lg' : 'px-5 py-2.5 text-xs rounded-xl'} bg-[#42b783] hover:bg-[#52d399] active:scale-98 disabled:opacity-50 text-white font-bold tracking-wider transition-all duration-150 cursor-pointer shadow-[0_3px_10px_rgba(66,183,131,0.2)] flex items-center justify-center shrink-0 uppercase`}
+            >
+              Send
+            </button>
+          </form>
+          {/* Credits alignment matching Silver Techpx */}
+          <div className="text-center select-none pt-0.5">
+            <span className="text-[9px] font-bold tracking-widest text-[#42b783]/85 font-mono">
+              POWERED BY <span className="text-[#52d399] uppercase">Gemini 3.5</span>
+            </span>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
 
   if (appLoading) {
     return <LoadingScreen onComplete={() => setAppLoading(false)} isAudioAllowed={audioApproved === true} />;
@@ -2846,7 +3627,7 @@ export default function App() {
                           <div className="w-full h-full rounded-lg overflow-hidden border border-neutral-800 bg-neutral-900 pr-px">
                             <img 
                               src={ownerIdPhoto} 
-                              alt="Cid Kagenou Portrait ID" 
+                              alt="Ian Collantes Portrait ID" 
                               className="w-full h-full object-cover filter brightness-[1.1] contrast-[1.05]"
                               referrerPolicy="no-referrer"
                             />
@@ -2863,7 +3644,7 @@ export default function App() {
                           <div>
                             <span className="text-[7px] text-neutral-500 font-bold block mb-px">UPLINK_IDENTITY_REG</span>
                             <h4 className="text-white text-base font-black tracking-tight uppercase">
-                              Cid Kagenou
+                              Ian Collantes
                             </h4>
                           </div>
                           <div>
@@ -3008,6 +3789,49 @@ export default function App() {
         isOpen={showLogUpdateModal}
         onClose={() => setShowLogUpdateModal(false)}
       />
+
+      {/* Floating Circular Chathead with image 1 as picture - placed in the middle left part of the main page */}
+      <div className="fixed left-6 top-1/2 -translate-y-1/2 z-[9999] select-none flex flex-col items-start">
+        {/* The floating chatbot card (Image 2 UI Box) shown conditionally */}
+        <AnimatePresence>
+          {isFloatingChatOpen && renderChatbot(true)}
+        </AnimatePresence>
+
+        {/* Circular Chathead Button (using image 1) */}
+        <motion.button
+          onClick={() => setIsFloatingChatOpen(!isFloatingChatOpen)}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative w-16 h-16 rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-500 to-indigo-500 p-[3px] shadow-[0_4px_25px_rgba(168,85,247,0.7)] flex items-center justify-center cursor-pointer overflow-visible group transition-all duration-300 border-2 border-white/10 hover:border-white/30"
+          title="Chat with Shadow"
+        >
+          {/* Click me tooltip badge on top of the chathead */}
+          {!isFloatingChatOpen && (
+            <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-mono text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border border-purple-400/60 shadow-[0_0_12px_rgba(168,85,247,0.5)] animate-bounce select-none whitespace-nowrap">
+              click me
+              <div className="absolute -bottom-[3.5px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-indigo-600 border-r border-b border-purple-400/60 rotate-45" />
+            </div>
+          )}
+
+          {/* Circular picture frame perfectly wrapping image 1 */}
+          <div className="w-full h-full rounded-full bg-[#12101e] border-2 border-white overflow-hidden flex items-center justify-center relative shadow-inner">
+            <img
+              src={shadowChibiSticker}
+              alt="Shadow Chathead Avatar"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover scale-[1.05] transform group-hover:scale-112 transition-transform duration-300"
+            />
+          </div>
+
+          {/* Online status indicator ring bottom-right of the circle */}
+          <span className="absolute bottom-0 right-0 w-4.5 h-4.5 bg-[#42b783] border-2 border-[#12101e] rounded-full flex items-center justify-center shadow-lg">
+            <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-75" />
+          </span>
+
+          {/* Glowing pulse ring behind the button */}
+          <div className="absolute inset-0 rounded-full bg-purple-500/20 blur-[8px] -z-10 group-hover:bg-purple-500/35 transition-colors duration-300 animate-pulse" />
+        </motion.button>
+      </div>
     </div>
   );
 }

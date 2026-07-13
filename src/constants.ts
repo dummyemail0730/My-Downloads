@@ -29,7 +29,7 @@ export const PROJECTS: Project[] = [
     description: 'Complete productivity suite featuring Microsoft Word, Excel, PowerPoint, and Outlook pre-activated and pre-configured.',
     tags: ['Office', 'Utility', 'Productivity'],
     image: shadowMysteriousAura,
-    link: 'https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing',
+    link: 'https://drive.google.com/file/d/1JOkYke7BPH_i8A6biBkw3hclsnAwFrOv/view?usp=sharing',
   },
   {
     id: '4',
@@ -58,7 +58,7 @@ export const TRACKS: Track[] = [
 
 export const PHOTOS: Photo[] = [
   { id: '1', url: shadowOnRoof, caption: 'Shadow on the Roof', location: 'Midgar Kingdom' },
-  { id: '2', url: shadowDarkBlade, caption: 'Cid Kagenou’s Blade', location: 'Shadow Garden HQ' },
+  { id: '2', url: shadowDarkBlade, caption: 'Ian Collantes’s Blade', location: 'Shadow Garden HQ' },
   { id: '3', url: shadowMysteriousAura, caption: 'I Am Atomic Aura', location: 'Sanctuary' },
   { id: '4', url: shadowMoonRain, caption: 'Midnight Rain Shadow', location: 'Alexia Castle' },
   { id: '5', url: shadowNeonElectricity, caption: 'Overdrive Energy Core', location: 'Corporate Sector' },

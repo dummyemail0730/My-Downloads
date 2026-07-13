@@ -163,7 +163,7 @@ export default function SoftwareView() {
   const defaultLinks: { [key: string]: string } = {
     '1': 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view?usp=sharing',
     '2': 'https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view?usp=sharing',
-    '3': 'https://drive.google.com/drive/folders/1PQ2CG9rLB1QbtbcaR8z0T37qUl0J0e_1?usp=sharing',
+    '3': 'https://drive.google.com/file/d/1JOkYke7BPH_i8A6biBkw3hclsnAwFrOv/view?usp=sharing',
     '4': 'https://github.com/topics/omniscript',
     '5': 'https://github.com/topics/headless-cms',
   };
