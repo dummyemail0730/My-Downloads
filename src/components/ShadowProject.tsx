@@ -288,6 +288,68 @@ export default function ShadowProject({
     }
   }, [syncVersion]);
 
+  useEffect(() => {
+    try {
+      const savedSuggestions = localStorage.getItem('shadow_suggestions');
+      if (savedSuggestions) {
+        setSuggestions(JSON.parse(savedSuggestions));
+      } else {
+        setSuggestions([]);
+      }
+    } catch (e) {
+      console.error("Sync error for suggestions:", e);
+    }
+
+    try {
+      const savedAppointments = localStorage.getItem('shadow_appointments');
+      if (savedAppointments) {
+        const parsed = JSON.parse(savedAppointments);
+        if (Array.isArray(parsed)) {
+          setAppointments(parsed.map((item: any) => ({
+            id: item.id || 'ap-' + Math.random(),
+            name: item.name || 'Anonymous',
+            contact: item.contact || item.email || 'N/A',
+            specs: item.specs || item.location || 'N/A',
+            problem: item.problem || item.purpose || 'N/A',
+            description: item.description || item.purpose || 'No additional explanation provided.',
+            furtherDetails: item.furtherDetails || '',
+            date: item.date || '2026-05-28',
+            status: item.status || 'PENDING'
+          })));
+        } else {
+          setAppointments([]);
+        }
+      } else {
+        setAppointments([]);
+      }
+    } catch (e) {
+      console.error("Sync error for appointments:", e);
+      setAppointments([]);
+    }
+
+    try {
+      const savedShouts = localStorage.getItem('shadow_shout_outs_v3');
+      if (savedShouts) {
+        setShouts(JSON.parse(savedShouts));
+      } else {
+        setShouts([]);
+      }
+    } catch (e) {
+      console.error("Sync error for shouts:", e);
+    }
+
+    try {
+      const savedTutorials = localStorage.getItem('shadow_master_tutorials');
+      if (savedTutorials) {
+        setTutorials(JSON.parse(savedTutorials));
+      } else {
+        setTutorials([]);
+      }
+    } catch (e) {
+      console.error("Sync error for tutorials:", e);
+    }
+  }, [syncVersion]);
+
   // Decryption Passcode states
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');

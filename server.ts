@@ -489,28 +489,16 @@ async function startServer() {
         if (!item) return false;
         const name = (item.name || '').toLowerCase();
         const contact = (item.contact || item.email || '').toLowerCase();
-        const specs = (item.specs || '').toLowerCase();
-        const problem = (item.problem || '').toLowerCase();
-        const desc = (item.description || '').toLowerCase();
         const id = (item.id || '').toLowerCase();
 
-        if (name.includes("alpha") || name.includes("sherry") || name.includes("barnett") || name.includes("cid kagenou") || name.includes("cid")) {
+        // Only filter out obvious test/mock data from character names
+        if (name === "cid kagenou" || name === "sherry barnett" || name === "alpha" || name === "cid") {
           return false;
         }
-        if (contact.includes("shadow-garden") || contact.includes("academic.net") || contact === 'n/a') {
+        if (contact.includes("shadow-garden.org") || contact === "cid@academic.net") {
           return false;
         }
-        if (specs.includes("i9-13900k") || specs.includes("ryzen 7") || specs === 'n/a') {
-          return false;
-        }
-        if (problem.includes("slow performance") || problem.includes("freezing") || problem === 'n/a') {
-          return false;
-        }
-        if (desc.includes("compilation of system files") || desc.includes("large gcc builds") || desc.includes("io storage") || desc.includes("io bottleneck")) {
-          return false;
-        }
-        if (id.includes("ap-1") || id.includes("ap-2") || id.includes("ap-")) {
-          // Remove default/dummy appointment IDs
+        if (id === "ap-1" || id === "ap-2" || id === "ap-dummy" || id.includes("mock") || id.includes("test")) {
           return false;
         }
         return true;

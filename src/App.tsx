@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, MouseEvent, PointerEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft, Eye, EyeOff, Clock, ArrowRight, ShieldCheck, Clipboard, Calendar, Mic, MicOff } from 'lucide-react';
 import Sidebar from './components/Sidebar';
@@ -110,6 +110,7 @@ const renderMessageContent = (msgText: string, sender: string) => {
 };
 
 export default function App() {
+  const mainContainerRef = useRef<HTMLDivElement>(null);
   const [audioApproved, setAudioApproved] = useState<boolean | null>(true);
 
   // Soundtrack / Background audio states
@@ -303,6 +304,55 @@ export default function App() {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [isFloatingChatOpen, setIsFloatingChatOpen] = useState(false);
+
+  // Custom pointer drag states for the floating chathead
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const isPointerDownRef = useRef(false);
+  const hasDraggedRef = useRef(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const startOffsetRef = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    // Only drag with left click or touch
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    isPointerDownRef.current = true;
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    startOffsetRef.current = { ...dragOffset };
+    hasDraggedRef.current = false;
+  };
+
+  useEffect(() => {
+    const handleWindowPointerMove = (e: globalThis.PointerEvent) => {
+      if (!isPointerDownRef.current) return;
+      const dx = e.clientX - dragStartRef.current.x;
+      const dy = e.clientY - dragStartRef.current.y;
+      // Small threshold to ignore tiny accidental movements
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        hasDraggedRef.current = true;
+      }
+      setDragOffset({
+        x: startOffsetRef.current.x + dx,
+        y: startOffsetRef.current.y + dy
+      });
+    };
+
+    const handleWindowPointerUp = () => {
+      if (!isPointerDownRef.current) return;
+      isPointerDownRef.current = false;
+
+      // If we didn't drag past threshold, toggle floating chat open/closed
+      if (!hasDraggedRef.current) {
+        setIsFloatingChatOpen(prev => !prev);
+      }
+    };
+
+    window.addEventListener('pointermove', handleWindowPointerMove);
+    window.addEventListener('pointerup', handleWindowPointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handleWindowPointerMove);
+      window.removeEventListener('pointerup', handleWindowPointerUp);
+    };
+  }, [dragOffset]);
 
   // Synchronize and persist chatbot dialogue live to localStorage under user number
   useEffect(() => {
@@ -2652,9 +2702,12 @@ export default function App() {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: -15 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
         className={
           isFloating
-            ? "fixed bottom-24 left-6 md:bottom-auto md:left-24 md:top-1/2 md:-translate-y-1/2 z-[999] w-[280px] sm:w-[330px] h-[390px] sm:h-[450px] bg-[#1d1f2b] border-2 border-purple-500/70 rounded-[1.75rem] shadow-[0_0_40px_rgba(168,85,247,0.5),0_0_15px_rgba(139,92,246,0.3),0_10px_40px_rgba(147,51,234,0.2)] flex flex-col overflow-visible font-sans text-white backdrop-blur-md"
+            ? "absolute bottom-20 right-0 md:bottom-auto md:right-[80px] md:top-1/2 md:-translate-y-1/2 z-[999] w-[280px] sm:w-[330px] h-[390px] sm:h-[450px] bg-[#1d1f2b] border-2 border-purple-500/70 rounded-[1.75rem] shadow-[0_0_40px_rgba(168,85,247,0.5),0_0_15px_rgba(139,92,246,0.3),0_10px_40px_rgba(147,51,234,0.2)] flex flex-col overflow-visible font-sans text-white backdrop-blur-md"
             : "w-[74%] min-[360px]:w-[78%] min-[400px]:w-[80%] sm:w-full max-w-[245px] min-[360px]:max-w-[275px] min-[400px]:max-w-[315px] sm:max-w-[380px] h-[430px] min-[360px]:h-[455px] min-[400px]:h-[485px] sm:h-[515px] bg-[#1d1f2b] border-2 border-purple-500/70 rounded-[2rem] shadow-[0_0_60px_rgba(168,85,247,0.65),0_0_20px_rgba(139,92,246,0.35),0_15px_50px_rgba(147,51,234,0.25)] flex flex-col overflow-visible relative font-sans text-white backdrop-blur-md"
         }
       >
@@ -3161,63 +3214,6 @@ export default function App() {
                   }
                 }
 
-                if (isHwRepairQuery) {
-                  let alreadyRegistered = false;
-                  try {
-                    const suggestionsRaw = localStorage.getItem('shadow_suggestions');
-                    if (suggestionsRaw) {
-                      const parsed = JSON.parse(suggestionsRaw);
-                      if (Array.isArray(parsed)) {
-                        alreadyRegistered = parsed.some((s: any) => 
-                          s.text && (
-                            s.text.toLowerCase().includes("hardware repair") || 
-                            s.text.toLowerCase().includes("ram") || 
-                            s.text.toLowerCase().includes("motherboard") || 
-                            s.text.toLowerCase().includes("cpu") || 
-                            s.text.toLowerCase().includes("gpu")
-                          )
-                        );
-                      }
-                    }
-                  } catch (e) {
-                    console.error("Error checking hardware suggestions:", e);
-                  }
-
-                  if (!alreadyRegistered) {
-                    const fakeSuggestionId = 'sug-' + Math.random().toString(36).substr(2, 9);
-                    const newSuggestion = {
-                      id: fakeSuggestionId,
-                      text: `[Remote Hardware Inquiry] Customer asks for diagnostic/repair service: "${userMsgText}"`,
-                      votes: 1,
-                      timestamp: new Date().toISOString()
-                    };
-                    try {
-                      const suggestionsRaw = localStorage.getItem('shadow_suggestions');
-                      let savedList = [];
-                      if (suggestionsRaw) savedList = JSON.parse(suggestionsRaw);
-                      savedList.push(newSuggestion);
-                      localStorage.setItem('shadow_suggestions', JSON.stringify(savedList));
-                      window.dispatchEvent(new Event('shadow_sync_update'));
-
-                      const payload = {
-                        admin_console_link: localStorage.getItem('admin_console_link') || 'https://drive.google.com',
-                        user_suggestions: savedList,
-                        user_appointments: JSON.parse(localStorage.getItem('shadow_appointments') || '[]'),
-                        user_shout_outs: JSON.parse(localStorage.getItem('shadow_shout_outs_v3') || '[]'),
-                        user_activity_logs: JSON.parse(localStorage.getItem('shadow_user_movements') || '[]')
-                      };
-                      fetch('/api/configs', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                      }).catch(err => console.error("Hardware suggestion background sync error:", err));
-
-                    } catch (err) {
-                      console.error("Failed to add automatic hardware diagnostic request:", err);
-                    }
-                  }
-                }
-
                 setChatMessages((prev) => [
                   ...prev,
                   {
@@ -3339,7 +3335,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen w-full relative">
+    <div ref={mainContainerRef} className="min-h-screen w-full relative">
       {/* Hidden Persistent Theme Audio Stream */}
       {isPlaying && localAudioActive && (
         activeTrack.type === 'drive' ? (
@@ -3790,8 +3786,16 @@ export default function App() {
         onClose={() => setShowLogUpdateModal(false)}
       />
 
-      {/* Floating Circular Chathead with image 1 as picture - placed in the middle left part of the main page */}
-      <div className="fixed left-6 top-1/2 -translate-y-1/2 z-[9999] select-none flex flex-col items-start">
+      {/* Floating Circular Chathead with image 1 as picture - placed in the middle right part of the main page, fully draggable */}
+      <div
+        onPointerDown={handlePointerDown}
+        style={{
+          transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`,
+          right: '24px',
+          top: '40%'
+        }}
+        className="fixed z-[9999] select-none flex flex-col items-end touch-none"
+      >
         {/* The floating chatbot card (Image 2 UI Box) shown conditionally */}
         <AnimatePresence>
           {isFloatingChatOpen && renderChatbot(true)}
@@ -3799,9 +3803,9 @@ export default function App() {
 
         {/* Circular Chathead Button (using image 1) */}
         <motion.button
-          onClick={() => setIsFloatingChatOpen(!isFloatingChatOpen)}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
+          onDragStart={(e) => e.preventDefault()}
           className="relative w-16 h-16 rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-500 to-indigo-500 p-[3px] shadow-[0_4px_25px_rgba(168,85,247,0.7)] flex items-center justify-center cursor-pointer overflow-visible group transition-all duration-300 border-2 border-white/10 hover:border-white/30"
           title="Chat with Shadow"
         >
@@ -3814,12 +3818,14 @@ export default function App() {
           )}
 
           {/* Circular picture frame perfectly wrapping image 1 */}
-          <div className="w-full h-full rounded-full bg-[#12101e] border-2 border-white overflow-hidden flex items-center justify-center relative shadow-inner">
+          <div className="w-full h-full rounded-full bg-[#12101e] border-2 border-white overflow-hidden flex items-center justify-center relative shadow-inner pointer-events-none">
             <img
               src={shadowChibiSticker}
               alt="Shadow Chathead Avatar"
               referrerPolicy="no-referrer"
-              className="w-full h-full object-cover scale-[1.05] transform group-hover:scale-112 transition-transform duration-300"
+              draggable="false"
+              onDragStart={(e) => e.preventDefault()}
+              className="w-full h-full object-cover scale-[1.05] transform group-hover:scale-112 transition-transform duration-300 select-none pointer-events-none"
             />
           </div>
 
