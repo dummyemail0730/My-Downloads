@@ -13,7 +13,6 @@ import LoadingScreen from './components/LoadingScreen';
 import ShadowLoreView from './components/ShadowLoreView';
 import RedirectLoader from './components/RedirectLoader';
 import LogUpdateModal from './components/LogUpdateModal';
-import MoePortal from './components/MoePortal';
 import shadowBg from './assets/images/shadow_master_atomic_1779279129608.png';
 import ownerIdPhoto from './assets/images/owner_id_photo_1779279731967.png';
 import shadowChibiAvatar from './assets/images/shadow_eminence_chibi_1779532936009.png';
@@ -1005,7 +1004,6 @@ export default function App() {
   const [copiedText, setCopiedText] = useState<'EMAIL' | 'KEY' | 'PHONE' | null>(null);
   const [showSupportPage, setShowSupportPage] = useState(false);
   const [autoOpenAppointment, setAutoOpenAppointment] = useState(false);
-  const [showMoePortal, setShowMoePortal] = useState(false);
 
   const [redirectLoaderState, setRedirectLoaderState] = useState<{ isOpen: boolean; targetUrl: string; itemTitle: string }>({
     isOpen: false,
@@ -1133,7 +1131,7 @@ export default function App() {
       case 'ANIME':
         return <AnimeView />;
       case 'GAMES':
-        return <MusicView />;
+        return <MusicView isAdmin={!isGuestMode} />;
       case 'TOOLS':
         return <ToolsView />;
       case 'EXPERTISE':
@@ -3167,13 +3165,14 @@ export default function App() {
                 });
 
                 const data = await response.json();
+                const replyText = data.text || data.reply;
                 
                 // Dynamically discover and cache chatbot-generated passwords
-                if (data.reply) {
+                if (replyText) {
                   const codesFound: string[] = [];
                   const pattern = /\b[A-Z0-9]{8}\b/g;
                   let m;
-                  while ((m = pattern.exec(data.reply)) !== null) {
+                  while ((m = pattern.exec(replyText)) !== null) {
                     const candidate = m[0];
                     if (candidate !== "SECURITY" && candidate !== "DATABASE" && candidate !== "TERMINAL" && candidate !== "PASSWORD") {
                       codesFound.push(candidate);
@@ -3221,7 +3220,7 @@ export default function App() {
                   {
                     id: `bot-${Date.now()}`,
                     sender: 'bot',
-                    text: data.reply || 'Dito lang ako, pre. Tanong ka lang.',
+                    text: replyText || 'Dito lang ako, pre. Tanong ka lang.',
                     timestamp: new Date()
                   }
                 ]);
@@ -3477,13 +3476,15 @@ export default function App() {
               {/* Header Section */}
               <header className="h-24 border-b border-neutral-900 flex items-center justify-between px-4 md:px-8 bg-neutral-950/95 backdrop-blur-md shrink-0 sm:pointer-events-auto">
                 <div className="flex items-center gap-4">
-                  <button 
-                    onClick={() => setShowMoePortal(true)}
+                  <a 
+                    href="https://everythingmoe.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-10 h-10 bg-neutral-900 border border-neutral-800 flex items-center justify-center cursor-pointer hover:bg-neutral-800 transition-colors pointer-events-auto"
-                    title="Open Portal Index"
+                    title="Open EverythingMoe"
                   >
                     <Folder className="text-purple-400" size={20} strokeWidth={2.5} />
-                  </button>
+                  </a>
                   <div>
                     <div className="flex items-center gap-2">
                       <h1 className="text-xs sm:text-lg md:text-xl font-black uppercase tracking-wide leading-none text-white">Digital Archive</h1>
@@ -3537,7 +3538,7 @@ export default function App() {
                 <main className="flex-1 flex flex-col bg-neutral-950 overflow-hidden">
                   <div className="p-4 md:p-6 border-b border-neutral-900 flex items-center justify-between bg-zinc-900/45 shrink-0">
                     <h2 className="text-3xl md:text-5xl font-black uppercase tracking-wide leading-none text-white">
-                      {activeTab.replace('_', ' ')}
+                      {TABS.find(t => t.id === activeTab)?.label?.toUpperCase() || (activeTab === 'GAMES' ? 'MUSIC' : activeTab.replace('_', ' '))}
                     </h2>
                   </div>
   
@@ -3786,16 +3787,6 @@ export default function App() {
         isOpen={showLogUpdateModal}
         onClose={() => setShowLogUpdateModal(false)}
       />
-
-      {/* Universal Moe Index Portal */}
-      <AnimatePresence>
-        {showMoePortal && (
-          <MoePortal
-            isOpen={showMoePortal}
-            onClose={() => setShowMoePortal(false)}
-          />
-        )}
-      </AnimatePresence>
 
       {/* Floating Circular Chathead with image 1 as picture - placed in the middle right part of the main page, fully draggable */}
       <div

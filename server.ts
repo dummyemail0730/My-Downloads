@@ -442,12 +442,13 @@ async function startServer() {
         }
         
         const app = getClientApp();
-        if (config.firestoreDatabaseId) {
-          dbClient = getClientFirestore(app, config.firestoreDatabaseId);
+        const dbId = config.firestoreDatabaseId || process.env.FIRESTORE_DATABASE_ID || "ai-studio-4c46b102-5ec1-4f13-b6a7-8d1159b686ab";
+        if (dbId) {
+          dbClient = getClientFirestore(app, dbId);
         } else {
           dbClient = getClientFirestore(app);
         }
-        console.log("[FIREBASE] Client initialized successfully with database ID:", config.firestoreDatabaseId || "(default)");
+        console.log("[FIREBASE] Client initialized successfully with database ID:", dbId);
       } else {
         console.warn("[FIREBASE] firebase-applet-config.json not found! Falling back to local file storage.");
       }
@@ -1093,7 +1094,12 @@ async function startServer() {
       const contentsList: any[] = [];
       if (Array.isArray(history)) {
         history.forEach((msg: any) => {
-          if (msg.sender === 'user' || msg.sender === 'bot') {
+          if (msg.role && msg.parts) {
+            contentsList.push({
+              role: msg.role === 'user' ? 'user' : 'model',
+              parts: msg.parts
+            });
+          } else if (msg.sender && msg.text) {
             contentsList.push({
               role: msg.sender === 'user' ? 'user' : 'model',
               parts: [{ text: msg.text }]
@@ -1587,6 +1593,256 @@ async function startServer() {
     } catch (err: any) {
       console.error("Error in download proxy:", err);
       res.status(500).send("Download proxy error: " + err.message);
+    }
+  });
+
+  // Google Drive API Token Memory & Persistence
+  let serverDriveToken: string | null = (() => {
+    try {
+      const tokenPath = path.join(process.cwd(), "shadow_gdrive_config.json");
+      if (fs.existsSync(tokenPath)) {
+        const config = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
+        return config.accessToken || config.token || null;
+      }
+    } catch (e) {}
+    return null;
+  })();
+
+  const persistServerDriveToken = (token: string) => {
+    if (!token) return;
+    serverDriveToken = token;
+    try {
+      const tokenPath = path.join(process.cwd(), "shadow_gdrive_config.json");
+      fs.writeFileSync(tokenPath, JSON.stringify({ accessToken: token, updatedAt: new Date().toISOString() }, null, 2));
+      const firebaseDb = getFirebaseDB();
+      if (firebaseDb) {
+        const docRef = getClientDoc(firebaseDb, "portalSettings", "gdriveConfig");
+        getClientSetDoc(docRef, { accessToken: token, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn("[Server Drive Token] Error persisting token:", e);
+    }
+  };
+
+  // API Route - Google Drive Files & Audio Scanner Proxy
+  app.get("/api/drive/files", async (req, res) => {
+    const accessToken = (req.headers.authorization || "").replace("Bearer ", "").trim() || (req.query.accessToken as string);
+    if (accessToken) {
+      persistServerDriveToken(accessToken);
+    }
+
+    if (!accessToken && !serverDriveToken) {
+      return res.status(401).json({ error: "Missing Google OAuth access token" });
+    }
+
+    const tokenToUse = accessToken || serverDriveToken;
+
+    try {
+      const folderId = req.query.folderId as string;
+      const search = req.query.search as string;
+      const pageToken = req.query.pageToken as string;
+      const pageSize = req.query.pageSize || "100";
+
+      let queryConditions: string[] = ["trashed = false"];
+
+      let targetFolderId = folderId;
+
+      // If no folderId was specified, try to find a folder named "Music" / "music" / "Music Folder" / "My Music"
+      if (!targetFolderId && !search) {
+        try {
+          const findUrl = new URL("https://www.googleapis.com/drive/v3/files");
+          findUrl.searchParams.set("q", "(name = 'Music' or name = 'music' or name = 'Music Folder' or name = 'MY MUSIC' or name = 'My Music') and mimeType = 'application/vnd.google-apps.folder' and trashed = false");
+          findUrl.searchParams.set("pageSize", "5");
+          findUrl.searchParams.set("fields", "files(id, name)");
+          const findRes = await fetch(findUrl.toString(), {
+            headers: { Authorization: `Bearer ${tokenToUse}` }
+          });
+          if (findRes.ok) {
+            const findData = await findRes.json();
+            if (findData.files && findData.files.length > 0) {
+              targetFolderId = findData.files[0].id;
+              console.log(`[Drive API] Auto-targeted Music folder: "${findData.files[0].name}" (${targetFolderId})`);
+            }
+          }
+        } catch (e) {
+          console.warn("[Drive API] Error finding Music folder:", e);
+        }
+      }
+
+      if (targetFolderId) {
+        queryConditions.push(`'${targetFolderId}' in parents`);
+      }
+
+      // ALWAYS enforce audio files + subfolders condition to filter out photos, zip files, videos, docs!
+      queryConditions.push("(mimeType contains 'audio' or mimeType = 'application/vnd.google-apps.folder' or name contains '.mp3' or name contains '.m4a' or name contains '.flac' or name contains '.wav' or name contains '.ogg' or name contains '.aac' or name contains '.wma' or name contains '.opus' or name contains '.aiff')");
+
+      if (search) {
+        queryConditions.push(`name contains '${search.replace(/'/g, "\\'")}'`);
+      }
+
+      const q = queryConditions.join(" and ");
+      const url = new URL("https://www.googleapis.com/drive/v3/files");
+      url.searchParams.set("q", q);
+      url.searchParams.set("pageSize", pageSize.toString());
+      url.searchParams.set("fields", "nextPageToken, files(id, name, mimeType, size, createdTime, webViewLink, webContentLink, thumbnailLink, parents)");
+      url.searchParams.set("orderBy", "folder,name");
+      if (pageToken) {
+        url.searchParams.set("pageToken", pageToken);
+      }
+
+      const gRes = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${tokenToUse}`
+        }
+      });
+
+      if (!gRes.ok) {
+        const errText = await gRes.text();
+        return res.status(gRes.status).send(errText);
+      }
+
+      const data = await gRes.json();
+      return res.json(data);
+    } catch (err: any) {
+      console.error("[Drive API Proxy] Error listing files:", err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API Route - Google Drive Audio Stream Proxy with Byte-Range support
+  app.get("/api/drive/audio-stream", async (req, res) => {
+    const fileId = (req.query.fileId || req.query.id) as string;
+    let token = (req.query.token as string) || (req.headers.authorization || "").replace("Bearer ", "").trim();
+    if (!token && serverDriveToken) {
+      token = serverDriveToken;
+    }
+
+    if (!fileId) {
+      return res.status(400).send("File ID required");
+    }
+
+    try {
+      const headersToSend: Record<string, string> = {};
+      if (token) {
+        headersToSend["Authorization"] = `Bearer ${token}`;
+      }
+      if (req.headers.range) {
+        headersToSend["Range"] = req.headers.range;
+      }
+
+      const driveStreamUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+      const gRes = await fetch(driveStreamUrl, {
+        headers: headersToSend
+      });
+
+      if (!gRes.ok && token) {
+        console.warn(`[Audio Stream Proxy] Direct media stream returned ${gRes.status}. Retrying fallback stream.`);
+      }
+
+      res.status(gRes.status);
+
+      const passHeaders = ["content-type", "content-length", "content-range", "accept-ranges", "cache-control"];
+      for (const h of passHeaders) {
+        const val = gRes.headers.get(h);
+        if (val) {
+          res.setHeader(h, val);
+        }
+      }
+
+      if (!gRes.headers.get("content-type") || gRes.headers.get("content-type")?.includes("html")) {
+        res.setHeader("Content-Type", "audio/mpeg");
+      }
+
+      if (gRes.body) {
+        const { Readable } = await import("stream");
+        Readable.fromWeb(gRes.body as any).pipe(res);
+      } else {
+        res.status(404).send("Audio stream empty");
+      }
+    } catch (err: any) {
+      console.error("[Audio Stream Proxy] Error streaming audio:", err);
+      res.status(500).send("Stream error: " + err.message);
+    }
+  });
+
+  // API Route - Get Persisted Music Library from Firestore/File
+  app.get("/api/music/library", async (req, res) => {
+    try {
+      const firebaseDb = getFirebaseDB();
+      if (firebaseDb) {
+        const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
+        const docSnap = await getClientGetDoc(docRef);
+        if (docSnap.exists() && docSnap.data().tracks) {
+          return res.json({ tracks: docSnap.data().tracks, syncedAt: docSnap.data().syncedAt });
+        }
+      }
+
+      // Fallback to local storage file if Firestore empty or unavailable
+      const musicFilePath = path.join(process.cwd(), "shadow_music_library.json");
+      if (fs.existsSync(musicFilePath)) {
+        const content = fs.readFileSync(musicFilePath, "utf-8");
+        const parsed = JSON.parse(content);
+        return res.json({ tracks: parsed.tracks || parsed, syncedAt: parsed.syncedAt });
+      }
+
+      return res.json({ tracks: [] });
+    } catch (err: any) {
+      console.error("[Music API] Error fetching music library:", err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API Route - Save/Update Persisted Music Library to Firestore/File
+  app.post("/api/music/library", async (req, res) => {
+    try {
+      const { tracks } = req.body || {};
+      if (!Array.isArray(tracks)) {
+        return res.status(400).json({ error: "Invalid payload: 'tracks' array required" });
+      }
+
+      const payload = {
+        tracks,
+        syncedAt: new Date().toISOString(),
+        totalCount: tracks.length
+      };
+
+      const firebaseDb = getFirebaseDB();
+      if (firebaseDb) {
+        const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
+        await getClientSetDoc(docRef, payload, { merge: true });
+        console.log(`[Music API] Saved ${tracks.length} tracks to Firestore document 'portalSettings/musicLibrary'.`);
+      }
+
+      // Always write local fallback file as well
+      const musicFilePath = path.join(process.cwd(), "shadow_music_library.json");
+      fs.writeFileSync(musicFilePath, JSON.stringify(payload, null, 2));
+
+      return res.json({ success: true, count: tracks.length });
+    } catch (err: any) {
+      console.error("[Music API] Error saving music library:", err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API Route - Clear Persisted Music Library
+  app.delete("/api/music/library", async (req, res) => {
+    try {
+      const payload = { tracks: [], syncedAt: new Date().toISOString(), totalCount: 0 };
+      const firebaseDb = getFirebaseDB();
+      if (firebaseDb) {
+        const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
+        await getClientSetDoc(docRef, payload);
+      }
+
+      const musicFilePath = path.join(process.cwd(), "shadow_music_library.json");
+      if (fs.existsSync(musicFilePath)) {
+        fs.writeFileSync(musicFilePath, JSON.stringify(payload, null, 2));
+      }
+
+      return res.json({ success: true, message: "Music library cleared" });
+    } catch (err: any) {
+      console.error("[Music API] Error clearing music library:", err);
+      return res.status(500).json({ error: err.message });
     }
   });
 
