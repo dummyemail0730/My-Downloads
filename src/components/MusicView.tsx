@@ -72,7 +72,8 @@ export const cleanRawTitle = (rawTitle: string): { title: string; artist: string
   return { title: name, artist: 'Google Drive Audio' };
 };
 import { getDownloadCount, incrementDownloadCount } from '../utils/downloadTracker';
-import { googleSignIn, googleSignOut, initAuth, getAccessToken } from '../lib/googleAuth';
+import { googleSignIn, googleSignOut, initAuth, getAccessToken, app } from '../lib/googleAuth';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { fetchDriveMusicFiles, DriveTrack, DriveFolder, isAudioFile } from '../utils/googleDriveMusic';
 
 import shadowAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
@@ -242,35 +243,62 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     setTimeout(() => setDriveScanMessage(''), 3000);
   };
 
-  // Load persistent library from backend Firestore / API endpoint
+  // Load persistent library from backend Express endpoint or direct Firestore
   const loadPersistentLibrary = async () => {
+    // 1. Try Express server proxy endpoint first
     try {
       const res = await fetch('/api/music/library');
       if (res.ok) {
-        const data = await res.json();
-        if (data.tracks && Array.isArray(data.tracks) && data.tracks.length > 0) {
-          setMusicList(sanitizeTrackList(data.tracks));
-          setHidePresetSamples(true);
-          return;
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await res.json();
+          if (data && data.tracks && Array.isArray(data.tracks) && data.tracks.length > 0) {
+            setMusicList(sanitizeTrackList(data.tracks));
+            setHidePresetSamples(true);
+            return;
+          }
         }
       }
     } catch (e) {
       console.warn('Failed to load persistent library from backend:', e);
     }
 
-    // Try auto-scanning via Google Drive API server proxy
+    // 2. Direct Firestore client fallback (for Vercel & static deployments)
+    try {
+      const db = getFirestore(app);
+      const docRef = doc(db, 'portalSettings', 'musicLibrary');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const firestoreData = docSnap.data();
+        if (firestoreData && firestoreData.tracks && Array.isArray(firestoreData.tracks) && firestoreData.tracks.length > 0) {
+          const sanitized = sanitizeTrackList(firestoreData.tracks);
+          setMusicList(sanitized);
+          setHidePresetSamples(true);
+          try {
+            localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(sanitized));
+          } catch (e) {}
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Firestore direct client load notice:', e);
+    }
+
+    // 3. Try auto-scanning via Google Drive API
     try {
       const token = driveAccessToken || getAccessToken() || '';
-      const { tracks } = await fetchDriveMusicFiles(token);
-      if (tracks && tracks.length > 0) {
-        handleImportDriveTracksToDeck(tracks);
-        return;
+      if (token) {
+        const { tracks } = await fetchDriveMusicFiles(token);
+        if (tracks && tracks.length > 0) {
+          handleImportDriveTracksToDeck(tracks);
+          return;
+        }
       }
     } catch (e) {
       console.warn('Auto drive scan on mount failed:', e);
     }
 
-    // Fallback to local storage if API empty
+    // 4. Fallback to local storage if API and Firestore empty
     let savedDriveTracks: Track[] = [];
     try {
       const stored = localStorage.getItem('shadow_gdrive_tracks');
@@ -333,21 +361,39 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     return filteredMusicList[currentTrackIndex] || filteredMusicList[0] || musicList[0];
   }, [filteredMusicList, musicList, currentTrackIndex]);
 
-  // Stream URL calculation for active track
+  // Stream URL calculation for active track (supporting both Express backend proxy & direct Google Drive media stream)
   const activeStreamUrl = useMemo(() => {
     if (!activeTrack) return undefined;
+    const token = driveAccessToken || getAccessToken() || '';
+
     if (activeTrack.fileId) {
+      if (token) {
+        return `https://www.googleapis.com/drive/v3/files/${activeTrack.fileId}?alt=media&access_token=${encodeURIComponent(token)}`;
+      }
       return `/api/drive/audio-stream?fileId=${activeTrack.fileId}`;
     }
-    if (activeTrack.streamUrl) return activeTrack.streamUrl;
+
+    if (activeTrack.streamUrl) {
+      if (activeTrack.streamUrl.includes('/api/drive/audio-stream') && token) {
+        const fileIdMatch = activeTrack.streamUrl.match(/fileId=([a-zA-Z0-9_-]+)/);
+        if (fileIdMatch) {
+          return `https://www.googleapis.com/drive/v3/files/${fileIdMatch[1]}?alt=media&access_token=${encodeURIComponent(token)}`;
+        }
+      }
+      return activeTrack.streamUrl;
+    }
+
     if (activeTrack.link && activeTrack.link.includes('drive.google.com')) {
       const match = activeTrack.link.match(/\/d\/([a-zA-Z0-9_-]+)/) || activeTrack.link.match(/id=([a-zA-Z0-9_-]+)/);
       if (match) {
+        if (token) {
+          return `https://www.googleapis.com/drive/v3/files/${match[1]}?alt=media&access_token=${encodeURIComponent(token)}`;
+        }
         return `/api/drive/audio-stream?fileId=${match[1]}`;
       }
     }
     return activeTrack.link || undefined;
-  }, [activeTrack]);
+  }, [activeTrack, driveAccessToken]);
 
   // Auth Initialization Listener & Auto-Sync
   useEffect(() => {
@@ -703,8 +749,9 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     }
   };
 
-  // Save music array to Firestore backend
+  // Save music array to Firestore backend & direct Firestore client
   const saveTracksToBackend = async (tracksToSave: Track[]) => {
+    // 1. Try Express server proxy endpoint
     try {
       await fetch('/api/music/library', {
         method: 'POST',
@@ -712,7 +759,20 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
         body: JSON.stringify({ tracks: tracksToSave })
       });
     } catch (e) {
-      console.warn('Failed to post music library to backend:', e);
+      console.warn('Failed to post music library to Express backend:', e);
+    }
+
+    // 2. Direct Firestore client save for Vercel & static deployments
+    try {
+      const db = getFirestore(app);
+      const docRef = doc(db, 'portalSettings', 'musicLibrary');
+      await setDoc(docRef, {
+        tracks: tracksToSave,
+        syncedAt: new Date().toISOString(),
+        totalCount: tracksToSave.length
+      }, { merge: true });
+    } catch (e) {
+      console.warn('Firestore direct client save notice:', e);
     }
   };
 

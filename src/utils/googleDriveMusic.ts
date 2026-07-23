@@ -155,24 +155,63 @@ export const fetchDriveMusicFiles = async (
   // Loop through pages to collect all files (up to 100 pages = 10,000 items max)
   while (hasMore && pageCount < 100) {
     pageCount++;
-    const params = new URLSearchParams();
-    params.set('pageSize', '100');
-    if (folderId) params.set('folderId', folderId);
-    if (search) params.set('search', search);
-    if (pageToken) params.set('pageToken', pageToken);
+    let data: any = null;
 
-    const res = await fetch(`/api/drive/files?${params.toString()}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
+    // 1. Try Express server proxy first (for Google AI Studio / Cloud Run)
+    try {
+      const params = new URLSearchParams();
+      params.set('pageSize', '100');
+      if (folderId) params.set('folderId', folderId);
+      if (search) params.set('search', search);
+      if (pageToken) params.set('pageToken', pageToken);
+
+      const res = await fetch(`/api/drive/files?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          data = await res.json();
+        }
       }
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Google Drive API error (${res.status}): ${errText}`);
+    } catch (e) {
+      // Ignore express server error and fallback to direct Google Drive REST API
     }
 
-    const data = await res.json();
+    // 2. Direct Fallback: Google Drive v3 REST API (works on Vercel & static hosting)
+    if (!data || !data.files) {
+      const directUrl = new URL('https://www.googleapis.com/drive/v3/files');
+      let q = "trashed = false and (mimeType contains 'audio' or mimeType = 'application/vnd.google-apps.folder' or name contains '.mp3' or name contains '.m4a' or name contains '.flac' or name contains '.wav' or name contains '.ogg' or name contains '.aac')";
+      if (folderId) {
+        q = `'${folderId}' in parents and (${q})`;
+      }
+      if (search) {
+        q = `name contains '${search.replace(/'/g, "\\'")}' and (${q})`;
+      }
+
+      directUrl.searchParams.set('q', q);
+      directUrl.searchParams.set('pageSize', '100');
+      directUrl.searchParams.set('fields', 'nextPageToken, files(id, name, mimeType, size, createdTime, webViewLink, webContentLink)');
+      directUrl.searchParams.set('orderBy', 'folder,name');
+      if (pageToken) directUrl.searchParams.set('pageToken', pageToken);
+
+      const directRes = await fetch(directUrl.toString(), {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!directRes.ok) {
+        const errText = await directRes.text();
+        throw new Error(`Google Drive API error (${directRes.status}): ${errText}`);
+      }
+
+      data = await directRes.json();
+    }
+
     const files = data.files || [];
     allFiles = [...allFiles, ...files];
 
@@ -196,7 +235,11 @@ export const fetchDriveMusicFiles = async (
       const { title, artist } = cleanRawTitle(item.name);
 
       const quality = parseTrackQuality(item.name, item.mimeType || '');
-      const streamUrl = `/api/drive/audio-stream?fileId=${item.id}&token=${encodeURIComponent(token)}`;
+      
+      // Dual stream URL: Direct Google Drive API stream media URL (works anywhere) + fallback Express route
+      const streamUrl = token
+        ? `https://www.googleapis.com/drive/v3/files/${item.id}?alt=media&access_token=${encodeURIComponent(token)}`
+        : `/api/drive/audio-stream?fileId=${item.id}`;
 
       tracks.push({
         id: `gdrive-${item.id}`,
