@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, Pause, Download, Music, Disc, ListMusic, Volume2, RefreshCw, AlertCircle, 
   Search, Folder, CheckCircle2, CloudDownload, Sparkles, LogIn, LogOut, ChevronRight, HardDrive, Trash2, Filter,
-  Pencil, Edit3, Check, X, Wand2, Shuffle
+  Pencil, Edit3, Check, X, Wand2, Shuffle, Plus
 } from 'lucide-react';
 
 function capitalizeWords(str: string): string {
@@ -84,7 +84,7 @@ export interface Track {
   title: string;
   artist: string;
   duration: string;
-  quality: 'FLAC [LOSSLESS]' | 'MP3 [320KBPS]' | 'M4A [256KBPS]' | 'HQ STREAM';
+  quality?: string;
   size: string;
   link: string;
   streamUrl?: string;
@@ -138,42 +138,8 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   // HTML Audio Element Ref
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Default initial sample tracks
-  const defaultSampleTracks: Track[] = [
-    {
-      id: 'default-music-1',
-      title: 'HIGHEST (Official Theme)',
-      artist: 'OxT // Seven Shadows Alliance',
-      duration: '04:12',
-      quality: 'FLAC [LOSSLESS]',
-      size: '38.4 MB',
-      link: 'https://docs.google.com/uc?export=download&id=1j7-F13a96kCg2vU_nKk_w_uX4Z7vS1Yp', 
-      image: shadowElectricity,
-      protocol: 'HQ STREAM'
-    },
-    {
-      id: 'default-music-2',
-      title: 'Darling in the Night',
-      artist: 'Seven Shadows Operatives',
-      duration: '03:48',
-      quality: 'FLAC [LOSSLESS]',
-      size: '34.2 MB',
-      link: 'https://docs.google.com/uc?export=download&id=1pZ0l7F_g6N9I8kL8wX4r5p9s8h7g6f5d',
-      image: shadowAura,
-      protocol: 'HQ FLAC'
-    },
-    {
-      id: 'default-music-3',
-      title: 'grArmor (Overdrive Edit)',
-      artist: 'OxT Instrumental Network',
-      duration: '03:55',
-      quality: 'MP3 [320KBPS]',
-      size: '9.2 MB',
-      link: 'https://docs.google.com/uc?export=download&id=1G8X4h6d5R6f7Y8t9O0P1Q2R3S4T5U6V7',
-      image: shadowBlade,
-      protocol: 'EXT AUDIO'
-    }
-  ];
+  // Default initial Google Drive tracks for adriangabionza1990@gmail.com (empty - only real user Google Drive files)
+  const defaultSampleTracks: Track[] = [];
 
   const [musicList, setMusicList] = useState<Track[]>([]);
 
@@ -184,6 +150,9 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
 
     for (const t of tracks) {
       if (!t || !t.id) continue;
+      // Filter out old mock tracks
+      if (t.id.startsWith('gdrive-music-')) continue;
+
       // Strictly filter out non-audio items (photos, zip archives, office files, video tutorials, executables)
       if (t.isDrive || t.protocol === 'GDRIVE_STREAM' || t.fileId) {
         if (!isAudioFile(t.title, t.mimeType)) {
@@ -289,6 +258,18 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       console.warn('Failed to load persistent library from backend:', e);
     }
 
+    // Try auto-scanning via Google Drive API server proxy
+    try {
+      const token = driveAccessToken || getAccessToken() || '';
+      const { tracks } = await fetchDriveMusicFiles(token);
+      if (tracks && tracks.length > 0) {
+        handleImportDriveTracksToDeck(tracks);
+        return;
+      }
+    } catch (e) {
+      console.warn('Auto drive scan on mount failed:', e);
+    }
+
     // Fallback to local storage if API empty
     let savedDriveTracks: Track[] = [];
     try {
@@ -298,11 +279,15 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       }
     } catch (e) {}
 
-    if (savedDriveTracks.length > 0) {
-      setMusicList(sanitizeTrackList(savedDriveTracks));
+    const sanitized = sanitizeTrackList(savedDriveTracks);
+    if (sanitized.length > 0) {
+      setMusicList(sanitized);
       setHidePresetSamples(true);
     } else {
-      setMusicList(defaultSampleTracks);
+      setMusicList([]);
+      try {
+        localStorage.removeItem('shadow_gdrive_tracks');
+      } catch (e) {}
     }
   };
 
@@ -347,6 +332,22 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   const activeTrack = useMemo(() => {
     return filteredMusicList[currentTrackIndex] || filteredMusicList[0] || musicList[0];
   }, [filteredMusicList, musicList, currentTrackIndex]);
+
+  // Stream URL calculation for active track
+  const activeStreamUrl = useMemo(() => {
+    if (!activeTrack) return undefined;
+    if (activeTrack.fileId) {
+      return `/api/drive/audio-stream?fileId=${activeTrack.fileId}`;
+    }
+    if (activeTrack.streamUrl) return activeTrack.streamUrl;
+    if (activeTrack.link && activeTrack.link.includes('drive.google.com')) {
+      const match = activeTrack.link.match(/\/d\/([a-zA-Z0-9_-]+)/) || activeTrack.link.match(/id=([a-zA-Z0-9_-]+)/);
+      if (match) {
+        return `/api/drive/audio-stream?fileId=${match[1]}`;
+      }
+    }
+    return activeTrack.link || undefined;
+  }, [activeTrack]);
 
   // Auth Initialization Listener & Auto-Sync
   useEffect(() => {
@@ -429,7 +430,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     audio.volume = playerVolume / 100;
 
     const handleTimeUpdate = () => {
-      if (audio.duration) {
+      if (audio.duration && !isNaN(audio.duration)) {
         const pct = (audio.currentTime / audio.duration) * 100;
         setPlayerProgress(pct);
 
@@ -466,6 +467,29 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     };
   }, [playerVolume, currentTrackIndex, filteredMusicList, isRandomized]);
 
+  // Synchronize Audio element source & play state reliably
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !activeStreamUrl) return;
+
+    const absUrl = activeStreamUrl.startsWith('http') ? activeStreamUrl : window.location.origin + activeStreamUrl;
+    if (audio.src !== absUrl) {
+      audio.src = activeStreamUrl;
+      audio.load();
+    }
+
+    if (isPlaying) {
+      const p = audio.play();
+      if (p !== undefined) {
+        p.catch(err => {
+          console.warn('Playback notice:', err);
+        });
+      }
+    } else {
+      audio.pause();
+    }
+  }, [activeStreamUrl, isPlaying]);
+
   // Randomize track selection and toggle shuffle playback
   const handleRandomize = () => {
     if (filteredMusicList.length === 0) return;
@@ -473,31 +497,19 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     setCurrentTrackIndex(randomIdx);
     setIsPlaying(true);
     setIsRandomized(true);
-    if (audioRef.current) {
-      setTimeout(() => {
-        audioRef.current?.play().catch(err => console.warn('Randomize play error:', err));
-      }, 100);
-    }
   };
 
   // Handle Play/Pause operations
   const handlePlayToggle = (index?: number) => {
-    if (index !== undefined && index !== currentTrackIndex) {
-      setCurrentTrackIndex(index);
-      setIsPlaying(true);
-      if (audioRef.current) {
-        setTimeout(() => {
-          audioRef.current?.play().catch(err => console.warn('Audio play prevented:', err));
-        }, 100);
+    if (index !== undefined) {
+      if (index !== currentTrackIndex) {
+        setCurrentTrackIndex(index);
+        setIsPlaying(true);
+      } else {
+        setIsPlaying(prev => !prev);
       }
     } else {
-      if (isPlaying) {
-        audioRef.current?.pause();
-        setIsPlaying(false);
-      } else {
-        audioRef.current?.play().catch(err => console.warn('Audio play error:', err));
-        setIsPlaying(true);
-      }
+      setIsPlaying(prev => !prev);
     }
   };
 
@@ -601,16 +613,55 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
 
   // Google Drive Music Scanner
   const handleScanDriveMusic = async () => {
-    const token = driveAccessToken || getAccessToken();
+    setIsDriveScanning(true);
+    setDriveScanMessage('Checking music library and scanning Google Drive...');
+
+    // 1. Try server library first
+    try {
+      const res = await fetch('/api/music/library');
+      const data = await res.json();
+      if (data && data.tracks && data.tracks.length > 0) {
+        const sanitized = sanitizeTrackList(data.tracks);
+        if (sanitized.length > 0) {
+          setMusicList(sanitized);
+          setHidePresetSamples(true);
+          try {
+            localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(sanitized));
+          } catch (e) {}
+          setDriveScanMessage(`Loaded ${sanitized.length} track(s) from music library!`);
+          setIsDriveScanning(false);
+          setTimeout(() => setDriveScanMessage(''), 4000);
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // 2. Try scanning Google Drive with existing token or prompt sign-in
+    let token = driveAccessToken || getAccessToken();
     if (!token) {
-      handleGoogleSignIn();
+      try {
+        setDriveScanMessage('Connecting to Google Drive...');
+        const result = await googleSignIn();
+        if (result) {
+          token = result.accessToken;
+          setDriveUser(result.user);
+          setDriveAccessToken(result.accessToken);
+        }
+      } catch (err: any) {
+        console.error('Google sign in error:', err);
+        setDriveScanMessage(`Auth Error: ${err.message || 'Failed to connect Google Drive. Please allow popups.'}`);
+        setIsDriveScanning(false);
+        return;
+      }
+    }
+
+    if (!token) {
+      setIsDriveScanning(false);
       return;
     }
 
-    setIsDriveScanning(true);
-    setDriveScanMessage('Scanning Google Drive for all ~500+ audio tracks across folders...');
-
     try {
+      setDriveScanMessage('Scanning Google Drive for audio files...');
       const { tracks, folders } = await fetchDriveMusicFiles(
         token,
         selectedFolderId || undefined
@@ -618,14 +669,34 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
 
       setScannedDriveTracks(tracks);
       setDriveFolders(folders);
-      setDriveScanMessage(`Found ${tracks.length} MP3/Audio file(s) in Google Drive!`);
 
-      // Auto import scanned tracks to deck & save to Firestore!
       if (tracks.length > 0) {
         handleImportDriveTracksToDeck(tracks);
+        setDriveScanMessage(`Successfully loaded ${tracks.length} track(s) from Google Drive!`);
+      } else {
+        setDriveScanMessage('No audio files (.mp3, .flac, .m4a) found in connected Google Drive.');
       }
     } catch (err: any) {
       console.error('Drive scan error:', err);
+      if (err.message && (err.message.includes('401') || err.message.includes('UNAUTHENTICATED'))) {
+        try {
+          setDriveScanMessage('Session expired. Re-connecting to Google Drive...');
+          const result = await googleSignIn();
+          if (result) {
+            setDriveUser(result.user);
+            setDriveAccessToken(result.accessToken);
+            const retry = await fetchDriveMusicFiles(result.accessToken, selectedFolderId || undefined);
+            if (retry.tracks.length > 0) {
+              handleImportDriveTracksToDeck(retry.tracks);
+              setDriveScanMessage(`Successfully loaded ${retry.tracks.length} track(s) from Google Drive!`);
+              setIsDriveScanning(false);
+              return;
+            }
+          }
+        } catch (authErr: any) {
+          console.error('Re-auth error:', authErr);
+        }
+      }
       setDriveScanMessage(`Scan Failed: ${err.message || 'Error reading Drive files'}`);
     } finally {
       setIsDriveScanning(false);
@@ -720,28 +791,18 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       (window as any).logUserMovement('action', `Streamed/Downloaded "${track.title}" from Music Deck`);
     }
 
-    const downloadTarget = track.link || track.streamUrl;
+    const downloadTarget = track.streamUrl || track.link;
     if (downloadTarget) {
-      if (typeof window !== 'undefined' && (window as any).triggerRedirectLoader) {
-        (window as any).triggerRedirectLoader(downloadTarget, track.title);
-      } else {
-        window.open(downloadTarget, '_blank', 'noopener,noreferrer');
-      }
+      const a = document.createElement('a');
+      a.href = downloadTarget;
+      a.download = `${track.title || 'audio'}.mp3`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
   };
-
-  // Stream URL calculation for active track
-  const activeStreamUrl = useMemo(() => {
-    if (!activeTrack) return undefined;
-    if (activeTrack.streamUrl) return activeTrack.streamUrl;
-    if (activeTrack.link && activeTrack.link.includes('drive.google.com/file/d/')) {
-      const match = activeTrack.link.match(/\/d\/([a-zA-Z0-9_-]+)/);
-      if (match) {
-        return `/api/drive/audio-stream?fileId=${match[1]}&token=${encodeURIComponent(driveAccessToken || '')}`;
-      }
-    }
-    return activeTrack.link || undefined;
-  }, [activeTrack, driveAccessToken]);
 
   return (
     <div className="h-full flex flex-col bg-neutral-950 text-neutral-200 font-sans select-none relative overflow-y-auto">
@@ -750,7 +811,16 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       <audio 
         ref={audioRef}
         src={activeStreamUrl || undefined}
-        preload="metadata"
+        preload="auto"
+        onError={(e) => {
+          console.warn('Audio element error, falling back to track link:', e);
+          if (activeTrack && activeTrack.link && audioRef.current && audioRef.current.src !== activeTrack.link) {
+            audioRef.current.src = activeTrack.link;
+            if (isPlaying) {
+              audioRef.current.play().catch(err => console.warn('Fallback play failed:', err));
+            }
+          }
+        }}
       />
 
       {/* Top Banner & Player Dashboard */}
@@ -795,29 +865,17 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
         <div className="flex-1 flex flex-col justify-between p-1">
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-purple-900/20 text-purple-400 border border-purple-800/20 uppercase tracking-[0.1em]">
                   {activeTrack?.quality || 'FLAC [LOSSLESS]'}
                 </span>
-                {activeTrack?.isDrive && (
-                  <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950/40 text-cyan-300 border border-cyan-800/30 uppercase tracking-wider flex items-center gap-1">
-                    <HardDrive size={10} /> GOOGLE DRIVE
-                  </span>
-                )}
-                <span className="text-[9px] font-mono font-extrabold text-neutral-500 uppercase tracking-widest hidden sm:inline">
-                  // PORTAL_AUDIO_DECK
+                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950/40 text-cyan-300 border border-cyan-800/30 uppercase tracking-wider flex items-center gap-1">
+                  <HardDrive size={10} /> GOOGLE DRIVE
                 </span>
-              </div>
-
-              {/* Toggle Google Drive Sync Control Panel */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowDrivePanel(!showDrivePanel)}
-                  className="text-xs font-mono font-extrabold px-3 py-1 bg-purple-950/40 hover:bg-purple-900/50 border border-purple-800/40 text-purple-300 hover:text-white rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <HardDrive size={13} className="text-purple-400" />
-                  <span>{showDrivePanel ? 'CLOSE DRIVE PANEL' : 'GOOGLE DRIVE SYNC'}</span>
-                </button>
+                <span className="text-[9px] font-mono font-bold px-2.5 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  GOOGLE DRIVE SYNCED
+                </span>
               </div>
             </div>
             
@@ -934,120 +992,6 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
         </div>
       </div>
 
-      {/* Google Drive Integration Control Panel */}
-      <AnimatePresence>
-        {showDrivePanel && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="border-b border-purple-900/30 bg-gradient-to-b from-purple-950/30 to-neutral-950 p-6 overflow-hidden"
-          >
-            <div className="max-w-5xl mx-auto space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-900/30 border border-purple-800/40 flex items-center justify-center text-purple-400">
-                    <HardDrive size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black uppercase text-white font-mono tracking-wide">
-                      Google Drive MP3 Library Auto-Importer & Database Sync
-                    </h3>
-                    <p className="text-xs text-neutral-400 font-mono">
-                      Scan your Google Drive to automatically import all ~500+ MP3 songs directly into Firebase Firestore!
-                    </p>
-                  </div>
-                </div>
-
-                {/* Sign-in / Auth State */}
-                <div>
-                  {driveUser ? (
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-neutral-900 border border-neutral-800 px-4 py-2.5 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                        <span className="text-xs font-mono text-emerald-400 font-bold">
-                          Synced Account: {driveUser.email || driveUser.displayName || 'Google Account'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 ml-auto">
-                        <span className="text-[10px] font-mono font-extrabold text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-2 py-0.5 rounded uppercase">
-                          ADMIN MANAGED
-                        </span>
-                        <button
-                          onClick={triggerGoogleSignOut}
-                          className="text-[11px] font-mono text-neutral-400 hover:text-red-400 ml-1 cursor-pointer flex items-center gap-1 bg-neutral-950 px-2.5 py-1 rounded-lg border border-neutral-800"
-                          title="Only Admin can switch or sign out Google Drive account"
-                        >
-                          <LogOut size={12} /> Sign Out (Admin)
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={triggerGoogleSignIn}
-                        className="bg-white hover:bg-neutral-100 text-neutral-800 px-4 py-2 rounded-xl flex items-center gap-3 font-medium text-xs shadow-lg transition-all cursor-pointer border border-neutral-300"
-                      >
-                        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-4 h-4">
-                          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
-                          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
-                          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
-                          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
-                        </svg>
-                        <span>Connect Google Drive (Admin)</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Status Message */}
-              {driveScanMessage && (
-                <div className="bg-purple-950/40 border border-purple-800/40 rounded-xl p-3 text-xs font-mono text-purple-300 flex items-center gap-2">
-                  <Sparkles size={14} className="text-purple-400 shrink-0" />
-                  <span>{driveScanMessage}</span>
-                </div>
-              )}
-
-              {/* Scanner controls */}
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  onClick={handleScanDriveMusic}
-                  disabled={isDriveScanning}
-                  className="h-10 px-5 bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold uppercase rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-lg disabled:opacity-50"
-                >
-                  <RefreshCw size={13} className={isDriveScanning ? 'animate-spin' : ''} />
-                  <span>{isDriveScanning ? 'Scanning Google Drive...' : 'SCAN & SYNC ALL GOOGLE DRIVE MUSIC'}</span>
-                </button>
-
-                {driveFolders.length > 0 && (
-                  <select
-                    value={selectedFolderId}
-                    onChange={(e) => setSelectedFolderId(e.target.value)}
-                    className="h-10 px-3 bg-neutral-900 border border-neutral-800 text-xs font-mono text-neutral-300 rounded-xl outline-none"
-                  >
-                    <option value="">All Drive Folders</option>
-                    {driveFolders.map(f => (
-                      <option key={f.id} value={f.id}>📁 {f.name}</option>
-                    ))}
-                  </select>
-                )}
-
-                {scannedDriveTracks.length > 0 && (
-                  <button
-                    onClick={() => handleImportDriveTracksToDeck(scannedDriveTracks)}
-                    className="h-10 px-5 bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs font-bold uppercase rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-lg ml-auto"
-                  >
-                    <CloudDownload size={14} />
-                    <span>Save {scannedDriveTracks.length} Tracks to Portal DB</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Track Directory Selection List */}
       <div className="flex-1 p-6 md:p-8 flex flex-col">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
@@ -1089,21 +1033,21 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2.5">
+        <div className="grid grid-cols-1 gap-1.5">
           {filteredMusicList.map((track, idx) => {
             const isSelected = activeTrack?.id === track.id;
             return (
               <div
                 key={`${track.id}-${idx}`}
                 onClick={() => handlePlayToggle(idx)}
-                className={`group flex items-center justify-between gap-3 p-4 border rounded-xl transition-all duration-250 cursor-pointer select-none relative overflow-hidden ${
+                className={`group flex items-center justify-between gap-2.5 py-2 px-3 sm:px-3.5 border rounded-xl transition-all duration-200 cursor-pointer select-none relative overflow-hidden ${
                   isSelected 
-                    ? 'border-purple-500/50 bg-gradient-to-r from-purple-950/20 via-purple-900/5 to-neutral-900 shadow-[0_0_20px_rgba(168,85,247,0.12)]' 
+                    ? 'border-purple-500/50 bg-gradient-to-r from-purple-950/20 via-purple-900/5 to-neutral-900 shadow-[0_0_15px_rgba(168,85,247,0.1)]' 
                     : 'border-neutral-800/80 bg-neutral-900/35 hover:border-purple-500/20 hover:bg-neutral-900/65'
                 }`}
               >
                 {/* Audio Frequency Waves Background Deco */}
-                <div className="absolute inset-x-0 bottom-0 top-0 z-0 overflow-hidden pointer-events-none opacity-[0.06] group-hover:opacity-[0.14] transition-opacity duration-300">
+                <div className="absolute inset-x-0 bottom-0 top-0 z-0 overflow-hidden pointer-events-none opacity-[0.05] group-hover:opacity-[0.12] transition-opacity duration-300">
                   <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" fill="none">
                     <path d="M 0 25 C 50 10, 100 40, 150 25 C 200 10, 250 40, 300 25 C 350 10, 400 40, 450 25 C 500 10, 550 40, 600 25 C 650 10, 700 40, 750 25" stroke="currentColor" strokeWidth="2.5" className={isSelected ? "text-purple-400 animate-pulse" : "text-neutral-400"} />
                     <path d="M 0 35 C 40 25, 80 50, 120 35 C 160 20, 200 50, 240 35 C 280 20, 320 50, 360 35 C 400 20, 440 50, 480 35 C 520 20, 560 50, 600 35 C 640 20, 680 50, 720 35" stroke="currentColor" strokeWidth="1.5" className={isSelected ? "text-cyan-400" : "text-neutral-500"} />
@@ -1111,10 +1055,10 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                 </div>
                 
                 {/* Left side album image & info description */}
-                <div className="flex items-center gap-3.5 min-w-0 flex-1 relative z-10">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1 relative z-10">
                   
                   {/* Music State Indicator Button */}
-                  <div className="relative w-10 h-10 flex-shrink-0 bg-neutral-950 border border-neutral-800 rounded-xl flex items-center justify-center overflow-hidden">
+                  <div className="relative w-7 h-7 flex-shrink-0 bg-neutral-950 border border-neutral-800 rounded-lg flex items-center justify-center overflow-hidden">
                     <img 
                       src={track.image || shadowElectricity} 
                       alt="" 
@@ -1124,111 +1068,63 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                     <div className="absolute inset-0 bg-black/40" />
                     <div className="relative z-10">
                       {isSelected && isPlaying ? (
-                        <div className="flex items-end gap-0.5 h-3">
-                          <div className="w-[2px] h-2 bg-purple-400 animate-pulse" />
-                          <div className="w-[2px] h-3 bg-purple-400 animate-bounce" style={{ animationDelay: '0.1s' }} />
+                        <div className="flex items-end gap-0.5 h-2.5">
+                          <div className="w-[2px] h-1.5 bg-purple-400 animate-pulse" />
+                          <div className="w-[2px] h-2.5 bg-purple-400 animate-bounce" style={{ animationDelay: '0.1s' }} />
                           <div className="w-[2px] h-1 bg-purple-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
                         </div>
                       ) : (
-                        <Music size={13} className={isSelected ? "text-purple-400 animate-pulse" : "text-neutral-500 group-hover:text-neutral-300"} />
+                        <Music size={11} className={isSelected ? "text-purple-400 animate-pulse" : "text-neutral-500 group-hover:text-neutral-300"} />
                       )}
                     </div>
                   </div>
 
-                  {editingTrackId === track.id ? (
-                    <div 
-                      className="min-w-0 flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 z-20"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <input
-                        type="text"
-                        value={editTitleInput}
-                        onChange={(e) => setEditTitleInput(e.target.value)}
-                        placeholder="Song Title..."
-                        className="flex-1 px-3 py-1.5 bg-neutral-950 border border-purple-500 rounded-lg text-xs font-bold text-white focus:outline-none"
-                        autoFocus
-                      />
-                      <input
-                        type="text"
-                        value={editArtistInput}
-                        onChange={(e) => setEditArtistInput(e.target.value)}
-                        placeholder="Artist Name..."
-                        className="w-36 sm:w-44 px-3 py-1.5 bg-neutral-950 border border-neutral-700 rounded-lg text-xs font-mono text-neutral-300 focus:outline-none"
-                      />
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={(e) => handleSaveRename(e, track.id)}
-                          className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Save Title"
-                        >
-                          <Check size={13} />
-                          <span>Save</span>
-                        </button>
-                        <button
-                          onClick={handleCancelRename}
-                          className="p-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white rounded-lg transition-colors cursor-pointer"
-                          title="Cancel"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <h4 
+                        className={`text-xs font-extrabold tracking-wide leading-tight break-words ${
+                          isSelected ? 'text-white' : 'text-neutral-200 group-hover:text-white'
+                        }`}
+                        title={track.title}
+                      >
+                        {track.title}
+                      </h4>
+                      {track.isDrive && (
+                        <span className="text-[8px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-1 py-0 rounded shrink-0">
+                          GDRIVE
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 
-                          className={`text-sm font-extrabold tracking-wide leading-snug break-words ${
-                            isSelected ? 'text-white' : 'text-neutral-200 group-hover:text-white'
-                          }`}
-                          title={track.title}
-                        >
-                          {track.title}
-                        </h4>
-                        {track.isDrive && (
-                          <span className="text-[9px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-1.5 py-0.2 rounded shrink-0">
-                            GDRIVE
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className="text-[11px] font-mono text-neutral-400 group-hover:text-neutral-300 truncate" title={track.artist}>
-                          {track.artist}
-                        </p>
-                        <button
-                          onClick={(e) => handleStartRename(e, track)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-neutral-500 hover:text-purple-400 transition-all rounded hover:bg-neutral-800/60 cursor-pointer flex items-center gap-1 text-[10px] font-mono shrink-0"
-                          title="Rename track title"
-                        >
-                          <Pencil size={11} />
-                          <span className="hidden sm:inline">Rename</span>
-                        </button>
-                      </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-[10px] font-mono text-neutral-400 group-hover:text-neutral-300 truncate" title={track.artist}>
+                        {track.artist}
+                      </p>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Right side download stats and operations */}
-                <div className="flex items-center gap-4 flex-shrink-0 relative z-10">
+                <div className="flex items-center gap-3 flex-shrink-0 relative z-10">
                   <div className="hidden sm:flex flex-col items-end text-right font-mono">
-                    <span className="text-[9px] font-black tracking-widest text-neutral-500 group-hover:text-neutral-400">
+                    <span className="text-[8px] font-black tracking-widest text-neutral-500 group-hover:text-neutral-400">
                       {track.quality || 'MP3 [320KBPS]'}
                     </span>
-                    <span className="text-[10px] text-neutral-500 font-bold">
+                    <span className="text-[9px] text-neutral-500 font-bold">
                       {track.size || '12.4 MB'}
                     </span>
                   </div>
 
-                  <div className="font-mono text-xs text-neutral-400 font-bold hidden md:block min-w-[45px] text-center">
+                  <div className="font-mono text-[11px] text-neutral-400 font-bold hidden md:block min-w-[38px] text-center">
                     {track.duration}
                   </div>
 
                   {/* Special Custom Styled download icon showing exact downloads count */}
                   <button
                     onClick={(e) => handleDownloadTrigger(e, track)}
-                    className="h-9 px-3 shrink-0 flex items-center justify-center gap-1.5 border border-purple-500/30 bg-purple-950/30 hover:bg-purple-900/50 text-purple-300 hover:text-white rounded-lg transition-all duration-300 cursor-pointer shadow-md text-[11px] font-extrabold uppercase font-mono tracking-wider hover:scale-[1.03]"
+                    className="h-7 px-2.5 shrink-0 flex items-center justify-center gap-1 border border-purple-500/30 bg-purple-950/30 hover:bg-purple-900/50 text-purple-300 hover:text-white rounded-lg transition-all duration-200 cursor-pointer shadow-sm text-[10px] font-extrabold uppercase font-mono tracking-wider hover:scale-[1.03]"
                     title="Download audio stream"
                   >
-                    <Download size={13} className="shrink-0 text-purple-400" />
+                    <Download size={11} className="shrink-0 text-purple-400" />
                     <span>{getDownloadCount('music', track.id, track.title)}</span>
                   </button>
                 </div>
@@ -1238,98 +1134,48 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
           })}
 
           {filteredMusicList.length === 0 && (
-            <div className="p-12 text-center border border-dashed border-neutral-800 rounded-2xl bg-neutral-900/20 space-y-3">
-              <Music size={32} className="mx-auto text-neutral-600" />
-              <p className="text-sm font-mono text-neutral-400 font-bold">
-                No music files found matching "{searchQuery}".
-              </p>
-              <div className="flex items-center justify-center gap-3 pt-2">
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="px-4 py-2 bg-neutral-900 border border-neutral-800 text-xs font-mono text-purple-400 rounded-xl hover:bg-neutral-800 cursor-pointer"
-                >
-                  Clear Search Filter
-                </button>
-                <button
-                  onClick={() => setShowDrivePanel(true)}
-                  className="px-4 py-2 bg-purple-600 text-xs font-mono font-bold text-white rounded-xl hover:bg-purple-500 cursor-pointer"
-                >
-                  Open Google Drive Sync Panel
-                </button>
+            <div className="p-8 sm:p-12 text-center border border-dashed border-neutral-800 rounded-2xl bg-neutral-900/30 space-y-4 font-mono">
+              <div className="w-14 h-14 mx-auto bg-neutral-950 border border-purple-500/30 rounded-2xl flex items-center justify-center text-purple-400 shadow-lg shadow-purple-950/40">
+                <HardDrive size={28} className="text-cyan-400" />
               </div>
+              
+              {searchQuery.trim() ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-bold text-neutral-300">
+                    No music files found matching "{searchQuery}".
+                  </p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="px-4 py-2 bg-neutral-900 border border-neutral-800 text-xs font-bold text-purple-400 rounded-xl hover:bg-neutral-800 cursor-pointer transition-colors"
+                  >
+                    Clear Search Filter
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-white">
+                    NO GOOGLE DRIVE AUDIO FILES LOADED
+                  </h3>
+                  <p className="text-xs text-neutral-400 max-w-md mx-auto leading-relaxed">
+                    Scan Google Drive to load your actual audio files (.mp3, .flac, .m4a, .wav).
+                  </p>
+
+                  <div className="flex items-center justify-center pt-3">
+                    <button
+                      onClick={handleScanDriveMusic}
+                      disabled={isDriveScanning}
+                      className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-900/30 flex items-center gap-2 transition-all cursor-pointer hover:scale-[1.02] disabled:opacity-50"
+                    >
+                      <RefreshCw size={14} className={isDriveScanning ? "animate-spin" : ""} />
+                      <span>{isDriveScanning ? "SCANNING DRIVE..." : "Click the button to show music library"}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
-
-      {/* Admin Passcode Modal for Google Drive Account Security */}
-      <AnimatePresence>
-        {showAdminPasscodeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-md bg-neutral-900 border border-purple-500/40 rounded-2xl p-6 shadow-2xl relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between border-b border-neutral-800 pb-4 mb-4">
-                <div className="flex items-center gap-2 text-purple-400 font-mono text-sm font-bold uppercase">
-                  <HardDrive size={18} />
-                  <span>Admin Authorization Required</span>
-                </div>
-                <button
-                  onClick={() => setShowAdminPasscodeModal(false)}
-                  className="p-1 text-neutral-400 hover:text-white rounded-lg transition-colors cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <p className="text-xs text-neutral-300 font-mono mb-4 leading-relaxed">
-                Only the system <strong className="text-purple-400">Administrator</strong> can connect, switch, or disconnect the synced Google Drive account. Enter the Admin Passcode to proceed:
-              </p>
-
-              <form onSubmit={handleVerifyAdminPasscode} className="space-y-4">
-                <div>
-                  <input
-                    type="password"
-                    value={adminPasscodeInput}
-                    onChange={(e) => {
-                      setAdminPasscodeInput(e.target.value);
-                      setAdminPasscodeError('');
-                    }}
-                    placeholder="Enter Admin Passcode..."
-                    className="w-full px-4 py-2.5 bg-neutral-950 border border-neutral-700 focus:border-purple-500 rounded-xl text-sm font-mono text-white placeholder-neutral-500 outline-none transition-colors"
-                    autoFocus
-                  />
-                  {adminPasscodeError && (
-                    <p className="text-xs text-red-400 font-mono mt-2 flex items-center gap-1">
-                      <AlertCircle size={12} />
-                      <span>{adminPasscodeError}</span>
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowAdminPasscodeModal(false)}
-                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl text-xs font-mono font-bold cursor-pointer transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-mono font-bold cursor-pointer transition-colors shadow-lg"
-                  >
-                    Authorize & Proceed
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

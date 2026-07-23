@@ -373,6 +373,18 @@ export default function App() {
 
   // Load chat history of current user on startup if exists
   useEffect(() => {
+    // Pre-fetch Google Drive Music Library in background as soon as portal initializes
+    fetch('/api/music/library')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.tracks && data.tracks.length > 0) {
+          try {
+            localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(data.tracks));
+          } catch (e) {}
+        }
+      })
+      .catch(err => console.warn('Background portal music sync:', err));
+
     let userNumStr = localStorage.getItem('shadow_user_number');
     if (userNumStr) {
       const numPart = userNumStr.replace(/\D/g, '');
