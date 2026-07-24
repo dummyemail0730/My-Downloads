@@ -1034,28 +1034,28 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
         </div>
       )}
 
-      {/* Top Banner & Player Dashboard - Compact (~50% smaller) & Pinned/Sticky at Top */}
-      <div className="sticky top-0 z-30 shrink-0 border-b border-purple-900/30 p-3 sm:p-4 bg-neutral-950/95 backdrop-blur-xl flex flex-col md:flex-row gap-3 sm:gap-4 relative overflow-hidden shadow-2xl">
+      {/* Top Banner & Player Dashboard - Made 10% smaller to maximize song list view */}
+      <div className="sticky top-0 z-30 shrink-0 border-b border-purple-900/30 p-2 sm:p-2.5 bg-neutral-950/95 backdrop-blur-xl flex flex-col md:flex-row gap-2 sm:gap-3 relative overflow-hidden shadow-2xl">
         <div className="absolute inset-0 bg-radial-gradient from-purple-950/20 via-transparent to-transparent pointer-events-none" />
         
-        {/* Compact Dynamic Vinyl Record Wrapper (~50% smaller) */}
-        <div className="w-28 sm:w-32 h-28 sm:h-32 mx-auto md:mx-0 flex-shrink-0 relative flex items-center justify-center p-1.5 rounded-xl border border-neutral-900 bg-neutral-900/50 backdrop-blur-md shadow-xl">
+        {/* Compact Dynamic Vinyl Record Wrapper */}
+        <div className="w-22 sm:w-26 h-22 sm:h-26 mx-auto md:mx-0 flex-shrink-0 relative flex items-center justify-center p-1 rounded-xl border border-neutral-900 bg-neutral-900/50 backdrop-blur-md shadow-xl">
           <div className="absolute inset-1 rounded-full border border-neutral-800/40 animate-pulse pointer-events-none" />
           
           {/* Main Vinyl CD Disc layout */}
           <motion.div 
             animate={{ rotate: isPlaying ? 360 : 0 }}
             transition={{ repeat: Infinity, duration: 12, ease: 'linear' }}
-            className="w-24 sm:w-28 h-24 sm:h-28 rounded-full bg-black border-[3px] border-neutral-800 flex items-center justify-center relative shadow-black/80 shadow-xl overflow-hidden"
+            className="w-20 sm:w-24 h-20 sm:h-24 rounded-full bg-black border-[2px] border-neutral-800 flex items-center justify-center relative shadow-black/80 shadow-xl overflow-hidden"
           >
             {/* Vinyl grooves */}
-            <div className="absolute inset-2 rounded-full border border-neutral-700/10" />
-            <div className="absolute inset-4 rounded-full border border-neutral-700/15" />
-            <div className="absolute inset-6 rounded-full border border-neutral-700/20" />
-            <div className="absolute inset-8 rounded-full border border-neutral-700/25" />
+            <div className="absolute inset-1.5 rounded-full border border-neutral-700/10" />
+            <div className="absolute inset-3 rounded-full border border-neutral-700/15" />
+            <div className="absolute inset-4.5 rounded-full border border-neutral-700/20" />
+            <div className="absolute inset-6 rounded-full border border-neutral-700/25" />
             
             {/* Custom Album Art Center */}
-            <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-full overflow-hidden border-2 border-black relative z-10 flex-shrink-0">
+            <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-full overflow-hidden border border-black relative z-10 flex-shrink-0">
               <img 
                 src={activeTrack?.image || shadowElectricity} 
                 alt="Album Cover" 
@@ -1063,19 +1063,19 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-neutral-950/25 flex items-center justify-center">
-                <Disc className={`w-5 h-5 text-purple-400 ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} />
+                <Disc className={`w-4 h-4 text-purple-400 ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} />
               </div>
             </div>
             
             {/* CD Hole center pin */}
-            <div className="w-3 h-3 bg-neutral-900 rounded-full border border-neutral-800 absolute z-20" />
+            <div className="w-2.5 h-2.5 bg-neutral-900 rounded-full border border-neutral-800 absolute z-20" />
           </motion.div>
         </div>
 
         {/* Player controls details */}
         <div className="flex-1 flex flex-col justify-between min-w-0">
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 mb-0.5">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-900/20 text-purple-400 border border-purple-800/20 uppercase tracking-[0.05em]">
                   {activeTrack?.quality || 'FLAC [LOSSLESS]'}
@@ -1083,32 +1083,59 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                 <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-300 border border-cyan-800/30 uppercase tracking-wider flex items-center gap-1">
                   <HardDrive size={9} /> GOOGLE DRIVE
                 </span>
-                <span className="text-[8px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider flex items-center gap-1 shadow-sm">
                   <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
                   GOOGLE DRIVE SYNCED
                 </span>
               </div>
+
+              {/* Search Bar & Randomize Button moved to Top Player Header */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={handleRandomize}
+                  className={`px-2 py-0.5 border rounded-lg text-[9px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                    isRandomized
+                      ? 'bg-purple-900/60 hover:bg-purple-800/80 border-purple-500/60 text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                      : 'bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/40 text-cyan-300 hover:text-white'
+                  }`}
+                  title="Play a random song and enable randomize playback"
+                >
+                  <Shuffle size={10} className={`text-cyan-400 ${isRandomized ? 'animate-pulse text-purple-300' : ''}`} />
+                  <span className="hidden sm:inline">{isRandomized ? 'RANDOMIZED' : 'RANDOMIZE'}</span>
+                </button>
+
+                <div className="relative w-36 sm:w-48">
+                  <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-500" />
+                  <input
+                    type="text"
+                    placeholder="Search songs, artists..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-7 pr-2 py-0.5 bg-neutral-900 border border-neutral-800 text-[9px] font-mono text-white placeholder-neutral-500 rounded-lg outline-none focus:border-purple-500/60 transition-colors"
+                  />
+                </div>
+              </div>
             </div>
             
             <div className="flex items-baseline justify-between gap-2">
-              <h2 className="text-base sm:text-lg font-black uppercase text-white tracking-wide leading-tight line-clamp-1">
+              <h2 className="text-sm sm:text-base font-black uppercase text-white tracking-wide leading-tight line-clamp-1">
                 {activeTrack?.title || 'No Audio Selected'}
               </h2>
-              <p className="text-xs font-mono text-purple-400 font-bold shrink-0">
+              <p className="text-[11px] font-mono text-purple-400 font-bold shrink-0">
                 {activeTrack?.artist || 'Portal Music Archives'}
               </p>
             </div>
             
             {/* Compact wave spectrum animation */}
-            <div className="h-5 flex items-end gap-[2px] my-1 py-0.5 select-none overflow-hidden">
+            <div className="h-3.5 flex items-end gap-[2px] my-0.5 py-0.5 select-none overflow-hidden">
               {Array.from({ length: 32 }).map((_, i) => {
-                const height = isPlaying ? Math.floor(Math.random() * 16) + 3 : 2;
+                const height = isPlaying ? Math.floor(Math.random() * 12) + 2 : 2;
                 return (
                   <motion.div 
                     key={i}
                     animate={{ height }}
                     transition={{ type: 'spring', stiffness: 200, damping: 10 }}
-                    className={`w-[2.5px] rounded-none opacity-85 transition-colors duration-300 ${
+                    className={`w-[2px] rounded-none opacity-85 transition-colors duration-300 ${
                       isPlaying 
                         ? i % 2 === 0 ? 'bg-purple-500' : 'bg-cyan-400'
                         : 'bg-neutral-800'
@@ -1120,7 +1147,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
           </div>
 
           {/* Interactive Player Deck Bar */}
-          <div className="space-y-1.5 mt-1">
+          <div className="space-y-1 mt-0.5">
             {/* Progress Slider */}
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-mono text-neutral-500 w-8">{currentTimeFormatted}</span>
@@ -1146,21 +1173,21 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
             </div>
 
             {/* Audio Deck Bottom Button Grid */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1.5">
                 {/* Previous Track Button */}
                 <button
                   onClick={handlePrevTrack}
-                  className="h-8 px-2.5 flex items-center justify-center border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 hover:border-purple-500/40 text-neutral-300 hover:text-white rounded-lg transition-all duration-200 cursor-pointer shadow-md active:scale-95"
+                  className="h-7 px-2 flex items-center justify-center border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 hover:border-purple-500/40 text-neutral-300 hover:text-white rounded-lg transition-all duration-200 cursor-pointer shadow-md active:scale-95"
                   title="Previous Song"
                 >
-                  <SkipBack size={13} />
+                  <SkipBack size={12} />
                 </button>
 
                 {/* Play/Pause Button */}
                 <button
                   onClick={() => handlePlayToggle()}
-                  className={`h-8 px-3.5 flex items-center justify-center gap-1.5 border text-[10px] font-bold font-mono uppercase tracking-wider rounded-lg transition-all duration-300 cursor-pointer shadow-md active:scale-95 ${
+                  className={`h-7 px-3 flex items-center justify-center gap-1 border text-[9px] font-bold font-mono uppercase tracking-wider rounded-lg transition-all duration-300 cursor-pointer shadow-md active:scale-95 ${
                     isPlaying 
                       ? 'border-purple-500 bg-purple-950/40 text-purple-300' 
                       : 'border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-white'
@@ -1168,37 +1195,37 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                 >
                   {isPlaying ? (
                     <>
-                      <Pause size={11} className="fill-purple-300 text-purple-300 animate-pulse" />
+                      <Pause size={10} className="fill-purple-300 text-purple-300 animate-pulse" />
                       <span>PAUSE</span>
                     </>
                   ) : (
                     <>
-                      <Play size={11} className="fill-white text-white" />
+                      <Play size={10} className="fill-white text-white" />
                       <span>PLAY</span>
                     </>
-                  )}
+                  ) }
                 </button>
 
                 {/* Next Song Button */}
                 <button
                   onClick={handleNextTrack}
-                  className="h-8 px-3 flex items-center justify-center gap-1.5 border border-purple-500/40 bg-purple-950/30 hover:bg-purple-900/50 text-purple-300 hover:text-white rounded-lg text-[10px] font-bold font-mono uppercase tracking-wider transition-all duration-300 cursor-pointer shadow-md hover:scale-[1.02] active:scale-95"
+                  className="h-7 px-2.5 flex items-center justify-center gap-1 border border-purple-500/40 bg-purple-950/30 hover:bg-purple-900/50 text-purple-300 hover:text-white rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider transition-all duration-300 cursor-pointer shadow-md hover:scale-[1.02] active:scale-95"
                   title="Skip to Next Song"
                 >
                   <span>NEXT</span>
-                  <SkipForward size={12} />
+                  <SkipForward size={11} />
                 </button>
                 
                 {/* Download active track */}
                 {activeTrack && (
                   <button
                     onClick={(e) => handleDownloadTrigger(e, activeTrack)}
-                    className="h-8 px-3 flex items-center justify-center gap-1.5 border border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-950/40 text-cyan-400 hover:text-white rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wide transition-all duration-300 cursor-pointer shadow-md active:scale-95"
+                    className="h-7 px-2.5 flex items-center justify-center gap-1 border border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-950/40 text-cyan-400 hover:text-white rounded-lg font-mono text-[9px] font-extrabold uppercase tracking-wide transition-all duration-300 cursor-pointer shadow-md active:scale-95"
                     title="Download selected track"
                   >
-                    <Download size={11} />
+                    <Download size={10} />
                     <span>DOWNLOAD</span>
-                    <span className="text-[9px] text-cyan-300 bg-cyan-950/40 px-1 py-0.2 rounded border border-cyan-800/30 font-bold ml-0.5">
+                    <span className="text-[8px] text-cyan-300 bg-cyan-950/40 px-1 py-0.2 rounded border border-cyan-800/30 font-bold ml-0.5">
                       {getDownloadCount('music', activeTrack.id, activeTrack.title)}
                     </span>
                   </button>
@@ -1207,16 +1234,16 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
 
               {/* Volume Slider Control */}
               <div className="flex items-center gap-1.5 font-mono text-neutral-500">
-                <Volume2 size={11} className="text-neutral-500" />
+                <Volume2 size={10} className="text-neutral-500" />
                 <input 
                   type="range" 
                   min="0" 
                   max="100" 
                   value={playerVolume} 
                   onChange={(e) => setPlayerVolume(Number(e.target.value))}
-                  className="w-16 sm:w-20 accent-purple-500 h-1 rounded-none cursor-pointer bg-neutral-800 border-none outline-none"
+                  className="w-14 sm:w-16 accent-purple-500 h-1 rounded-none cursor-pointer bg-neutral-800 border-none outline-none"
                 />
-                <span className="text-[10px] leading-none text-neutral-400 min-w-7 text-right font-mono font-bold">
+                <span className="text-[9px] leading-none text-neutral-400 min-w-6 text-right font-mono font-bold">
                   {playerVolume}%
                 </span>
               </div>
@@ -1226,45 +1253,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       </div>
 
       {/* Track Directory Selection List */}
-      <div className="flex-1 min-h-0 p-3 sm:p-5 flex flex-col overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 shrink-0">
-          <div className="flex flex-wrap items-center gap-2 text-neutral-400">
-            <ListMusic size={14} className="text-purple-400" />
-            <h3 className="text-[11px] uppercase font-black tracking-widest font-mono">
-              PORTAL MUSIC DECK ({filteredMusicList.length} / {musicList.length} AUDIO FILES)
-            </h3>
-            <span className="text-[9px] font-mono text-purple-400 bg-purple-950/60 border border-purple-800/40 px-2 py-0.5 rounded-md uppercase flex items-center gap-1 font-bold">
-              <Filter size={9} /> SINGER (A-Z)
-            </span>
-          </div>
-          
-          {/* Search Bar and Randomize button */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleRandomize}
-              className={`px-2.5 py-1 border rounded-lg text-[11px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                isRandomized
-                  ? 'bg-purple-900/60 hover:bg-purple-800/80 border-purple-500/60 text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
-                  : 'bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/40 text-cyan-300 hover:text-white'
-              }`}
-              title="Play a random song and enable randomize playback"
-            >
-              <Shuffle size={12} className={`text-cyan-400 ${isRandomized ? 'animate-pulse text-purple-300' : ''}`} />
-              <span className="hidden sm:inline">{isRandomized ? 'RANDOMIZED' : 'RANDOMIZE'}</span>
-            </button>
-
-            <div className="relative min-w-[180px] sm:w-72">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-500" />
-              <input
-                type="text"
-                placeholder="Search songs, artists, or titles..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-2.5 py-1 bg-neutral-900 border border-neutral-800 text-[11px] font-mono text-white placeholder-neutral-500 rounded-lg outline-none focus:border-purple-500/60 transition-colors"
-              />
-            </div>
-          </div>
-        </div>
+      <div className="flex-1 min-h-0 p-3 sm:p-4 flex flex-col overflow-hidden">
 
         {/* Main Music Deck Row with Left-Side Fast Scroller Rail */}
         <div className="flex-1 min-h-0 flex gap-2 sm:gap-3 relative items-stretch overflow-hidden">

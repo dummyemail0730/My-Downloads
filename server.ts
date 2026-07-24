@@ -2008,9 +2008,13 @@ async function startServer() {
 
       const firebaseDb = getFirebaseDB();
       if (firebaseDb) {
-        const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
-        await getClientSetDoc(docRef, payload, { merge: true });
-        console.log(`[Music API] Saved ${tracks.length} tracks to Firestore document 'portalSettings/musicLibrary'.`);
+        try {
+          const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
+          await getClientSetDoc(docRef, payload, { merge: true });
+          console.log(`[Music API] Saved ${tracks.length} tracks to Firestore document 'portalSettings/musicLibrary'.`);
+        } catch (fsErr: any) {
+          console.warn(`[Music API] Firestore write notice (quota or network):`, fsErr?.message || fsErr);
+        }
       }
 
       // Always write local fallback file as well
@@ -2030,8 +2034,12 @@ async function startServer() {
       const payload = { tracks: [], syncedAt: new Date().toISOString(), totalCount: 0 };
       const firebaseDb = getFirebaseDB();
       if (firebaseDb) {
-        const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
-        await getClientSetDoc(docRef, payload);
+        try {
+          const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
+          await getClientSetDoc(docRef, payload);
+        } catch (fsErr: any) {
+          console.warn(`[Music API] Firestore clear notice (quota or network):`, fsErr?.message || fsErr);
+        }
       }
 
       const musicFilePath = path.join(process.cwd(), "shadow_music_library.json");
