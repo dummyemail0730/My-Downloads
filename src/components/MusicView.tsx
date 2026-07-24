@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, Pause, Download, Music, Disc, ListMusic, Volume2, RefreshCw, AlertCircle, 
   Search, Folder, CheckCircle2, CloudDownload, Sparkles, LogIn, LogOut, ChevronRight, HardDrive, Trash2, Filter,
-  Pencil, Edit3, Check, X, Wand2, Shuffle, Plus
+  Pencil, Edit3, Check, X, Wand2, Shuffle, Plus, SkipForward, SkipBack, ChevronsUp, ChevronsDown, MoveVertical, Key
 } from 'lucide-react';
 
 function capitalizeWords(str: string): string {
@@ -138,6 +138,17 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
 
   // HTML Audio Element Ref
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Fast Scroll Rail Refs & State
+  const musicListContainerRef = useRef<HTMLDivElement | null>(null);
+  const scrollRailRef = useRef<HTMLDivElement | null>(null);
+  const [scrollProgress, setScrollProgress] = useState<number>(0);
+  const [isHoldingFastScroll, setIsHoldingFastScroll] = useState<boolean>(false);
+  const [hoveredScrubIndex, setHoveredScrubIndex] = useState<number | null>(null);
+
+  // Audio Playback Error & Auth state
+  const [authRequiredNotice, setAuthRequiredNotice] = useState<boolean>(false);
+  const [playbackErrorMsg, setPlaybackErrorMsg] = useState<string | null>(null);
 
   // Default initial Google Drive tracks for adriangabionza1990@gmail.com (empty - only real user Google Drive files)
   const defaultSampleTracks: Track[] = [];
@@ -361,38 +372,52 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     return filteredMusicList[currentTrackIndex] || filteredMusicList[0] || musicList[0];
   }, [filteredMusicList, musicList, currentTrackIndex]);
 
-  // Stream URL calculation for active track (supporting both Express backend proxy & direct Google Drive media stream)
+  // Helper to extract Google Drive file ID from any track format
+  const extractGoogleDriveFileId = (track: any): string | null => {
+    if (!track) return null;
+    if (track.fileId && typeof track.fileId === 'string' && track.fileId.length > 8) return track.fileId;
+    
+    if (track.id && typeof track.id === 'string' && track.id.startsWith('gdrive-')) {
+      const rawId = track.id.replace('gdrive-', '');
+      if (rawId && rawId.length > 8) return rawId;
+    }
+
+    const sources = [track.link, track.streamUrl, track.id].filter(Boolean);
+    for (const src of sources) {
+      if (typeof src !== 'string') continue;
+      const match = 
+        src.match(/\/files\/([a-zA-Z0-9_-]+)/) ||
+        src.match(/\/d\/([a-zA-Z0-9_-]+)/) ||
+        src.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
+        src.match(/[?&]fileId=([a-zA-Z0-9_-]+)/);
+      if (match && match[1] && match[1].length > 8) {
+        return match[1];
+      }
+    }
+    return null;
+  };
+
+  // Sync token with Express server for background audio proxying
+  const syncServerToken = (token: string) => {
+    if (!token) return;
+    fetch('/api/drive/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    }).catch(() => {});
+  };
+
+  // Stream URL calculation for active track (routed via Express backend proxy for 100% reliable stream & CORS handling)
   const activeStreamUrl = useMemo(() => {
     if (!activeTrack) return undefined;
     const token = driveAccessToken || getAccessToken() || '';
+    const fId = extractGoogleDriveFileId(activeTrack);
 
-    if (activeTrack.fileId) {
-      if (token) {
-        return `https://www.googleapis.com/drive/v3/files/${activeTrack.fileId}?alt=media&access_token=${encodeURIComponent(token)}`;
-      }
-      return `/api/drive/audio-stream?fileId=${activeTrack.fileId}`;
+    if (fId) {
+      return `/api/drive/audio-stream?fileId=${fId}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
     }
 
-    if (activeTrack.streamUrl) {
-      if (activeTrack.streamUrl.includes('/api/drive/audio-stream') && token) {
-        const fileIdMatch = activeTrack.streamUrl.match(/fileId=([a-zA-Z0-9_-]+)/);
-        if (fileIdMatch) {
-          return `https://www.googleapis.com/drive/v3/files/${fileIdMatch[1]}?alt=media&access_token=${encodeURIComponent(token)}`;
-        }
-      }
-      return activeTrack.streamUrl;
-    }
-
-    if (activeTrack.link && activeTrack.link.includes('drive.google.com')) {
-      const match = activeTrack.link.match(/\/d\/([a-zA-Z0-9_-]+)/) || activeTrack.link.match(/id=([a-zA-Z0-9_-]+)/);
-      if (match) {
-        if (token) {
-          return `https://www.googleapis.com/drive/v3/files/${match[1]}?alt=media&access_token=${encodeURIComponent(token)}`;
-        }
-        return `/api/drive/audio-stream?fileId=${match[1]}`;
-      }
-    }
-    return activeTrack.link || undefined;
+    return activeTrack.streamUrl || activeTrack.link || undefined;
   }, [activeTrack, driveAccessToken]);
 
   // Auth Initialization Listener & Auto-Sync
@@ -401,6 +426,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       setDriveUser(user);
       setDriveAccessToken(token);
       if (token) {
+        syncServerToken(token);
         autoScanDrive(token);
       }
     };
@@ -412,6 +438,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
         if (storedToken) {
           setDriveAccessToken(storedToken);
           setDriveUser({ displayName: 'Google Drive User', email: 'Connected Account' });
+          syncServerToken(storedToken);
           autoScanDrive(storedToken);
         } else {
           setDriveUser(null);
@@ -422,9 +449,10 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
 
     // Initial check on mount
     const existingToken = getAccessToken();
-    if (existingToken && !driveAccessToken) {
+    if (existingToken) {
       setDriveAccessToken(existingToken);
       setDriveUser({ displayName: 'Google Drive User', email: 'Connected Account' });
+      syncServerToken(existingToken);
       autoScanDrive(existingToken);
     }
 
@@ -522,6 +550,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     if (audio.src !== absUrl) {
       audio.src = activeStreamUrl;
       audio.load();
+      setPlaybackErrorMsg(null);
     }
 
     if (isPlaying) {
@@ -529,12 +558,16 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       if (p !== undefined) {
         p.catch(err => {
           console.warn('Playback notice:', err);
+          if (activeTrack?.isDrive || activeStreamUrl.includes('/api/drive/audio-stream')) {
+            setPlaybackErrorMsg('Google Drive token expired or login required to play this track.');
+            setAuthRequiredNotice(true);
+          }
         });
       }
     } else {
       audio.pause();
     }
-  }, [activeStreamUrl, isPlaying]);
+  }, [activeStreamUrl, isPlaying, activeTrack]);
 
   // Randomize track selection and toggle shuffle playback
   const handleRandomize = () => {
@@ -545,10 +578,106 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     setIsRandomized(true);
   };
 
+  // Next and Previous Track handlers
+  const handleNextTrack = () => {
+    if (filteredMusicList.length === 0) return;
+    if (isRandomized) {
+      const randomIdx = Math.floor(Math.random() * filteredMusicList.length);
+      setCurrentTrackIndex(randomIdx);
+    } else {
+      setCurrentTrackIndex(prev => (prev + 1) % filteredMusicList.length);
+    }
+    setIsPlaying(true);
+  };
+
+  const handlePrevTrack = () => {
+    if (filteredMusicList.length === 0) return;
+    setCurrentTrackIndex(prev => (prev - 1 + filteredMusicList.length) % filteredMusicList.length);
+    setIsPlaying(true);
+  };
+
+  // Fast Scroll & Scrubber Handlers
+  const handleListScroll = () => {
+    if (!musicListContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = musicListContainerRef.current;
+    const maxScroll = scrollHeight - clientHeight;
+    if (maxScroll > 0) {
+      setScrollProgress(scrollTop / maxScroll);
+    } else {
+      setScrollProgress(0);
+    }
+  };
+
+  const handleScrubMove = (clientY: number) => {
+    if (!scrollRailRef.current || !musicListContainerRef.current) return;
+    const rect = scrollRailRef.current.getBoundingClientRect();
+    if (rect.height <= 0) return;
+
+    let offsetY = clientY - rect.top;
+    offsetY = Math.max(0, Math.min(offsetY, rect.height));
+    const pct = offsetY / rect.height;
+    setScrollProgress(pct);
+
+    const { scrollHeight, clientHeight } = musicListContainerRef.current;
+    const maxScroll = scrollHeight - clientHeight;
+    if (maxScroll > 0) {
+      musicListContainerRef.current.scrollTop = pct * maxScroll;
+    }
+
+    if (filteredMusicList.length > 0) {
+      const estimatedIdx = Math.min(
+        filteredMusicList.length - 1,
+        Math.floor(pct * filteredMusicList.length)
+      );
+      setHoveredScrubIndex(estimatedIdx);
+    }
+  };
+
+  const handleRailPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch (err) {}
+    setIsHoldingFastScroll(true);
+    handleScrubMove(e.clientY);
+  };
+
+  const handleRailPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isHoldingFastScroll) {
+      handleScrubMove(e.clientY);
+    }
+  };
+
+  const handleRailPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isHoldingFastScroll) {
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch (err) {}
+      setIsHoldingFastScroll(false);
+      setHoveredScrubIndex(null);
+    }
+  };
+
+  const handleJumpToTop = () => {
+    if (musicListContainerRef.current) {
+      musicListContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleJumpToBottom = () => {
+    if (musicListContainerRef.current) {
+      musicListContainerRef.current.scrollTo({
+        top: musicListContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   // Handle Play/Pause operations
   const handlePlayToggle = (index?: number) => {
     if (index !== undefined) {
-      if (index !== currentTrackIndex) {
+      const selected = filteredMusicList[index];
+      if (selected && activeTrack?.id !== selected.id) {
         setCurrentTrackIndex(index);
         setIsPlaying(true);
       } else {
@@ -637,10 +766,18 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     try {
       setDriveScanMessage('Connecting to Google Drive...');
       const result = await googleSignIn();
-      if (result) {
+      if (result && result.accessToken) {
         setDriveUser(result.user);
         setDriveAccessToken(result.accessToken);
-        setDriveScanMessage('Successfully authenticated with Google Drive!');
+        syncServerToken(result.accessToken);
+        setAuthRequiredNotice(false);
+        setPlaybackErrorMsg(null);
+        setDriveScanMessage('Successfully authenticated with Google Drive! Resuming audio playback...');
+        setIsPlaying(true);
+        if (audioRef.current) {
+          audioRef.current.load();
+          audioRef.current.play().catch(() => {});
+        }
         await autoScanDrive(result.accessToken);
       }
     } catch (err: any) {
@@ -865,7 +1002,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-neutral-950 text-neutral-200 font-sans select-none relative overflow-y-auto">
+    <div className="h-full flex flex-col bg-neutral-950 text-neutral-200 font-sans select-none relative overflow-hidden">
       
       {/* Hidden Audio Player Element */}
       <audio 
@@ -873,38 +1010,52 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
         src={activeStreamUrl || undefined}
         preload="auto"
         onError={(e) => {
-          console.warn('Audio element error, falling back to track link:', e);
-          if (activeTrack && activeTrack.link && audioRef.current && audioRef.current.src !== activeTrack.link) {
-            audioRef.current.src = activeTrack.link;
-            if (isPlaying) {
-              audioRef.current.play().catch(err => console.warn('Fallback play failed:', err));
-            }
+          console.warn('Audio element playback error for URL:', activeStreamUrl);
+          if (activeTrack?.isDrive || (activeStreamUrl && activeStreamUrl.includes('/api/drive/audio-stream'))) {
+            setPlaybackErrorMsg('Google Drive session expired or authentication required to play MP3.');
+            setAuthRequiredNotice(true);
           }
         }}
       />
 
-      {/* Top Banner & Player Dashboard */}
-      <div className="border-b border-neutral-900 p-6 md:p-8 bg-neutral-950 flex flex-col xl:flex-row gap-6 relative overflow-hidden shrink-0">
-        <div className="absolute inset-0 bg-radial-gradient from-purple-950/15 via-transparent to-transparent pointer-events-none" />
+      {/* Interactive Reconnect Google Drive Notification Banner */}
+      {(authRequiredNotice || playbackErrorMsg) && (
+        <div className="sticky top-0 z-40 bg-amber-950/95 border-b border-amber-500/50 text-amber-200 px-4 py-2.5 text-xs flex items-center justify-between gap-3 shrink-0 shadow-2xl animate-pulse">
+          <div className="flex items-center gap-2 font-mono">
+            <Key size={14} className="text-amber-400 shrink-0" />
+            <span>{playbackErrorMsg || 'Google Drive authentication required or session expired.'}</span>
+          </div>
+          <button
+            onClick={handleGoogleSignIn}
+            className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-3 py-1 rounded text-xs flex items-center gap-1.5 shrink-0 transition-all shadow-md active:scale-95 cursor-pointer font-mono uppercase"
+          >
+            <Key size={12} /> Connect Google Drive
+          </button>
+        </div>
+      )}
+
+      {/* Top Banner & Player Dashboard - Compact (~50% smaller) & Pinned/Sticky at Top */}
+      <div className="sticky top-0 z-30 shrink-0 border-b border-purple-900/30 p-3 sm:p-4 bg-neutral-950/95 backdrop-blur-xl flex flex-col md:flex-row gap-3 sm:gap-4 relative overflow-hidden shadow-2xl">
+        <div className="absolute inset-0 bg-radial-gradient from-purple-950/20 via-transparent to-transparent pointer-events-none" />
         
-        {/* Dynamic Vinyl Record Wrapper */}
-        <div className="w-full sm:w-64 h-64 mx-auto flex-shrink-0 relative flex items-center justify-center p-3 rounded-2xl border border-neutral-900 bg-neutral-900/40 backdrop-blur-md shadow-2xl">
-          <div className="absolute inset-2 rounded-full border border-neutral-800/40 animate-pulse pointer-events-none" />
+        {/* Compact Dynamic Vinyl Record Wrapper (~50% smaller) */}
+        <div className="w-28 sm:w-32 h-28 sm:h-32 mx-auto md:mx-0 flex-shrink-0 relative flex items-center justify-center p-1.5 rounded-xl border border-neutral-900 bg-neutral-900/50 backdrop-blur-md shadow-xl">
+          <div className="absolute inset-1 rounded-full border border-neutral-800/40 animate-pulse pointer-events-none" />
           
           {/* Main Vinyl CD Disc layout */}
           <motion.div 
             animate={{ rotate: isPlaying ? 360 : 0 }}
-            transition={{ repeat: Infinity, duration: 15, ease: 'linear' }}
-            className="w-56 h-56 rounded-full bg-black border-[6px] border-neutral-800 flex items-center justify-center relative shadow-black/80 shadow-2xl overflow-hidden"
+            transition={{ repeat: Infinity, duration: 12, ease: 'linear' }}
+            className="w-24 sm:w-28 h-24 sm:h-28 rounded-full bg-black border-[3px] border-neutral-800 flex items-center justify-center relative shadow-black/80 shadow-xl overflow-hidden"
           >
             {/* Vinyl grooves */}
-            <div className="absolute inset-4 rounded-full border border-neutral-700/10" />
-            <div className="absolute inset-8 rounded-full border border-neutral-700/15" />
-            <div className="absolute inset-12 rounded-full border border-neutral-700/20" />
-            <div className="absolute inset-16 rounded-full border border-neutral-700/25" />
+            <div className="absolute inset-2 rounded-full border border-neutral-700/10" />
+            <div className="absolute inset-4 rounded-full border border-neutral-700/15" />
+            <div className="absolute inset-6 rounded-full border border-neutral-700/20" />
+            <div className="absolute inset-8 rounded-full border border-neutral-700/25" />
             
             {/* Custom Album Art Center */}
-            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-black relative z-10 flex-shrink-0">
+            <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-full overflow-hidden border-2 border-black relative z-10 flex-shrink-0">
               <img 
                 src={activeTrack?.image || shadowElectricity} 
                 alt="Album Cover" 
@@ -912,50 +1063,52 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-neutral-950/25 flex items-center justify-center">
-                <Disc className={`w-10 h-10 text-purple-400 ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} />
+                <Disc className={`w-5 h-5 text-purple-400 ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '4s' }} />
               </div>
             </div>
             
             {/* CD Hole center pin */}
-            <div className="w-5 h-5 bg-neutral-900 rounded-full border border-neutral-800 absolute z-20" />
+            <div className="w-3 h-3 bg-neutral-900 rounded-full border border-neutral-800 absolute z-20" />
           </motion.div>
         </div>
 
         {/* Player controls details */}
-        <div className="flex-1 flex flex-col justify-between p-1">
+        <div className="flex-1 flex flex-col justify-between min-w-0">
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-purple-900/20 text-purple-400 border border-purple-800/20 uppercase tracking-[0.1em]">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-900/20 text-purple-400 border border-purple-800/20 uppercase tracking-[0.05em]">
                   {activeTrack?.quality || 'FLAC [LOSSLESS]'}
                 </span>
-                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950/40 text-cyan-300 border border-cyan-800/30 uppercase tracking-wider flex items-center gap-1">
-                  <HardDrive size={10} /> GOOGLE DRIVE
+                <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-300 border border-cyan-800/30 uppercase tracking-wider flex items-center gap-1">
+                  <HardDrive size={9} /> GOOGLE DRIVE
                 </span>
-                <span className="text-[9px] font-mono font-bold px-2.5 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[8px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                  <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
                   GOOGLE DRIVE SYNCED
                 </span>
               </div>
             </div>
             
-            <h2 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-wide mb-1 leading-tight line-clamp-1">
-              {activeTrack?.title || 'No Audio Selected'}
-            </h2>
-            <p className="text-sm font-mono text-purple-400 font-bold mb-4">
-              {activeTrack?.artist || 'Portal Music Archives'}
-            </p>
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="text-base sm:text-lg font-black uppercase text-white tracking-wide leading-tight line-clamp-1">
+                {activeTrack?.title || 'No Audio Selected'}
+              </h2>
+              <p className="text-xs font-mono text-purple-400 font-bold shrink-0">
+                {activeTrack?.artist || 'Portal Music Archives'}
+              </p>
+            </div>
             
-            {/* Fake wave spectrum animation */}
-            <div className="h-10 flex items-end gap-[3px] mb-6 py-1 select-none overflow-hidden pl-1">
-              {Array.from({ length: 48 }).map((_, i) => {
-                const height = isPlaying ? Math.floor(Math.random() * 32) + 4 : 2;
+            {/* Compact wave spectrum animation */}
+            <div className="h-5 flex items-end gap-[2px] my-1 py-0.5 select-none overflow-hidden">
+              {Array.from({ length: 32 }).map((_, i) => {
+                const height = isPlaying ? Math.floor(Math.random() * 16) + 3 : 2;
                 return (
                   <motion.div 
                     key={i}
                     animate={{ height }}
                     transition={{ type: 'spring', stiffness: 200, damping: 10 }}
-                    className={`w-[3px] rounded-none opacity-85 transition-colors duration-300 ${
+                    className={`w-[2.5px] rounded-none opacity-85 transition-colors duration-300 ${
                       isPlaying 
                         ? i % 2 === 0 ? 'bg-purple-500' : 'bg-cyan-400'
                         : 'bg-neutral-800'
@@ -967,12 +1120,12 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
           </div>
 
           {/* Interactive Player Deck Bar */}
-          <div className="space-y-4">
+          <div className="space-y-1.5 mt-1">
             {/* Progress Slider */}
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-mono text-neutral-500 w-10">{currentTimeFormatted}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-mono text-neutral-500 w-8">{currentTimeFormatted}</span>
               <div 
-                className="flex-grow h-1.5 bg-neutral-900 border border-neutral-800 rounded-full overflow-hidden cursor-pointer relative"
+                className="flex-grow h-1 bg-neutral-900 border border-neutral-800 rounded-full overflow-hidden cursor-pointer relative"
                 onClick={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
                   const pct = Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100));
@@ -987,17 +1140,27 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                   style={{ width: `${playerProgress}%` }}
                 />
               </div>
-              <span className="text-[10px] font-mono text-neutral-500 w-10 text-right">
+              <span className="text-[9px] font-mono text-neutral-500 w-8 text-right">
                 {durationFormatted !== '00:00' ? durationFormatted : (activeTrack?.duration || '03:45')}
               </span>
             </div>
 
             {/* Audio Deck Bottom Button Grid */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Previous Track Button */}
+                <button
+                  onClick={handlePrevTrack}
+                  className="h-8 px-2.5 flex items-center justify-center border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 hover:border-purple-500/40 text-neutral-300 hover:text-white rounded-lg transition-all duration-200 cursor-pointer shadow-md active:scale-95"
+                  title="Previous Song"
+                >
+                  <SkipBack size={13} />
+                </button>
+
+                {/* Play/Pause Button */}
                 <button
                   onClick={() => handlePlayToggle()}
-                  className={`h-11 px-6 flex items-center justify-center gap-2 border text-xs font-bold font-mono uppercase tracking-widest rounded-xl transition-all duration-300 cursor-pointer shadow-lg ${
+                  className={`h-8 px-3.5 flex items-center justify-center gap-1.5 border text-[10px] font-bold font-mono uppercase tracking-wider rounded-lg transition-all duration-300 cursor-pointer shadow-md active:scale-95 ${
                     isPlaying 
                       ? 'border-purple-500 bg-purple-950/40 text-purple-300' 
                       : 'border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-white'
@@ -1005,27 +1168,37 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                 >
                   {isPlaying ? (
                     <>
-                      <Pause size={13} className="fill-purple-300 text-purple-300 animate-pulse" />
-                      <span>PAUSE TRACK</span>
+                      <Pause size={11} className="fill-purple-300 text-purple-300 animate-pulse" />
+                      <span>PAUSE</span>
                     </>
                   ) : (
                     <>
-                      <Play size={13} className="fill-white text-white" />
-                      <span>PLAY TRACK</span>
+                      <Play size={11} className="fill-white text-white" />
+                      <span>PLAY</span>
                     </>
                   )}
+                </button>
+
+                {/* Next Song Button */}
+                <button
+                  onClick={handleNextTrack}
+                  className="h-8 px-3 flex items-center justify-center gap-1.5 border border-purple-500/40 bg-purple-950/30 hover:bg-purple-900/50 text-purple-300 hover:text-white rounded-lg text-[10px] font-bold font-mono uppercase tracking-wider transition-all duration-300 cursor-pointer shadow-md hover:scale-[1.02] active:scale-95"
+                  title="Skip to Next Song"
+                >
+                  <span>NEXT</span>
+                  <SkipForward size={12} />
                 </button>
                 
                 {/* Download active track */}
                 {activeTrack && (
                   <button
                     onClick={(e) => handleDownloadTrigger(e, activeTrack)}
-                    className="h-11 px-5 flex items-center justify-center gap-2 border border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-950/40 text-cyan-400 hover:text-white rounded-xl font-mono text-xs font-extrabold uppercase tracking-wide transition-all duration-300 cursor-pointer shadow-md"
+                    className="h-8 px-3 flex items-center justify-center gap-1.5 border border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-950/40 text-cyan-400 hover:text-white rounded-lg font-mono text-[10px] font-extrabold uppercase tracking-wide transition-all duration-300 cursor-pointer shadow-md active:scale-95"
                     title="Download selected track"
                   >
-                    <Download size={13} />
-                    <span>DOWNLOAD THIS SONG</span>
-                    <span className="text-[10px] text-cyan-300 bg-cyan-950/40 px-1.5 py-0.5 rounded-md border border-cyan-800/30 font-bold ml-0.5">
+                    <Download size={11} />
+                    <span>DOWNLOAD</span>
+                    <span className="text-[9px] text-cyan-300 bg-cyan-950/40 px-1 py-0.2 rounded border border-cyan-800/30 font-bold ml-0.5">
                       {getDownloadCount('music', activeTrack.id, activeTrack.title)}
                     </span>
                   </button>
@@ -1033,17 +1206,17 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
               </div>
 
               {/* Volume Slider Control */}
-              <div className="flex items-center gap-2 font-mono text-neutral-500">
-                <Volume2 size={13} className="text-neutral-500" />
+              <div className="flex items-center gap-1.5 font-mono text-neutral-500">
+                <Volume2 size={11} className="text-neutral-500" />
                 <input 
                   type="range" 
                   min="0" 
                   max="100" 
                   value={playerVolume} 
                   onChange={(e) => setPlayerVolume(Number(e.target.value))}
-                  className="w-20 md:w-24 accent-purple-500 h-1 rounded-none cursor-pointer bg-neutral-800 border-none outline-none"
+                  className="w-16 sm:w-20 accent-purple-500 h-1 rounded-none cursor-pointer bg-neutral-800 border-none outline-none"
                 />
-                <span className="text-[11px] leading-none text-neutral-400 min-w-8 text-right font-mono font-bold">
+                <span className="text-[10px] leading-none text-neutral-400 min-w-7 text-right font-mono font-bold">
                   {playerVolume}%
                 </span>
               </div>
@@ -1053,15 +1226,15 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       </div>
 
       {/* Track Directory Selection List */}
-      <div className="flex-1 p-6 md:p-8 flex flex-col">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+      <div className="flex-1 min-h-0 p-3 sm:p-5 flex flex-col overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 shrink-0">
           <div className="flex flex-wrap items-center gap-2 text-neutral-400">
-            <ListMusic size={15} className="text-purple-400" />
-            <h3 className="text-xs uppercase font-black tracking-widest font-mono">
+            <ListMusic size={14} className="text-purple-400" />
+            <h3 className="text-[11px] uppercase font-black tracking-widest font-mono">
               PORTAL MUSIC DECK ({filteredMusicList.length} / {musicList.length} AUDIO FILES)
             </h3>
-            <span className="text-[10px] font-mono text-purple-400 bg-purple-950/60 border border-purple-800/40 px-2 py-0.5 rounded-md uppercase flex items-center gap-1 font-bold">
-              <Filter size={10} /> SINGER (A-Z)
+            <span className="text-[9px] font-mono text-purple-400 bg-purple-950/60 border border-purple-800/40 px-2 py-0.5 rounded-md uppercase flex items-center gap-1 font-bold">
+              <Filter size={9} /> SINGER (A-Z)
             </span>
           </div>
           
@@ -1069,32 +1242,111 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={handleRandomize}
-              className={`px-3 py-1.5 border rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 border rounded-lg text-[11px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 isRandomized
                   ? 'bg-purple-900/60 hover:bg-purple-800/80 border-purple-500/60 text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
                   : 'bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/40 text-cyan-300 hover:text-white'
               }`}
               title="Play a random song and enable randomize playback"
             >
-              <Shuffle size={13} className={`text-cyan-400 ${isRandomized ? 'animate-pulse text-purple-300' : ''}`} />
+              <Shuffle size={12} className={`text-cyan-400 ${isRandomized ? 'animate-pulse text-purple-300' : ''}`} />
               <span className="hidden sm:inline">{isRandomized ? 'RANDOMIZED' : 'RANDOMIZE'}</span>
             </button>
 
-            <div className="relative min-w-[200px] sm:w-80">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+            <div className="relative min-w-[180px] sm:w-72">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-500" />
               <input
                 type="text"
                 placeholder="Search songs, artists, or titles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 bg-neutral-900 border border-neutral-800 text-xs font-mono text-white placeholder-neutral-500 rounded-xl outline-none focus:border-purple-500/60 transition-colors"
+                className="w-full pl-8 pr-2.5 py-1 bg-neutral-900 border border-neutral-800 text-[11px] font-mono text-white placeholder-neutral-500 rounded-lg outline-none focus:border-purple-500/60 transition-colors"
               />
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-1.5">
-          {filteredMusicList.map((track, idx) => {
+        {/* Main Music Deck Row with Left-Side Fast Scroller Rail */}
+        <div className="flex-1 min-h-0 flex gap-2 sm:gap-3 relative items-stretch overflow-hidden">
+          
+          {/* Left-Side Fast Scroll Option & Quick Jump Bar */}
+          <div className="flex flex-col items-center shrink-0 select-none py-0.5 group/rail">
+            {/* Top Fast Jump Button */}
+            <button
+              onClick={handleJumpToTop}
+              className={`w-7 sm:w-8 h-7 sm:h-8 rounded-xl border flex items-center justify-center transition-all duration-200 cursor-pointer mb-2 ${
+                isHoldingFastScroll
+                  ? 'border-purple-400 bg-purple-950 text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.8)]'
+                  : 'border-neutral-800/80 bg-neutral-900/80 hover:border-purple-500/50 text-neutral-400 hover:text-white'
+              }`}
+              title="Quick Jump to Top"
+            >
+              <ChevronsUp size={13} className={isHoldingFastScroll ? "animate-pulse text-purple-300" : ""} />
+            </button>
+
+            {/* Middle Scrubber Rail (Glows purple when clicked & held!) */}
+            <div
+              ref={scrollRailRef}
+              onPointerDown={handleRailPointerDown}
+              onPointerMove={handleRailPointerMove}
+              onPointerUp={handleRailPointerUp}
+              onPointerCancel={handleRailPointerUp}
+              className={`relative w-7 sm:w-8 flex-1 min-h-[200px] border rounded-2xl flex flex-col items-center justify-center cursor-grab active:cursor-grabbing touch-none transition-all duration-300 ${
+                isHoldingFastScroll
+                  ? 'border-purple-400 bg-purple-950/90 shadow-[0_0_25px_rgba(168,85,247,0.8),inset_0_0_15px_rgba(168,85,247,0.4)] ring-2 ring-purple-500/60'
+                  : 'border-neutral-800/80 bg-neutral-900/50 hover:border-purple-500/40 hover:bg-neutral-900/90'
+              }`}
+              title="Click & hold/drag to fast scroll songs"
+            >
+              {/* Vertical Guide Center Line */}
+              <div className={`absolute inset-y-3 w-1 rounded-full transition-colors duration-300 ${
+                isHoldingFastScroll ? 'bg-purple-500/80 shadow-[0_0_10px_rgba(168,85,247,0.9)]' : 'bg-neutral-800/90 group-hover/rail:bg-neutral-700'
+              }`} />
+
+              {/* Glowing Active Scroll Track Fill */}
+              <div
+                className={`absolute top-3 w-1 rounded-full transition-all duration-75 ${
+                  isHoldingFastScroll
+                    ? 'bg-gradient-to-b from-purple-400 via-fuchsia-400 to-purple-500 shadow-[0_0_15px_rgba(168,85,247,1)]'
+                    : 'bg-purple-500/50'
+                }`}
+                style={{ height: `calc(${scrollProgress * 100}% - 24px)` }}
+              />
+
+              {/* Glowing Scrubber Thumb Handle (GLOWS PURPLE WHEN HELD) */}
+              <div
+                className={`absolute left-1/2 -translate-x-1/2 transition-transform duration-75 flex items-center justify-center rounded-full cursor-grab active:cursor-grabbing ${
+                  isHoldingFastScroll
+                    ? 'w-8 h-8 border-2 border-white bg-gradient-to-br from-purple-300 via-purple-500 to-fuchsia-600 shadow-[0_0_30px_rgba(168,85,247,1),0_0_60px_rgba(168,85,247,0.8)] scale-125 z-30 animate-pulse'
+                    : 'w-6 h-6 border border-purple-500/60 bg-purple-950 text-purple-300 hover:border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)] hover:scale-110 z-20'
+                }`}
+                style={{ top: `calc(${scrollProgress * 100}% - 12px)` }}
+              >
+                <MoveVertical size={isHoldingFastScroll ? 14 : 11} className={isHoldingFastScroll ? "text-white" : "text-purple-300"} />
+              </div>
+            </div>
+
+            {/* Bottom Fast Jump Button */}
+            <button
+              onClick={handleJumpToBottom}
+              className={`w-7 sm:w-8 h-7 sm:h-8 rounded-xl border flex items-center justify-center transition-all duration-200 cursor-pointer mt-2 ${
+                isHoldingFastScroll
+                  ? 'border-purple-400 bg-purple-950 text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.8)]'
+                  : 'border-neutral-800/80 bg-neutral-900/80 hover:border-purple-500/50 text-neutral-400 hover:text-white'
+              }`}
+              title="Quick Jump to Bottom"
+            >
+              <ChevronsDown size={13} className={isHoldingFastScroll ? "animate-pulse text-purple-300" : ""} />
+            </button>
+          </div>
+
+          {/* Music List Container */}
+          <div
+            ref={musicListContainerRef}
+            onScroll={handleListScroll}
+            className="flex-1 h-full overflow-y-auto pr-1 sm:pr-2 scrollbar-thin scrollbar-thumb-purple-900/60 scrollbar-track-neutral-900/50 space-y-1.5"
+          >
+            {filteredMusicList.map((track, idx) => {
             const isSelected = activeTrack?.id === track.id;
             return (
               <div
@@ -1237,5 +1489,6 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }

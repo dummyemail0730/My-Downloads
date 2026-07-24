@@ -1710,6 +1710,16 @@ async function startServer() {
     }
   });
 
+  // API Route to register/refresh Google Drive Access Token
+  app.post("/api/drive/token", (req, res) => {
+    const { token } = req.body || {};
+    if (token && typeof token === "string") {
+      persistServerDriveToken(token);
+      return res.json({ success: true, message: "Token registered successfully" });
+    }
+    return res.status(400).json({ error: "Token string required" });
+  });
+
   // API Route - Google Drive Audio Stream Proxy with Byte-Range support
   app.get("/api/drive/audio-stream", async (req, res) => {
     const fileId = (req.query.fileId || req.query.id) as string;
@@ -1723,52 +1733,92 @@ async function startServer() {
     }
 
     try {
+      const rangeHeader = req.headers.range;
       const headersToSend: Record<string, string> = {};
-      if (token) {
-        headersToSend["Authorization"] = `Bearer ${token}`;
-      }
-      if (req.headers.range) {
-        headersToSend["Range"] = req.headers.range;
+      if (rangeHeader) {
+        headersToSend["Range"] = rangeHeader;
       }
 
       let gRes: Response | null = null;
+      let tokenExpired = false;
+
+      // 1. Try official Google Drive API v3 with OAuth token (if token available)
       if (token) {
-        const driveStreamUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
         try {
-          gRes = await fetch(driveStreamUrl, { headers: headersToSend });
+          const driveStreamUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+          gRes = await fetch(driveStreamUrl, {
+            headers: { ...headersToSend, "Authorization": `Bearer ${token}` }
+          });
+          const contentType = gRes.headers.get("content-type") || "";
+          if (gRes.status === 401 || gRes.status === 403) {
+            tokenExpired = true;
+            serverDriveToken = null; // Clear stale token
+            gRes = null;
+          } else if (!gRes.ok || contentType.includes("html") || contentType.includes("json")) {
+            gRes = null;
+          }
         } catch (e) {
           gRes = null;
         }
       }
 
-      if (!gRes || !gRes.ok || (gRes.headers.get("content-type") || "").includes("html")) {
-        const fallbackUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
-        const fallbackHeaders: Record<string, string> = {};
-        if (req.headers.range) {
-          fallbackHeaders["Range"] = req.headers.range;
-        }
+      // 2. Try direct Google Drive Usercontent endpoint (works for shared/public files)
+      if (!gRes) {
         try {
-          gRes = await fetch(fallbackUrl, {
-            headers: fallbackHeaders,
+          const usercontentUrl = `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`;
+          gRes = await fetch(usercontentUrl, {
+            headers: headersToSend,
             redirect: 'follow'
           });
+          const contentType = gRes.headers.get("content-type") || "";
+          if (!gRes.ok || contentType.includes("html")) {
+            gRes = null;
+          }
         } catch (e) {
           gRes = null;
         }
       }
 
-      // If Google Drive returned non-audio HTML (permission error, virus warning, or private file)
-      // fallback seamlessly to high quality MP3 stream so audio plays 100% reliably for all visitors
-      const contentType = gRes ? (gRes.headers.get("content-type") || "") : "";
-      if (!gRes || !gRes.ok || contentType.includes("html") || contentType.includes("text")) {
-        const charSum = fileId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const songIndex = (Math.abs(charSum) % 10) + 1;
-        const directAudioUrl = `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${songIndex}.mp3`;
-        const directHeaders: Record<string, string> = {};
-        if (req.headers.range) {
-          directHeaders["Range"] = req.headers.range;
+      // 3. Try LH3 direct Google media CDN endpoint
+      if (!gRes) {
+        try {
+          const lh3Url = `https://lh3.googleusercontent.com/d/${fileId}`;
+          gRes = await fetch(lh3Url, {
+            headers: headersToSend,
+            redirect: 'follow'
+          });
+          const contentType = gRes.headers.get("content-type") || "";
+          if (!gRes.ok || contentType.includes("html")) {
+            gRes = null;
+          }
+        } catch (e) {
+          gRes = null;
         }
-        gRes = await fetch(directAudioUrl, { headers: directHeaders });
+      }
+
+      // 4. Fallback: try export=download with confirm parameter
+      if (!gRes) {
+        try {
+          const fallbackUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
+          gRes = await fetch(fallbackUrl, {
+            headers: headersToSend,
+            redirect: 'follow'
+          });
+          const contentType = gRes.headers.get("content-type") || "";
+          if (!gRes.ok || contentType.includes("html")) {
+            gRes = null;
+          }
+        } catch (e) {
+          gRes = null;
+        }
+      }
+
+      if (!gRes || !gRes.ok) {
+        res.setHeader("X-Drive-Error", tokenExpired ? "token_expired" : "file_access_denied");
+        return res.status(401).json({
+          error: tokenExpired ? "token_expired" : "file_access_denied",
+          message: "Google Drive authentication required or session expired. Please connect Google Drive."
+        });
       }
 
       res.status(gRes.status);

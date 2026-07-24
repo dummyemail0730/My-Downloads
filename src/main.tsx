@@ -8,7 +8,10 @@ const origSetItem = localStorage.setItem;
 (window as any)._origSetItem = origSetItem;
 
 localStorage.setItem = function (key, value) {
-  origSetItem.call(localStorage, key, value);
+  try {
+    origSetItem.call(localStorage, key, value);
+  } catch (e) {}
+
   const syncKeys = [
     'admin_console_link',
     'custom_projects',
@@ -21,18 +24,19 @@ localStorage.setItem = function (key, value) {
   if (syncKeys.includes(key)) {
     let parsedValue = value;
     try {
-      if (value && (value.startsWith('[') || value.startsWith('{'))) {
+      if (typeof value === 'string' && (value.startsWith('[') || value.startsWith('{'))) {
         parsedValue = JSON.parse(value);
       }
-    } catch (e) {}
-
-    fetch('/api/configs', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ [key]: parsedValue })
-    }).catch(err => console.error('Failed to sync configs to server:', err));
+      fetch('/api/configs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ [key]: parsedValue })
+      }).catch(err => console.error('Failed to sync configs to server:', err));
+    } catch (e) {
+      console.warn('Config serialization sync notice:', e?.message || e);
+    }
   }
 };
 

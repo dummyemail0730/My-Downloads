@@ -3548,11 +3548,13 @@ export default function App() {
   
                 {/* Content Area */}
                 <main className="flex-1 flex flex-col bg-neutral-950 overflow-hidden">
-                  <div className="p-4 md:p-6 border-b border-neutral-900 flex items-center justify-between bg-zinc-900/45 shrink-0">
-                    <h2 className="text-3xl md:text-5xl font-black uppercase tracking-wide leading-none text-white">
-                      {TABS.find(t => t.id === activeTab)?.label?.toUpperCase() || (activeTab === 'GAMES' ? 'MUSIC' : activeTab.replace('_', ' '))}
-                    </h2>
-                  </div>
+                  {!['GAMES', 'ANIME'].includes(activeTab) && (
+                    <div className="p-4 md:p-6 border-b border-neutral-900 flex items-center justify-between bg-zinc-900/45 shrink-0">
+                      <h2 className="text-3xl md:text-5xl font-black uppercase tracking-wide leading-none text-white">
+                        {TABS.find(t => t.id === activeTab)?.label?.toUpperCase() || activeTab.replace('_', ' ')}
+                      </h2>
+                    </div>
+                  )}
   
                   <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar bg-neutral-950">
                     <AnimatePresence mode="wait">
