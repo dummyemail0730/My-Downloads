@@ -73,7 +73,6 @@ export const cleanRawTitle = (rawTitle: string): { title: string; artist: string
 };
 import { getDownloadCount, incrementDownloadCount } from '../utils/downloadTracker';
 import { googleSignIn, googleSignOut, initAuth, getAccessToken, app } from '../lib/googleAuth';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { fetchDriveMusicFiles, DriveTrack, DriveFolder, isAudioFile } from '../utils/googleDriveMusic';
 
 import shadowAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
@@ -124,8 +123,8 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   }, [isAdmin]);
 
   // Google Drive Auth & Sync states
-  const [driveUser, setDriveUser] = useState<any>(null);
-  const [driveAccessToken, setDriveAccessToken] = useState<string | null>(null);
+  const [driveUser, setDriveUser] = useState<any>(getAccessToken() ? { displayName: 'Google Drive Account', email: 'Connected Account' } : null);
+  const [driveAccessToken, setDriveAccessToken] = useState<string | null>(getAccessToken());
   const [isDriveScanning, setIsDriveScanning] = useState<boolean>(false);
   const [driveScanMessage, setDriveScanMessage] = useState<string>('');
   const [scannedDriveTracks, setScannedDriveTracks] = useState<DriveTrack[]>([]);
@@ -274,28 +273,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       console.warn('Failed to load persistent library from backend:', e);
     }
 
-    // 2. Direct Firestore client fallback (for Vercel & static deployments)
-    try {
-      const db = getFirestore(app);
-      const docRef = doc(db, 'portalSettings', 'musicLibrary');
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const firestoreData = docSnap.data();
-        if (firestoreData && firestoreData.tracks && Array.isArray(firestoreData.tracks) && firestoreData.tracks.length > 0) {
-          const sanitized = sanitizeTrackList(firestoreData.tracks);
-          setMusicList(sanitized);
-          setHidePresetSamples(true);
-          try {
-            localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(sanitized));
-          } catch (e) {}
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn('Firestore direct client load notice:', e);
-    }
-
-    // 3. Try auto-scanning via Google Drive API
+    // 2. Try auto-scanning via Google Drive API
     try {
       const token = driveAccessToken || getAccessToken() || '';
       if (token) {
@@ -398,13 +376,15 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   };
 
   // Sync token with Express server for background audio proxying
-  const syncServerToken = (token: string) => {
+  const syncServerToken = async (token: string) => {
     if (!token) return;
-    fetch('/api/drive/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token })
-    }).catch(() => {});
+    try {
+      await fetch('/api/drive/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+    } catch (e) {}
   };
 
   // Stream URL calculation for active track (routed via Express backend proxy for 100% reliable stream & CORS handling)
@@ -423,7 +403,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   // Auth Initialization Listener & Auto-Sync
   useEffect(() => {
     const handleAuth = async (user: any, token: string) => {
-      setDriveUser(user);
+      setDriveUser({ displayName: user?.displayName || 'Google Drive Account', email: 'Connected Account' });
       setDriveAccessToken(token);
       if (token) {
         syncServerToken(token);
@@ -558,10 +538,13 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       if (p !== undefined) {
         p.catch(err => {
           console.warn('Playback notice:', err);
-          if (activeTrack?.isDrive || activeStreamUrl.includes('/api/drive/audio-stream')) {
-            setPlaybackErrorMsg('Google Drive token expired or login required to play this track.');
-            setAuthRequiredNotice(true);
+          if (err?.name === 'NotAllowedError' || err?.name === 'AbortError') {
+            setIsPlaying(false);
+            return;
           }
+          setIsPlaying(false);
+          setPlaybackErrorMsg('Google Drive authentication required or session expired. Please connect Google Drive to stream music.');
+          setAuthRequiredNotice(true);
         });
       }
     } else {
@@ -674,11 +657,13 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   };
 
   // Handle Play/Pause operations
-  const handlePlayToggle = (index?: number) => {
+  const handlePlayToggle = async (index?: number) => {
+    let targetTrack = activeTrack;
     if (index !== undefined) {
       const selected = filteredMusicList[index];
       if (selected && activeTrack?.id !== selected.id) {
         setCurrentTrackIndex(index);
+        targetTrack = selected;
         setIsPlaying(true);
       } else {
         setIsPlaying(prev => !prev);
@@ -686,28 +671,25 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     } else {
       setIsPlaying(prev => !prev);
     }
+
+    const token = driveAccessToken || getAccessToken();
+    if (!token && targetTrack && (targetTrack.isDrive || (targetTrack.streamUrl && targetTrack.streamUrl.includes('/api/drive/audio-stream')))) {
+      setPlaybackErrorMsg('Google Drive login required to stream music. Please authorize your Google Drive account in the popup window.');
+      setAuthRequiredNotice(true);
+      try {
+        await handleGoogleSignIn();
+      } catch (err) {
+        console.warn('Google Sign-In prompt error on play:', err);
+      }
+    }
   };
 
-  // Trigger Google Sign-In with Admin Guard
+  // Trigger Google Sign-In directly without internal passcode prompts
   const triggerGoogleSignIn = () => {
-    if (!isAdmin && !isAuthorizedAdmin) {
-      setPendingDriveAction('signin');
-      setAdminPasscodeInput('');
-      setAdminPasscodeError('');
-      setShowAdminPasscodeModal(true);
-      return;
-    }
     handleGoogleSignIn();
   };
 
   const triggerGoogleSignOut = () => {
-    if (!isAdmin && !isAuthorizedAdmin) {
-      setPendingDriveAction('signout');
-      setAdminPasscodeInput('');
-      setAdminPasscodeError('');
-      setShowAdminPasscodeModal(true);
-      return;
-    }
     handleGoogleSignOut();
   };
 
@@ -757,7 +739,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       }
       setPendingDriveAction(null);
     } else {
-      setAdminPasscodeError('Incorrect Admin Passcode. Only authorized admins can modify Google Drive account connection.');
+      setAdminPasscodeError('Incorrect Admin Passcode.');
     }
   };
 
@@ -767,17 +749,35 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       setDriveScanMessage('Connecting to Google Drive...');
       const result = await googleSignIn();
       if (result && result.accessToken) {
-        setDriveUser(result.user);
+        const sanitizedUser = {
+          displayName: 'Google Drive Account',
+          email: 'Connected Account'
+        };
+        setDriveUser(sanitizedUser);
         setDriveAccessToken(result.accessToken);
-        syncServerToken(result.accessToken);
+        
+        // Ensure server has updated token before reloading stream
+        await syncServerToken(result.accessToken);
+
         setAuthRequiredNotice(false);
         setPlaybackErrorMsg(null);
         setDriveScanMessage('Successfully authenticated with Google Drive! Resuming audio playback...');
+        
         setIsPlaying(true);
-        if (audioRef.current) {
+
+        const fId = activeTrack ? extractGoogleDriveFileId(activeTrack) : null;
+        if (audioRef.current && fId) {
+          const freshUrl = `/api/drive/audio-stream?fileId=${fId}&token=${encodeURIComponent(result.accessToken)}`;
+          audioRef.current.src = freshUrl;
+          audioRef.current.load();
+          audioRef.current.play().catch((playErr) => {
+            console.warn('Post-auth play notice:', playErr);
+          });
+        } else if (audioRef.current) {
           audioRef.current.load();
           audioRef.current.play().catch(() => {});
         }
+
         await autoScanDrive(result.accessToken);
       }
     } catch (err: any) {
@@ -899,18 +899,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       console.warn('Failed to post music library to Express backend:', e);
     }
 
-    // 2. Direct Firestore client save for Vercel & static deployments
-    try {
-      const db = getFirestore(app);
-      const docRef = doc(db, 'portalSettings', 'musicLibrary');
-      await setDoc(docRef, {
-        tracks: tracksToSave,
-        syncedAt: new Date().toISOString(),
-        totalCount: tracksToSave.length
-      }, { merge: true });
-    } catch (e) {
-      console.warn('Firestore direct client save notice:', e);
-    }
+    // Direct Firestore client save omitted - server API /api/music/library handles durable saving and local fallback
   };
 
   // Import Scanned Google Drive Tracks to Sound Deck and Firestore Database
@@ -1011,26 +1000,44 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
         preload="auto"
         onError={(e) => {
           console.warn('Audio element playback error for URL:', activeStreamUrl);
-          if (activeTrack?.isDrive || (activeStreamUrl && activeStreamUrl.includes('/api/drive/audio-stream'))) {
-            setPlaybackErrorMsg('Google Drive session expired or authentication required to play MP3.');
-            setAuthRequiredNotice(true);
-          }
+          setIsPlaying(false);
+          setPlaybackErrorMsg('Google Drive session expired or token required to stream this song. Please click below to log in.');
+          setAuthRequiredNotice(true);
         }}
       />
 
-      {/* Interactive Reconnect Google Drive Notification Banner */}
-      {(authRequiredNotice || playbackErrorMsg) && (
-        <div className="sticky top-0 z-40 bg-amber-950/95 border-b border-amber-500/50 text-amber-200 px-4 py-2.5 text-xs flex items-center justify-between gap-3 shrink-0 shadow-2xl animate-pulse">
-          <div className="flex items-center gap-2 font-mono">
-            <Key size={14} className="text-amber-400 shrink-0" />
-            <span>{playbackErrorMsg || 'Google Drive authentication required or session expired.'}</span>
+      {/* Interactive Authentication Alert Banner */}
+      {authRequiredNotice && (
+        <div className="mx-2 mt-2 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-purple-950/95 via-neutral-900 to-indigo-950/95 border-2 border-purple-500/80 shadow-[0_0_25px_rgba(168,85,247,0.5)] flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in duration-300 relative z-40">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-900/80 border border-purple-400/50 flex items-center justify-center shrink-0 text-purple-300 shadow-inner">
+              <Key size={18} className="animate-pulse" />
+            </div>
+            <div>
+              <h4 className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-1.5 font-mono">
+                <span>Google Drive Authentication Required</span>
+              </h4>
+              <p className="text-[11px] text-purple-200/90 font-mono mt-0.5 leading-snug">
+                {playbackErrorMsg || 'Please click the button to log in with your Google Drive account and stream audio with sound.'}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={handleGoogleSignIn}
-            className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-3 py-1 rounded text-xs flex items-center gap-1.5 shrink-0 transition-all shadow-md active:scale-95 cursor-pointer font-mono uppercase"
-          >
-            <Key size={12} /> Connect Google Drive
-          </button>
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+            <button
+              onClick={handleGoogleSignIn}
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-mono font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-purple-950/60 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95 w-full sm:w-auto"
+            >
+              <LogIn size={14} />
+              <span>CLICK TO LOG IN WITH GOOGLE</span>
+            </button>
+            <button
+              onClick={() => setAuthRequiredNotice(false)}
+              className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800/80 rounded-lg transition-colors cursor-pointer shrink-0"
+              title="Dismiss notice"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -1080,13 +1087,26 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                 <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-900/20 text-purple-400 border border-purple-800/20 uppercase tracking-[0.05em]">
                   {activeTrack?.quality || 'FLAC [LOSSLESS]'}
                 </span>
-                <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-950/40 text-cyan-300 border border-cyan-800/30 uppercase tracking-wider flex items-center gap-1">
-                  <HardDrive size={9} /> GOOGLE DRIVE
-                </span>
-                <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider flex items-center gap-1 shadow-sm">
-                  <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                  GOOGLE DRIVE SYNCED
-                </span>
+
+                {driveUser ? (
+                  <button
+                    onClick={triggerGoogleSignOut}
+                    className="text-[8px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/50 uppercase tracking-wider flex items-center gap-1 shadow-sm transition-all cursor-pointer"
+                    title="Click to sign out from Google Drive"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>GOOGLE DRIVE CONNECTED</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleGoogleSignIn}
+                    className="text-[9px] font-mono font-extrabold px-2.5 py-0.5 rounded bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white border border-purple-400/60 uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-purple-950/50 transition-all cursor-pointer hover:scale-105 active:scale-95 animate-pulse"
+                    title="Click to sign in with Google Drive to play music"
+                  >
+                    <LogIn size={10} />
+                    <span>LOG IN TO GOOGLE DRIVE</span>
+                  </button>
+                )}
               </div>
 
               {/* Search Bar & Randomize Button moved to Top Player Header */}

@@ -4,7 +4,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { initializeApp as initClientApp, getApps as getClientApps, getApp as getClientApp } from "firebase/app";
-import { getFirestore as getClientFirestore, doc as getClientDoc, getDoc as getClientGetDoc, setDoc as getClientSetDoc } from "firebase/firestore";
+import { getFirestore as getClientFirestore, doc as getClientDoc, getDoc as getClientGetDoc, setDoc as getClientSetDoc, terminate as terminateFirestore } from "firebase/firestore";
 import fs from "fs";
 
 async function startServer() {
@@ -420,8 +420,50 @@ async function startServer() {
   }
 
   let dbClient: any = null;
+  const quotaFlagPath = path.join(process.cwd(), ".firestore_quota_exceeded");
+  let isFirestoreQuotaExceeded = false;
+
+  try {
+    if (fs.existsSync(quotaFlagPath)) {
+      const rawFlag = fs.readFileSync(quotaFlagPath, "utf-8");
+      const dataFlag = JSON.parse(rawFlag);
+      if (dataFlag && dataFlag.timestamp && (Date.now() - dataFlag.timestamp < 24 * 60 * 60 * 1000)) {
+        isFirestoreQuotaExceeded = true;
+        console.log("[FIREBASE] Persistent quota limit flag detected on boot. Seamlessly utilizing local file storage.");
+      }
+    }
+  } catch (_) {}
+
+  function handleFirestoreError(err: any) {
+    if (
+      err?.message?.includes("Quota limit exceeded") ||
+      err?.message?.includes("RESOURCE_EXHAUSTED") ||
+      err?.message?.includes("Quota exceeded") ||
+      err?.code === "resource-exhausted" ||
+      err?.code === 8
+    ) {
+      if (!isFirestoreQuotaExceeded) {
+        isFirestoreQuotaExceeded = true;
+        try {
+          fs.writeFileSync(
+            quotaFlagPath,
+            JSON.stringify({ timestamp: Date.now(), reason: err?.message || "RESOURCE_EXHAUSTED" }),
+            "utf-8"
+          );
+        } catch (_) {}
+        if (dbClient) {
+          try {
+            terminateFirestore(dbClient).catch(() => {});
+          } catch (_) {}
+          dbClient = null;
+        }
+        console.warn("[FIREBASE] Daily write quota exceeded. Terminated Firestore client instance and seamlessly switched persistence strictly to local file storage.");
+      }
+    }
+  }
 
   function getFirebaseDB() {
+    if (isFirestoreQuotaExceeded) return null;
     if (dbClient) return dbClient;
     try {
       const configPath = path.join(process.cwd(), "firebase-applet-config.json");
@@ -562,17 +604,20 @@ async function startServer() {
     if (firebaseDb) {
       try {
         const docRef = getClientDoc(firebaseDb, "portalSettings", "globalConfigs");
-        const docSnap = await getClientGetDoc(docRef);
-        if (docSnap.exists()) {
+        // Race Firestore fetch with a strict 800ms timeout to avoid hanging on quota limits or network slowdowns
+        const docSnapPromise = getClientGetDoc(docRef);
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 800));
+        const docSnap: any = await Promise.race([docSnapPromise, timeoutPromise]);
+
+        if (docSnap && typeof docSnap.exists === 'function' && docSnap.exists()) {
           const data = docSnap.data();
           mergedConfig = { ...currentLocal, ...data };
-        } else {
-          console.log("[FIREBASE] No existing config found in Firestore. Seeding database with current local configurations...");
-          await getClientSetDoc(docRef, currentLocal);
-          mergedConfig = currentLocal;
         }
-      } catch (err) {
-        console.warn("[FIREBASE] Failed to fetch config from Firestore, using local fallback:", err);
+      } catch (err: any) {
+        handleFirestoreError(err);
+        if (!isFirestoreQuotaExceeded) {
+          console.warn("[FIREBASE] Failed to fetch config from Firestore, using local fallback:", err?.message || err);
+        }
         mergedConfig = currentLocal;
       }
     }
@@ -584,8 +629,8 @@ async function startServer() {
     const rawClean = JSON.stringify(sanitized);
     const rawIncoming = JSON.stringify(mergedConfig);
     if (rawClean !== rawIncoming) {
-      console.log("[SANITIZER] Config cleanup triggered. Writing sanitized config back to Firestore & local storage.");
-      await saveDurableConfig(sanitized);
+      console.log("[SANITIZER] Config cleanup triggered. Writing sanitized config back to local storage & background Firestore.");
+      saveDurableConfig(sanitized).catch(() => {});
     }
 
     return sanitized;
@@ -594,28 +639,35 @@ async function startServer() {
   async function saveDurableConfig(newConfig: any) {
     const firebaseDb = getFirebaseDB();
     const localPath = path.join(process.cwd(), "public/custom_configs.json");
-    const { promises: fsPromises } = await import("fs");
 
     // Pre-sanitize any incoming saves
     const sanitizedConfig = sanitizeConfig(newConfig);
 
     try {
-      await fsPromises.writeFile(localPath, JSON.stringify(sanitizedConfig, null, 2), "utf-8");
+      fs.writeFileSync(localPath, JSON.stringify(sanitizedConfig, null, 2), "utf-8");
     } catch (err) {
       console.warn("[FIREBASE] Failed to save config to local fallback file:", err);
     }
 
-    if (!firebaseDb) {
+    if (!firebaseDb || isFirestoreQuotaExceeded) {
       return;
     }
 
-    try {
-      const docRef = getClientDoc(firebaseDb, "portalSettings", "globalConfigs");
-      await getClientSetDoc(docRef, sanitizedConfig);
+    // Non-blocking background Firestore save with 1s timeout race
+    const docRef = getClientDoc(firebaseDb, "portalSettings", "globalConfigs");
+    const writePromise = getClientSetDoc(docRef, sanitizedConfig).catch((err: any) => {
+      handleFirestoreError(err);
+      if (!isFirestoreQuotaExceeded) {
+        console.warn("[FIREBASE] Firestore write notice (quota or network):", err?.message || err);
+      }
+    });
+
+    Promise.race([
+      writePromise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore write timeout")), 1000))
+    ]).then(() => {
       console.log("[FIREBASE] Config updated in Firestore durably and sanitized perfectly.");
-    } catch (err) {
-      console.error("[FIREBASE] Failed to save config to Firestore:", err);
-    }
+    }).catch(() => {});
   }
 
   // Helper to persist generated passcodes
@@ -639,7 +691,7 @@ async function startServer() {
       });
 
       if (updated) {
-        await saveDurableConfig(config);
+        saveDurableConfig(config).catch(() => {});
       }
     } catch (err) {
       console.warn("Failed to persist passcodes:", err);
@@ -837,18 +889,21 @@ async function startServer() {
       normalizedMsg.includes("key");
 
     const isPasscodeRequest = !isNegativeOrInquiryAboutPasswords && (
-      (hasCorePasscodeTerms && hasRequestKeywords) ||
+      (hasCorePasscodeTerms && (hasRequestKeywords || normalizedMsg.length < 30)) ||
+      (hasRequestKeywords && (normalizedMsg.includes("portal") || normalizedMsg.includes("pumasok") || normalizedMsg.includes("buksan"))) ||
+      hasCorePasscodeTerms ||
       normalizedMsg === "passcode" || 
       normalizedMsg === "password" ||
       normalizedMsg === "code" ||
       normalizedMsg === "key" ||
-      normalizedMsg === "hingi ng passcode" ||
-      normalizedMsg === "hingi password" ||
-      normalizedMsg === "give me the password" ||
-      normalizedMsg === "what is the password" ||
-      normalizedMsg === "get code" ||
-      normalizedMsg === "passcode please" ||
-      normalizedMsg === "password please"
+      normalizedMsg.includes("hingi") ||
+      normalizedMsg.includes("passcode") ||
+      normalizedMsg.includes("password") ||
+      normalizedMsg.includes("give me the password") ||
+      normalizedMsg.includes("what is the password") ||
+      normalizedMsg.includes("get code") ||
+      normalizedMsg.includes("passcode please") ||
+      normalizedMsg.includes("password please")
     );
 
     const isAnongMeron = normalizedMsg.includes("anong meron") || normalizedMsg.includes("anong mayroon") || normalizedMsg.includes("what is this") || normalizedMsg.includes("what do you do");
@@ -918,11 +973,11 @@ async function startServer() {
       "mag-book", "reserve", "reservation", "slot", "pabook", "sched", "calendar", "kailan ka pwede"
     ].some(keyword => normalizedMsg.includes(keyword));
 
-    if (!isBoss && (isSimpleGreeting || isPasscodeRequest || isAnongMeron || isDownloadRequest || isServiceOrNonServiceCheck || isNoHelpCheck || isConfusedCheck || isAppointmentFastPathCheck)) {
+    if (isSimpleGreeting || isPasscodeRequest || isAnongMeron || isDownloadRequest || isServiceOrNonServiceCheck || isNoHelpCheck || isConfusedCheck || isAppointmentFastPathCheck) {
       console.log("[FAST-PATH] Hit! Serving instant offline brain response for: " + message);
       const fallback = shadowOfflineBrain(message, isBoss);
       if (fallback.generatedPasscodes && fallback.generatedPasscodes.length > 0) {
-        await savePasscodesToConfig(fallback.generatedPasscodes);
+        savePasscodesToConfig(fallback.generatedPasscodes).catch(() => {});
       }
       return res.json(fallback);
     }
@@ -933,7 +988,7 @@ async function startServer() {
         console.warn("GEMINI_API_KEY is not defined in process.env. Running offline brain fallback.");
         const fallback = shadowOfflineBrain(message, isBoss);
         if (fallback.generatedPasscodes && fallback.generatedPasscodes.length > 0) {
-          await savePasscodesToConfig(fallback.generatedPasscodes);
+          savePasscodesToConfig(fallback.generatedPasscodes).catch(() => {});
         }
         return res.json(fallback);
       }
@@ -1114,21 +1169,16 @@ async function startServer() {
         parts: [{ text: message }]
       });
 
-      // Helper function to call the model with a strict timeout using AbortController
-      async function callModelWithTimeout(modelName: string, timeoutMs = 4000) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      // Helper function to call the model with a strict 1500ms timeout via Promise.race
+      async function callModelWithTimeout(modelName: string, timeoutMs = 1500) {
+        let timer: any;
+        const timeoutPromise = new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("MODEL_TIMEOUT")), timeoutMs);
+        });
+
         try {
-          const ai = new GoogleGenAI({
-            apiKey: apiKey!,
-            httpOptions: {
-              headers: {
-                'User-Agent': 'aistudio-build',
-              },
-              signal: controller.signal
-            } as any
-          });
-          return await ai.models.generateContent({
+          const ai = new GoogleGenAI({ apiKey: apiKey! });
+          const apiPromise = ai.models.generateContent({
             model: modelName,
             contents: contentsList,
             config: {
@@ -1136,41 +1186,23 @@ async function startServer() {
               temperature: 0.95,
             }
           });
+          const result: any = await Promise.race([apiPromise, timeoutPromise]);
+          return result;
         } finally {
-          clearTimeout(timeoutId);
+          clearTimeout(timer);
         }
       }
 
       let response;
       let usedFallback = false;
 
-      // 1. Primary Attempt: gemini-3.1-flash-lite (Highly reactive, lightning-fast response times)
+      // Primary Attempt: gemini-2.5-flash with ultra-fast 1500ms timeout cap
       try {
-        console.log("[SYSTEM] Dispatching to primary high-speed model: gemini-3.1-flash-lite...");
-        response = await callModelWithTimeout("gemini-3.1-flash-lite", 3500);
+        console.log("[SYSTEM] Dispatching to primary high-speed model: gemini-2.5-flash...");
+        response = await callModelWithTimeout("gemini-2.5-flash", 1500);
       } catch (e: any) {
-        console.error("[SYSTEM ERROR] Primary high-speed model (gemini-3.1-flash-lite) failed or timed out:", e?.message || e);
+        console.error("[SYSTEM ERROR] Primary high-speed model failed or timed out:", e?.message || e);
         usedFallback = true;
-      }
-
-      // 2. Secondary Attempt: gemini-3.5-flash (Heavier model fallback)
-      if (!response) {
-        try {
-          console.log("[SYSTEM] Primary failed/timed out. Dispatching to secondary: gemini-3.5-flash...");
-          response = await callModelWithTimeout("gemini-3.5-flash", 3500);
-        } catch (e: any) {
-          console.error("[SYSTEM ERROR] Secondary model (gemini-3.5-flash) failed or timed out:", e?.message || e);
-        }
-      }
-
-      // 3. Tertiary Attempt: gemini-flash-latest (Older flash fallback)
-      if (!response) {
-        try {
-          console.log("[SYSTEM] Secondary failed/timed out. Dispatching to tertiary: gemini-flash-latest...");
-          response = await callModelWithTimeout("gemini-flash-latest", 3500);
-        } catch (e: any) {
-          console.error("[SYSTEM ERROR] Tertiary model (gemini-flash-latest) failed or timed out:", e?.message || e);
-        }
       }
 
       // 4. Final verification and processing
@@ -1191,7 +1223,7 @@ async function startServer() {
         }
       }
 
-      await savePasscodesToConfig(codesToSave);
+      savePasscodesToConfig(codesToSave).catch(() => {});
 
       res.json({
         text: response.text,
@@ -1199,9 +1231,9 @@ async function startServer() {
       });
     } catch (error: any) {
       console.log("[SYSTEM] Offline index channel engaged.");
-      const fallback = shadowOfflineBrain(message);
+      const fallback = shadowOfflineBrain(message, isBoss);
       if (fallback.generatedPasscodes && fallback.generatedPasscodes.length > 0) {
-        await savePasscodesToConfig(fallback.generatedPasscodes);
+        savePasscodesToConfig(fallback.generatedPasscodes).catch(() => {});
       }
       res.json(fallback);
     }
@@ -1609,16 +1641,44 @@ async function startServer() {
     return null;
   })();
 
+  const getServerDriveToken = async (): Promise<string | null> => {
+    if (serverDriveToken) return serverDriveToken;
+    try {
+      const tokenPath = path.join(process.cwd(), "shadow_gdrive_config.json");
+      if (fs.existsSync(tokenPath)) {
+        const config = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
+        if (config.accessToken) {
+          serverDriveToken = config.accessToken;
+          return serverDriveToken;
+        }
+      }
+      const firebaseDb = getFirebaseDB();
+      if (firebaseDb) {
+        const docRef = getClientDoc(firebaseDb, "portalSettings", "gdriveConfig");
+        const docSnap = await getClientGetDoc(docRef);
+        if (docSnap.exists() && docSnap.data()?.accessToken) {
+          serverDriveToken = docSnap.data().accessToken;
+          return serverDriveToken;
+        }
+      }
+    } catch (e) {}
+    return null;
+  };
+
+  let lastPersistedToken = "";
   const persistServerDriveToken = (token: string) => {
-    if (!token) return;
+    if (!token || token === lastPersistedToken) return;
+    lastPersistedToken = token;
     serverDriveToken = token;
     try {
       const tokenPath = path.join(process.cwd(), "shadow_gdrive_config.json");
       fs.writeFileSync(tokenPath, JSON.stringify({ accessToken: token, updatedAt: new Date().toISOString() }, null, 2));
       const firebaseDb = getFirebaseDB();
-      if (firebaseDb) {
+      if (firebaseDb && !isFirestoreQuotaExceeded) {
         const docRef = getClientDoc(firebaseDb, "portalSettings", "gdriveConfig");
-        getClientSetDoc(docRef, { accessToken: token, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+        getClientSetDoc(docRef, { accessToken: token, updatedAt: new Date().toISOString() }, { merge: true }).catch((err) => {
+          handleFirestoreError(err);
+        });
       }
     } catch (e) {
       console.warn("[Server Drive Token] Error persisting token:", e);
@@ -1720,12 +1780,18 @@ async function startServer() {
     return res.status(400).json({ error: "Token string required" });
   });
 
+  // API Route - Check Google Drive Auth Status
+  app.get("/api/drive/status", async (req, res) => {
+    const token = await getServerDriveToken();
+    return res.json({ authenticated: !!token });
+  });
+
   // API Route - Google Drive Audio Stream Proxy with Byte-Range support
   app.get("/api/drive/audio-stream", async (req, res) => {
     const fileId = (req.query.fileId || req.query.id) as string;
     let token = (req.query.token as string) || (req.headers.authorization || "").replace("Bearer ", "").trim();
-    if (!token && serverDriveToken) {
-      token = serverDriveToken;
+    if (!token) {
+      token = (await getServerDriveToken()) || "";
     }
 
     if (!fileId) {
@@ -1752,7 +1818,6 @@ async function startServer() {
           const contentType = gRes.headers.get("content-type") || "";
           if (gRes.status === 401 || gRes.status === 403) {
             tokenExpired = true;
-            serverDriveToken = null; // Clear stale token
             gRes = null;
           } else if (!gRes.ok || contentType.includes("html") || contentType.includes("json")) {
             gRes = null;
@@ -1796,11 +1861,28 @@ async function startServer() {
         }
       }
 
-      // 4. Fallback: try export=download with confirm parameter
+      // 4. Try export=download fallback with confirm parameter
       if (!gRes) {
         try {
           const fallbackUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
           gRes = await fetch(fallbackUrl, {
+            headers: headersToSend,
+            redirect: 'follow'
+          });
+          const contentType = gRes.headers.get("content-type") || "";
+          if (!gRes.ok || contentType.includes("html")) {
+            gRes = null;
+          }
+        } catch (e) {
+          gRes = null;
+        }
+      }
+
+      // 5. Try docs.google.com direct export URL
+      if (!gRes) {
+        try {
+          const docsUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
+          gRes = await fetch(docsUrl, {
             headers: headersToSend,
             redirect: 'follow'
           });
@@ -1836,8 +1918,21 @@ async function startServer() {
       }
 
       if (gRes.body) {
-        const { Readable } = await import("stream");
-        Readable.fromWeb(gRes.body as any).pipe(res);
+        try {
+          const { Readable } = await import("stream");
+          // @ts-ignore
+          const nodeStream = Readable.fromWeb(gRes.body);
+          nodeStream.on("error", (e: any) => {
+            console.warn("[Audio Stream Proxy] Stream error:", e?.message);
+          });
+          nodeStream.pipe(res);
+        } catch (pipeErr) {
+          console.warn("[Audio Stream Proxy] Readable.fromWeb failed, using arrayBuffer fallback");
+          const arrayBuffer = await gRes.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          res.setHeader("Content-Length", buffer.length.toString());
+          res.end(buffer);
+        }
       } else {
         res.status(404).send("Audio stream empty");
       }
@@ -1933,9 +2028,11 @@ async function startServer() {
         };
 
         const firebaseDb = getFirebaseDB();
-        if (firebaseDb) {
+        if (firebaseDb && !isFirestoreQuotaExceeded) {
           const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
-          await getClientSetDoc(docRef, payload, { merge: true }).catch(() => {});
+          await getClientSetDoc(docRef, payload, { merge: true }).catch((err) => {
+            handleFirestoreError(err);
+          });
         }
 
         const musicFilePath = path.join(process.cwd(), "shadow_music_library.json");
@@ -2007,13 +2104,16 @@ async function startServer() {
       };
 
       const firebaseDb = getFirebaseDB();
-      if (firebaseDb) {
+      if (firebaseDb && !isFirestoreQuotaExceeded) {
         try {
           const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
           await getClientSetDoc(docRef, payload, { merge: true });
           console.log(`[Music API] Saved ${tracks.length} tracks to Firestore document 'portalSettings/musicLibrary'.`);
         } catch (fsErr: any) {
-          console.warn(`[Music API] Firestore write notice (quota or network):`, fsErr?.message || fsErr);
+          handleFirestoreError(fsErr);
+          if (!isFirestoreQuotaExceeded) {
+            console.warn(`[Music API] Firestore write notice (quota or network):`, fsErr?.message || fsErr);
+          }
         }
       }
 
@@ -2033,12 +2133,15 @@ async function startServer() {
     try {
       const payload = { tracks: [], syncedAt: new Date().toISOString(), totalCount: 0 };
       const firebaseDb = getFirebaseDB();
-      if (firebaseDb) {
+      if (firebaseDb && !isFirestoreQuotaExceeded) {
         try {
           const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
           await getClientSetDoc(docRef, payload);
         } catch (fsErr: any) {
-          console.warn(`[Music API] Firestore clear notice (quota or network):`, fsErr?.message || fsErr);
+          handleFirestoreError(fsErr);
+          if (!isFirestoreQuotaExceeded) {
+            console.warn(`[Music API] Firestore clear notice (quota or network):`, fsErr?.message || fsErr);
+          }
         }
       }
 

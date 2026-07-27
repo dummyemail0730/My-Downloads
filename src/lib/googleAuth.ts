@@ -46,12 +46,16 @@ export const initAuth = (
   return onAuthStateChanged(auth, async (user: User | null) => {
     const token = getAccessToken();
     if (user && token) {
-      if (onAuthSuccess) onAuthSuccess(user, token);
+      const sanitizedUser: any = {
+        displayName: user.displayName || 'Google Drive Account',
+        email: 'Connected Account'
+      };
+      if (onAuthSuccess) onAuthSuccess(sanitizedUser, token);
     } else if (token) {
       // User has a stored access token from previous session
       const mockUser: any = {
         displayName: 'Google Drive Account',
-        email: user?.email || 'Connected'
+        email: 'Connected Account'
       };
       if (onAuthSuccess) onAuthSuccess(mockUser, token);
     } else {
@@ -71,7 +75,11 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     }
 
     setAccessToken(credential.accessToken);
-    return { user: result.user, accessToken: credential.accessToken };
+    const sanitizedUser: any = {
+      displayName: result.user?.displayName || 'Google Drive Account',
+      email: 'Connected Account'
+    };
+    return { user: sanitizedUser, accessToken: credential.accessToken };
   } catch (error: any) {
     console.error('Google Sign-in error:', error);
     throw error;

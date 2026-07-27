@@ -2069,6 +2069,10 @@ export default function App() {
                       type="button"
                       onClick={() => {
                         setChatInput(chip);
+                        setTimeout(() => {
+                          const btn = document.getElementById('chat-submit-btn-1') || document.getElementById('chat-submit-btn-2');
+                          if (btn) btn.click();
+                        }, 60);
                       }}
                       className="px-2.5 py-1 bg-[#1b1c25] hover:bg-purple-950/40 border border-[#262835] hover:border-purple-500/30 text-zinc-300 hover:text-white rounded-lg text-[10px] font-medium transition-all duration-200 cursor-pointer"
                     >
@@ -2210,11 +2214,14 @@ export default function App() {
                       }
 
                       try {
+                        const controller = new AbortController();
+                        const timer = setTimeout(() => controller.abort(), 3500);
                         const response = await fetch('/api/shadow-chat', {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json'
                           },
+                          signal: controller.signal,
                           body: JSON.stringify({ 
                             message: userMsgText,
                             isBossMode: currentBossState,
@@ -2224,6 +2231,7 @@ export default function App() {
                             }))
                           })
                         });
+                        clearTimeout(timer);
                         const data = await response.json();
                         
                         // Dynamically discover and cache chatbot-generated passwords
@@ -2655,6 +2663,7 @@ export default function App() {
                         </button>
                       </div>
                       <button
+                        id="chat-submit-btn-1"
                         type="submit"
                         disabled={chatLoading}
                         className="px-5 py-2.5 bg-[#42b783] hover:bg-[#52d399] active:scale-98 disabled:opacity-50 text-white font-bold text-xs rounded-xl tracking-wider transition-all duration-150 cursor-pointer shadow-[0_3px_10px_rgba(66,183,131,0.2)] flex items-center justify-center shrink-0 uppercase"
@@ -3047,6 +3056,10 @@ export default function App() {
               type="button"
               onClick={() => {
                 setChatInput(chip);
+                setTimeout(() => {
+                  const btn = document.getElementById('chat-submit-btn-2') || document.getElementById('chat-submit-btn-1');
+                  if (btn) btn.click();
+                }, 60);
               }}
               className={`${isFloating ? 'px-2 py-0.5 text-[9px] rounded-md' : 'px-2.5 py-1 text-[10px] rounded-lg'} bg-[#1b1c25] hover:bg-purple-950/40 border border-[#262835] hover:border-purple-500/30 text-zinc-300 hover:text-white font-medium transition-all duration-200 cursor-pointer`}
             >
@@ -3161,11 +3174,14 @@ export default function App() {
                 ));
 
               try {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 3500);
                 const response = await fetch('/api/shadow-chat', {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json'
                   },
+                  signal: controller.signal,
                   body: JSON.stringify({
                     message: userMsgText,
                     isBossMode: currentBossState,
@@ -3175,6 +3191,7 @@ export default function App() {
                     }))
                   })
                 });
+                clearTimeout(timer);
 
                 const data = await response.json();
                 const replyText = data.text || data.reply;
@@ -3238,13 +3255,45 @@ export default function App() {
                 ]);
 
               } catch (error) {
-                console.error('Chat error:', error);
+                console.error('Chat error, running instant offline brain fallback:', error);
+                
+                const norm = userMsgText.toLowerCase().trim();
+                let fallbackText = "Yo, pre! Dito lang ako. Ano ba maitutulong ko sa system o PC mo ngayon? 😎";
+                
+                const isNeg = norm.includes("why") || norm.includes("bakit") || norm.includes("dont") || norm.includes("don't") || norm.includes("wag") || norm.includes("huwag") || norm.includes("not asking") || norm.includes("complaint");
+                const hasReq = norm.includes("hingi") || norm.includes("pahingi") || norm.includes("bigyan") || norm.includes("get") || norm.includes("give") || norm.includes("generate") || norm.includes("makuha") || norm.includes("papasok") || norm.includes("access") || norm.includes("enter");
+                const hasPW = norm.includes("passcode") || norm.includes("password") || norm.includes("key") || norm.includes("code");
+                
+                const isCodeWanted = !isNeg && (
+                  (hasPW && hasReq) || norm === "passcode" || norm === "password" || norm === "code" || norm === "key" || norm.includes("hingi") || norm.includes("passcode") || norm.includes("password")
+                );
+
+                if (isCodeWanted) {
+                  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                  let code = "";
+                  for (let i = 0; i < 8; i++) {
+                    code += chars.charAt(Math.floor(Math.random() * chars.length));
+                  }
+                  fallbackText = `Eto po yung guest password ninyo para makapasok sa Portal: \`${code}\` 😎`;
+                  
+                  try {
+                    const savedRaw = localStorage.getItem('chatbot_generated_passwords');
+                    let savedList: string[] = [];
+                    if (savedRaw) savedList = JSON.parse(savedRaw);
+                    if (!savedList.includes(code)) savedList.push(code);
+                    localStorage.setItem('chatbot_generated_passwords', JSON.stringify(savedList));
+                    setAvailablePasscodes(savedList);
+                    (window as any).lastShadowCopiedText = code;
+                    localStorage.setItem('copied_passcode_buffer', code);
+                  } catch (e) {}
+                }
+
                 setChatMessages((prev) => [
                   ...prev,
                   {
-                    id: `bot-err-${Date.now()}`,
+                    id: `bot-fallback-${Date.now()}`,
                     sender: 'bot',
-                    text: 'Pasensya ka na pre, nagka-error sa gateway connection ko. Ulitin natin mamaya.',
+                    text: fallbackText,
                     timestamp: new Date()
                   }
                 ]);
@@ -3325,6 +3374,7 @@ export default function App() {
               </button>
             </div>
             <button
+              id="chat-submit-btn-2"
               type="submit"
               disabled={chatLoading}
               className={`${isFloating ? 'px-3.5 py-2 text-[10.5px] rounded-lg' : 'px-5 py-2.5 text-xs rounded-xl'} bg-[#42b783] hover:bg-[#52d399] active:scale-98 disabled:opacity-50 text-white font-bold tracking-wider transition-all duration-150 cursor-pointer shadow-[0_3px_10px_rgba(66,183,131,0.2)] flex items-center justify-center shrink-0 uppercase`}
