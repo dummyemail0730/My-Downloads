@@ -1,4 +1,4 @@
 {
-  "timestamp": 1784811123456,
-  "reason": "Free daily write units per project quota exceeded"
+  "timestamp": 1785124555000,
+  "reason": "RESOURCE_EXHAUSTED"
 }

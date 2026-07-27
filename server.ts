@@ -425,12 +425,8 @@ async function startServer() {
 
   try {
     if (fs.existsSync(quotaFlagPath)) {
-      const rawFlag = fs.readFileSync(quotaFlagPath, "utf-8");
-      const dataFlag = JSON.parse(rawFlag);
-      if (dataFlag && dataFlag.timestamp && (Date.now() - dataFlag.timestamp < 24 * 60 * 60 * 1000)) {
-        isFirestoreQuotaExceeded = true;
-        console.log("[FIREBASE] Persistent quota limit flag detected on boot. Seamlessly utilizing local file storage.");
-      }
+      isFirestoreQuotaExceeded = true;
+      console.log("[FIREBASE] Persistent quota limit flag detected on boot. Seamlessly utilizing local file storage.");
     }
   } catch (_) {}
 
