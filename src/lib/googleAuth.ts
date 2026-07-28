@@ -7,9 +7,6 @@ export const auth = getAuth(app);
 
 const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/drive.readonly');
-provider.setCustomParameters({
-  login_hint: 'adriangabionza1990@gmail.com'
-});
 
 let isSigningIn = false;
 const TOKEN_STORAGE_KEY = 'shadow_gdrive_access_token';

@@ -149,7 +149,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   const [authRequiredNotice, setAuthRequiredNotice] = useState<boolean>(false);
   const [playbackErrorMsg, setPlaybackErrorMsg] = useState<string | null>(null);
 
-  // Default initial Google Drive tracks for adriangabionza1990@gmail.com (empty - only real user Google Drive files)
+  // Default initial Google Drive tracks (empty - loaded from user Google Drive)
   const defaultSampleTracks: Track[] = [];
 
   const [musicList, setMusicList] = useState<Track[]>([]);
