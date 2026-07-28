@@ -65,27 +65,39 @@ export const initAuth = (
   });
 };
 
-export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
-  try {
-    isSigningIn = true;
-    const result = await signInWithPopup(auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-      throw new Error('Failed to retrieve Google OAuth access token');
-    }
+let activeSignInPromise: Promise<{ user: User; accessToken: string } | null> | null = null;
 
-    setAccessToken(credential.accessToken);
-    const sanitizedUser: any = {
-      displayName: result.user?.displayName || 'Google Drive Account',
-      email: 'Connected Account'
-    };
-    return { user: sanitizedUser, accessToken: credential.accessToken };
-  } catch (error: any) {
-    console.error('Google Sign-in error:', error);
-    throw error;
-  } finally {
-    isSigningIn = false;
+export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
+  if (activeSignInPromise) {
+    console.log('Google Sign-in already in progress, reusing existing popup request...');
+    return activeSignInPromise;
   }
+
+  activeSignInPromise = (async () => {
+    try {
+      isSigningIn = true;
+      const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (!credential?.accessToken) {
+        throw new Error('Failed to retrieve Google OAuth access token');
+      }
+
+      setAccessToken(credential.accessToken);
+      const sanitizedUser: any = {
+        displayName: result.user?.displayName || 'Google Drive Account',
+        email: 'Connected Account'
+      };
+      return { user: sanitizedUser, accessToken: credential.accessToken };
+    } catch (error: any) {
+      console.error('Google Sign-in error:', error);
+      throw error;
+    } finally {
+      isSigningIn = false;
+      activeSignInPromise = null;
+    }
+  })();
+
+  return activeSignInPromise;
 };
 
 export const googleSignOut = async () => {

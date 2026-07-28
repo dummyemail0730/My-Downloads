@@ -657,7 +657,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   };
 
   // Handle Play/Pause operations
-  const handlePlayToggle = async (index?: number) => {
+  const handlePlayToggle = (index?: number) => {
     let targetTrack = activeTrack;
     if (index !== undefined) {
       const selected = filteredMusicList[index];
@@ -674,13 +674,8 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
 
     const token = driveAccessToken || getAccessToken();
     if (!token && targetTrack && (targetTrack.isDrive || (targetTrack.streamUrl && targetTrack.streamUrl.includes('/api/drive/audio-stream')))) {
-      setPlaybackErrorMsg('Google Drive login required to stream music. Please authorize your Google Drive account in the popup window.');
+      setPlaybackErrorMsg('Google Drive connection required to stream this song. Please click "LOG IN TO GOOGLE DRIVE" to authenticate.');
       setAuthRequiredNotice(true);
-      try {
-        await handleGoogleSignIn();
-      } catch (err) {
-        console.warn('Google Sign-In prompt error on play:', err);
-      }
     }
   };
 
@@ -797,30 +792,10 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   // Google Drive Music Scanner
   const handleScanDriveMusic = async () => {
     setIsDriveScanning(true);
-    setDriveScanMessage('Checking music library and scanning Google Drive...');
 
-    // 1. Try server library first
-    try {
-      const res = await fetch('/api/music/library');
-      const data = await res.json();
-      if (data && data.tracks && data.tracks.length > 0) {
-        const sanitized = sanitizeTrackList(data.tracks);
-        if (sanitized.length > 0) {
-          setMusicList(sanitized);
-          setHidePresetSamples(true);
-          try {
-            localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(sanitized));
-          } catch (e) {}
-          setDriveScanMessage(`Loaded ${sanitized.length} track(s) from music library!`);
-          setIsDriveScanning(false);
-          setTimeout(() => setDriveScanMessage(''), 4000);
-          return;
-        }
-      }
-    } catch (e) {}
-
-    // 2. Try scanning Google Drive with existing token or prompt sign-in
     let token = driveAccessToken || getAccessToken();
+
+    // 1. If not logged in, prompt Google Sign-In IMMEDIATELY during click event to satisfy browser popup security policies
     if (!token) {
       try {
         setDriveScanMessage('Connecting to Google Drive...');
@@ -842,6 +817,28 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       setIsDriveScanning(false);
       return;
     }
+
+    setDriveScanMessage('Checking music library and scanning Google Drive...');
+
+    // 2. Try server library first if token is active
+    try {
+      const res = await fetch('/api/music/library');
+      const data = await res.json();
+      if (data && data.tracks && data.tracks.length > 0) {
+        const sanitized = sanitizeTrackList(data.tracks);
+        if (sanitized.length > 0) {
+          setMusicList(sanitized);
+          setHidePresetSamples(true);
+          try {
+            localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(sanitized));
+          } catch (e) {}
+          setDriveScanMessage(`Loaded ${sanitized.length} track(s) from music library!`);
+          setIsDriveScanning(false);
+          setTimeout(() => setDriveScanMessage(''), 4000);
+          return;
+        }
+      }
+    } catch (e) {}
 
     try {
       setDriveScanMessage('Scanning Google Drive for audio files...');

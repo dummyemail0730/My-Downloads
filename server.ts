@@ -217,24 +217,33 @@ async function startServer() {
       };
     }
 
-    // Specific PC condition symptoms mapping to our services
-    const servicesKeywords = [
-      "sira", "broken", "pc won't", "boot", "black screen", "blue screen", "bsod", "slow", "lag", "hang", 
-      "overheat", "overheating", "init", "mainit", "mabilis uminit", "cpu temp", "gpu temp", "crash", 
-      "virus", "malware", "bios", "mbr", "gpt", "partition", "deleted", "recover", "restoration", "lost file",
-      "clone", "cloning", "backup", "system image", "os image", "iso image", "windows image", "backup image", "windows install", "reformat", "format", "password reset", 
-      "reset password", "forgot password", "unblock", "lock screen", "assemble", "build pc", "parts", 
-      "compatibility", "compatible", "upgrade", "thermal", "pindot", "ayaw mag-open", "ayaw bumukas", 
-      "no power", "restart", "restarting"
-    ];
-
-    // Out of scope requests
+    // Out of scope requests / Hardware problems (Hardware repair, physical damage, shutting down / namamatay, power failures)
     const nonServiceKeywords = [
+      "namamatay", "mamatay", "namamatay-matay", "biglang namamatay", "bigla namamatay", 
+      "namamatay pc", "namamatay computer", "namamatay ang pc", "namamatay ang computer",
+      "shuts down", "shutting down", "turns off", "turning off", "power off", "no power", "walang power", 
+      "ayaw mag-power", "ayaw mag-sindi", "ayaw sumindi", "nag-shutdown", "nagso-shutdown", "nag-sut down",
+      "power supply", "psu", "hardware", "hardware problem", "hardware issue", "physical", "physical repair",
+      "motherboard", "ram stick", "ram slot", "gpu physical", "video card physical", "hardware repair",
+      "thermal", "pasting", "repasting", "thermal paste", "overheat", "overheating", "heatsink", "init", "mainit", "mabilis uminit",
+      "fan noise", "beep", "beep code", "sira ang fan", "tunog sa loob", "pundido",
       "printer", "scanner", "photocopy", "xerox", "copier", "ink", "iphone", "android", "samsung", 
       "phone screen", "mobile", "cellphone", "ipad", "tablet", "water damage", "nabasa", "mabasa",
       "hinge", "basag na screen", "crack na casing", "dent", "dent repair", "soldering", "reball",
-      "motherboard short", "macbook battery", "macbook display", "ps5", "xbox", "nintendo", "switch", 
-      "console", "lens", "joystick"
+      "motherboard short", "macbook battery", "macbook display", "ps4", "ps5", "xbox", "nintendo", "switch", 
+      "console", "lens", "joystick", "television", "tv repair"
+    ];
+
+    const servicesKeywords = [
+      "sira", "broken", "pc won't", "boot", "black screen", "blue screen", "bsod", "slow", "lag", "hang", 
+      "crash", "virus", "malware", "bios", "mbr", "gpt", "partition", "deleted", "recover", "restoration", "lost file",
+      "clone", "cloning", "backup", "system image", "os image", "iso image", "windows image", "backup image", 
+      "windows install", "reformat", "format", "password reset", "password removal", "reset password", 
+      "forgot password", "unblock", "lock screen", "assemble", "build pc", 
+      "compatibility", "compatible", "upgrade", "pindot", "ayaw mag-open", "ayaw bumukas", 
+      "restart", "restarting", "photoshop", "adobe", "office", "office 365", "ms office",
+      "windows 11", "activation", "activate", "game", "games", "secure boot", "tpm",
+      "migration", "migrate", "transfer", "ssd", "hdd", "hard drive", "drive", "disk", "os transfer", "transfer os"
     ];
 
     const isNoHelpNeeded = 
@@ -276,56 +285,69 @@ async function startServer() {
 
     if (isNoHelpNeeded) {
       return {
-        text: `Sige pre, okay lang! Pero baka may napapansin ka namang kakaiba o problema sa computer mo tulad ng lag, overheating, o boot issues para ma-check natin kung pasok sa high-level diagnostics natin? 😎`,
+        text: `Sige po, walang problema! Kung sakaling magkaroon po kayo ng problema sa computer (tulad ng Blue Screen, Boot Failure, o kailangan ng Reformat, Password Removal, BIOS Update, o Software Installation), sabihan niyo lamang po ako para matulungan namin kayo! 😊`,
         generatedPasscodes: []
       };
     }
 
     if (isConfused) {
       return {
-        text: `Ayos lang 'yan, pre! Hindi mo kailangang malaman yung mga teknikal na terms na yan. Ano ba yung mismong napapansin mong nagiging sakit ng ulo o problema sa computer mo ngayon para malaman natin kung active digital services natin ang makakasolve dyan? 👊`,
+        text: `Matutulungan po namin kayo! Para malaman natin kung alin sa ating services ang kailangan, ano po ba ang problema sa inyong PC—tulad po ba ng Blue Screen, Boot Failure, Reformat, Data Recovery, Password Removal, BIOS Update, Secure Boot, MBR to GPT, o Software/Game Installation (Photoshop, Office 365, Windows 11 Activation)? 😊`,
         generatedPasscodes: []
       };
     }
 
     if (isNonServiceQuery) {
       return {
-        text: `Naku pre, pasensya na pero hindi natin siniservicuhan yung ganyang uri ng request (tulad ng screen replacement, mobile phone repairs, hinges, water damage, or game consoles). Focus tayo sa core digital configurations at expertise! 👊`,
+        text: `Pasensya na po, subalit naka-focus lamang po kami sa online software troubleshooting at hindi po namin iniaalok ang ganyang uri ng mga serbisyo. May kailangan po ba kayong tulong sa ating available computer services? 😊`,
         generatedPasscodes: []
       };
     }
 
     if (isServiceQuery) {
       let symptomReply = "";
-      if (normalized.includes("blue screen") || normalized.includes("bsod")) {
-        symptomReply = "Hala, sakit nga sa ulo nyan, pre. Silipin natin baka makuha sa driver conflict o system recovery. 👊";
-      } else if (normalized.includes("slow") || normalized.includes("lag") || normalized.includes("hang")) {
-        symptomReply = "Bumibigat ba system natin? Tingnan natin kung kailangan lang ng kaunting systems cleaning at optimization, bro. 😎";
-      } else if (normalized.includes("overheat") || normalized.includes("init") || normalized.includes("temp")) {
-        symptomReply = "Mainit ba nang mabilis? Check natin baka kailangan ng thermal repasting o silipin natin yung processes na kumakain ng resources. 🛡️";
-      } else if (normalized.includes("boot") || normalized.includes("bumukas") || normalized.includes("power") || normalized.includes("start")) {
-        symptomReply = "Ayaw ba sumindi o mag-boot nang maayos, lods? Tsek natin baka sa boot configuration o BIOS setting lang, gawan natin ng paraan! ⚡";
+      const appointmentGuide = "Gusto niyo po ba mag-set ng appointment? Maaari kayong mag-book ng slot sa ating 'Appointments' tab sa portal o sa pamamagitan ng pag-click sa appointment button dito sa chat. 😊";
+      
+      if (normalized.includes("photoshop") || normalized.includes("adobe")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng Adobe Photoshop installation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("office 365") || normalized.includes("office") || normalized.includes("ms office")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng Microsoft Office 365 Installation & Activation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("windows 11") || normalized.includes("activation") || normalized.includes("activate")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng Windows 11 Permanent Activation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("game") || normalized.includes("games")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng Game Installation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("mbr") || normalized.includes("gpt")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng MBR to GPT Conversion services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (
+        normalized.includes("clone") || normalized.includes("cloning") ||
+        normalized.includes("migration") || normalized.includes("migrate") ||
+        normalized.includes("transfer") || normalized.includes("lipat") ||
+        (normalized.includes("os") && (normalized.includes("ssd") || normalized.includes("hdd") || normalized.includes("drive") || normalized.includes("hard drive"))) ||
+        (normalized.includes("ssd") && normalized.includes("hdd"))
+      ) {
+        symptomReply = `Opo! Nag-o-offer po kami ng O.S. Migration at O.S. Cloning services (tulad ng pag-transfer ng OS mula SSD hanggang HDD o vice versa). Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("backup")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng System and Files Backup services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("format") || normalized.includes("reformat")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng Format / Reformat services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("secure boot") || normalized.includes("tpm")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng Secure Boot Issue configuration services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
       } else if (normalized.includes("password") || normalized.includes("lock")) {
-        symptomReply = "Naka-lock out ba, pre? Check natin kung paano natin ma-reset at ma-recover ng ligtas nang di nawawala yung files mo. 😇";
-      } else if (normalized.includes("virus") || normalized.includes("malware")) {
-        symptomReply = "May hinalang virus ba, pre? Silipin natin kung paano natin malilinis at mase-secure ulit yung os nyan. 🛡️";
+        symptomReply = `Opo! Nag-o-offer po kami ng Password Removal / Reset services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
       } else if (normalized.includes("recover") || normalized.includes("restoration") || normalized.includes("deleted") || normalized.includes("lost")) {
-        symptomReply = "Nawawalan ng files, bro? Check natin kung pwedeng ma-recover or restore yan, subukan nating gawan ng paraan! 😎";
-      } else if (normalized.includes("assemble") || normalized.includes("build") || normalized.includes("parts")) {
-        symptomReply = "Mag-aassemble ba or upgrade ng components? Pwede nating silipin at tsek yung hardware compatibility nyan, pre. 👊";
+        symptomReply = `Opo! Nag-o-offer po kami ng Data Recovery at File Restoration services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("bios")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng BIOS Update services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("blue screen") || normalized.includes("bsod")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng Blue Screen (BSOD) system recovery services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("boot") || normalized.includes("bumukas") || normalized.includes("power") || normalized.includes("start")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng Boot Failure recovery services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("slow") || normalized.includes("lag") || normalized.includes("hang")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng PC optimization at cleaning services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+      } else if (normalized.includes("virus") || normalized.includes("malware")) {
+        symptomReply = `Opo! Nag-o-offer po kami ng virus removal at security cleanup services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
       } else {
-        const friendlyOptions = [
-          "Check natin pre, baka magawan natin ng paraan yan! 😎",
-          "Silipin natin kung anong kailangang diskarte dyan, lods. Check natin! 👊",
-          "Hala sige pre, tsek natin baka sakaling makuha natin sa mabilisang troubleshooting.",
-          "Tingnan natin kung paano natin matutulungan yang unit mo, bro. Try natin gawan ng paraan! ⚡",
-          "Sige pre, silipin natin baka may mabilisang system diagnostics dyan."
-        ];
-        let sum = 0;
-        for (let i = 0; i < normalized.length; i++) {
-          sum += normalized.charCodeAt(i);
-        }
-        symptomReply = friendlyOptions[sum % friendlyOptions.length];
+        symptomReply = `Opo! Nag-o-offer po kami ng online computer repair service at technical support via remote access. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
       }
 
       return {
@@ -348,7 +370,7 @@ async function startServer() {
       normalized.includes("computer")
     ) {
       return {
-        text: `nagaalok kame ng online computer repair service via remote access`,
+        text: `Matutulungan po namin kayo diyan! Nag-o-offer po kami ng online computer repair service at technical support via remote access. Gusto niyo po ba mag-set ng appointment kung nais ninyong makausap o makontak nang direkta ang owner? 😊`,
         generatedPasscodes: []
       };
     }
@@ -412,9 +434,9 @@ async function startServer() {
       };
     }
 
-    // 10. Default
+    // 10. Default for unrecognized/non-computer topics
     return {
-      text: `Sige pre, nandito lang naman ako kung may kailangan kang patingnang configs, active diagnostics, o hardware setups. Ano ba ang ating mapag-uusapan ngayon? 😎`,
+      text: `Mag-focus muna tayo sa PC problem mo. Let's focus on your PC problem. May problema o kailangan po ba kayong ipatsek sa inyong computer? 😊`,
       generatedPasscodes: []
     };
   }
@@ -1105,8 +1127,18 @@ async function startServer() {
         systemInstruction = 
           "You are 'Shadow', the official representative of our portal. " +
           "You chat in a casual, highly polite, empathetic, and helpful Taglish (Filipino-English mix). " +
-          "Keep your answers extremely concise, simple, and direct. Never write long paragraphs." +
-          "\n\n" +
+          "Keep your answers extremely concise, simple, and direct. Never write long paragraphs.\n\n" +
+          "STRICT THREE-SCENARIO INTERACTION PROTOCOL (ABSOLUTE MANDATE FOR SHADOW CHATBOT):\n" +
+          "Every single user interaction MUST strictly fall into one of these 3 scenarios and follow its exact solution:\n\n" +
+          "1. SCENARIO 1 - USER SPEAKS ABOUT SOMETHING THAT IS NOT COMPUTER RELATED:\n" +
+          "If the user is asking, saying, or talking about anything that is NOT computer-related (e.g., cooking, relationships, love life, weather, sports, general non-tech talk, entertainment, general chit-chat):\n" +
+          "-> SOLUTION: Explicitly tell the user: 'Mag-focus muna tayo sa PC problem mo. Let's focus on your PC problem. May problema o kailangan po ba kayong ipatsek sa inyong computer? 😊'\n\n" +
+          "2. SCENARIO 2 - USER'S PC PROBLEM IS HARDWARE OR NOT PART OF OUR SCOPE:\n" +
+          "If the user's PC problem is HARDWARE-RELATED or OUT OF SCOPE (e.g., computer suddenly shutting down/turning off unexpectedly / namamatay mag-isa, no power / won't power on, physical hardware repair, physical parts replacement/cleaning/thermal pasting, broken screen or hinge replacement, motherboard soldering or reball, RAM/GPU/PSU physical damage, phone/tablet/printer repair, game console hardware repair, water damage):\n" +
+          "-> SOLUTION: Recognize that physical/hardware problems are NOT offered because we only offer online software troubleshooting. Explicitly tell the user: 'Pasensya na po, subalit naka-focus lamang po kami sa online software troubleshooting at hindi po namin iniaalok ang ganyang uri ng mga serbisyo. May kailangan po ba kayong tulong sa ating available computer services? 😊'\n\n" +
+          "3. SCENARIO 3 - USER'S PC PROBLEM IS SOMETHING OUR PORTAL SERVICE OFFERS:\n" +
+          "If the user's PC problem or request IS something our portal service offers (System Recovery & OS Configuration: Blue Screen / BSOD, Boot Failure, MBR to GPT Conversion, Format / Reformat, Data Recovery, System & Files Backup, O.S. Cloning, O.S. Migration, Password Removal / Reset, BIOS Update, Secure Boot / TPM; Software & Game Installation: Adobe Photoshop, Microsoft Office 365, Windows 11 Activation, Game Installation; Online Remote Computer Repair & Tech Support):\n" +
+          "-> SOLUTION: Tell the user clearly that WE OFFER THAT SERVICE, ask if they want to make an appointment, and guide them on how they can do that! Example: 'Opo! Nag-o-offer po kami ng [Service Name]. Matutulungan po namin kayo diyan! Gusto niyo po ba mag-set ng appointment? Maaari kayong mag-book ng slot sa ating 'Appointments' tab sa portal o sa pamamagitan ng pag-click sa appointment button dito sa chat. 😊'\n\n" +
           "CRITICAL USER-ADDRESSING MANDATE (ABSOLUTE HIGHEST PRIORITY OVER EVERY OTHER RULE):\n" +
           "Because the user has not authenticated by typing the secret owner passcode in the chatbox, YOU DO NOT KNOW IF THEY ARE THE OWNER. " +
           "YOU ARE ABSOLUTELY AND STRONGLY FORBIDDEN FROM CALLING OR ADDRESSING THEM AS 'boss', 'owner', 'bossing', 'creator', 'lods', 'lodi', 'amo', 'pre', 'bro', or 'chief' under any circumstances! " +
@@ -1115,19 +1147,14 @@ async function startServer() {
           "CRITICAL OWNER/ADMIN ACCESS VERIFICATION:\n" +
           "1. ONLY guide the user to type the secret owner passcode if they explicitly claim to be the owner, Adrian, developer, or creator (e.g., 'ako si Adrian', 'I am the owner', 'owner ako dito').\n" +
           "2. For general client inquiries, tech support, computer issues, BIOS lock, password resets, boot issues, diagnostic requests, and standard chat, DO NOT ask the user for any passcode or secret owner passcode. Standard visitors DO NOT need a passcode or verification to get help! Simply provide helpful, polite tech guidance or explanations directly using polite Taglish ('po' / 'opo') without asking them to verify their identity with any owner passcode.\n" +
-          "3. If the user claims to be a friend, tropa, or associate of the owner (e.g., 'tropa ko ng owner', 'friend ako ng owner', 'barkada ako ni Adrian'), reply exactly: 'Wow, tropa ka pala ng owner? Ang cool! Nice to meet you po! May maipaglilingkod po ba ako sa inyo o may kailangang icheck sa computer ninyo? 😊'\n\n" +
-          "CRITICAL SERVICES & EXPERTISE RULES:\n" +
-          "1. Do NOT EVER mention files, downloads, links, MS Office, custom operating system ISO files, tutorials, or the 'Archive' tab under any circumstances.\n" +
-          "2. Keep our attitude highly humble. If the user describes a problem we can handle (e.g. PC Diagnostics, BIOS Update, Boot Repair, Data Recovery, thermal issues, password reset), do NOT list your expertise or sound like a braggart. Simply say: 'Check natin po, baka magawan natin ng paraan yan! 😎' or similar respectful, polite, and label-free variations.\n" +
-          "3. HARDWARE REPAIR LIMITATION (CRITICAL): We DO NOT offer physical hardware repair services under any circumstances. We only offer online repair services (remote access), meaning we fix their PC online/remote, and we CANNOT be with them physically or go to their location to fix their computer. If asked about physical hardware parts repair (like fixing RAM, motherboard, GPU/graphics card, CPU, power supply/PSU, monitor/screen, fan, keyboard), say exactly this or in respectful Taglish: 'Pasensya na po, pero hindi kami nag-o-offer ng hardware repair. Tanging online repair services lamang ang iniaalok namin—ibig sabihin ay inaayos namin ang inyong PC online kaya hindi kami pwedeng makasama ninyo nang personal o pumunta dyan habang ginagawa ito. 💻⚡'\n" +
-          "4. USER CONFUSION & 'WALA' ACTIONS RULE: If the user says they do not know or do not understand what our services mean (e.g., 'dko lam yan', 'di ko alam yan', 'di ko maintindihan'), or if they say they don't need help / 'wala' or 'ok naman', do NOT leave, sign off, or tell them to just contact you when they have a problem. Instead, you MUST proactively, politely, and casually ask what specific symptom, worry, or problem they are experiencing with their computer (e.g. is it running too slow/lagging, overheating, showing a blue screen/BSOD, locked/forgot password, virus, or having file recovery/restoration needs?) so we can identify if our configurations can handle it! Always strive to identify the problem for them.\n" +
+          "3. If the user claims to be a friend, tropa, or associate of the owner (e.g., 'tropa ko ng owner', 'friend ako ng owner', 'barkada ako ni Adrian'), reply exactly: 'Wow, tropa ka pala ng owner? Ang cool! Nice to meet you po! May maipaglilingkod po ba ako sa inyo o may kailangang icheck sa computer ninyo? 😊'\n\n"
           "\n\n" +
           "CRITICAL CONVERSATIONAL RULES:\n" +
           "1. Be extremely direct and concise (keep replies under 1-2 short sentences max). Avoid any extra introduction, greetings, or unnecessary talking.\n" +
           "2. DO NOT give unsolicited troubleshooting, diagnostics, download links, or lengthy step-by-step guides unless explicitly asked. Only answer what is directly asked.\n" +
           "3. NEVER show or output a password, passcode, key, or code unless they explicitly ask for one (e.g. 'hingi ng passcode', 'give me a passcode', 'ano ang password', 'generate password'). If they do not ask for a passcode, you MUST NOT include any passcode or code in your response.\n" +
           "4. DO NOT say 'may nararamdaman kang lag' or 'nararamdaman kang overheating'. Humans do not experience, feel, or experience 'lag' or 'overheating'; only computers/devices do! Ask them if their PC/computer hangs, lags, or overheats, e.g., 'mabilis uminit, nagla-lag, o nag-o-overheat ba yung PC mo?' or 'mabilis o may problema ba sa speed o heating yung computer mo?'. Always refer to the PC/computer or device when discussing lag, slow performance, or overheating. NEVER say 'may nararamdaman kang lag' or 'nararamdaman kang overheating' since a human cannot experience lag or overheating.\n" +
-          "5. ABSOLUTE FORBIDDEN WORDS: NEVER mention or use the words 'update', 'updates', 'system updates', 'system log', or 'logs' in the non-boss chat response. These are strictly forbidden topics of conversation for guests.\n" +
+          "5. ABSOLUTE FORBIDDEN WORDS: NEVER mention 'system logs', 'logs', or 'system updates' in the non-boss chat response (mentioning 'BIOS Update' as a service we offer is allowed).\n" +
           "\n\n" +
           "PASSWORD GENERATOR CORES:\n" +
           "IF AND ONLY IF THEY EXPLICITLY ask to generate/get a password, passcode, key, or similar security code:\n" +
@@ -1192,10 +1219,10 @@ async function startServer() {
       let response;
       let usedFallback = false;
 
-      // Primary Attempt: gemini-2.5-flash with ultra-fast 1500ms timeout cap
+      // Primary Attempt: gemini-2.5-flash with high-speed response
       try {
         console.log("[SYSTEM] Dispatching to primary high-speed model: gemini-2.5-flash...");
-        response = await callModelWithTimeout("gemini-2.5-flash", 1500);
+        response = await callModelWithTimeout("gemini-2.5-flash", 8000);
       } catch (e: any) {
         console.error("[SYSTEM ERROR] Primary high-speed model failed or timed out:", e?.message || e);
         usedFallback = true;

@@ -2309,7 +2309,7 @@ export default function App() {
                         
                         // Run identical offline responder fallback
                         const norm = userMsgText.toLowerCase().trim();
-                        let replyText = "Yo chong, chill muna tayo dito. Ano ba maitutulong ko sa system mo ngayon? Sabihin mo lang sa akin, pre! 😎";
+                        let replyText = "Mag-focus muna tayo sa PC problem mo. Let's focus on your PC problem. May problema o kailangan po ba kayong ipatsek sa inyong computer? 😊";
                         
                         const isNeg = 
                           norm.includes("why") || 
@@ -2392,6 +2392,14 @@ export default function App() {
                         }
 
                         const nonServiceKeywords = [
+                          "namamatay", "mamatay", "namamatay-matay", "biglang namamatay", "bigla namamatay", 
+                          "namamatay pc", "namamatay computer", "namamatay ang pc", "namamatay ang computer",
+                          "shuts down", "shutting down", "turns off", "turning off", "power off", "no power", "walang power", 
+                          "ayaw mag-power", "ayaw mag-sindi", "ayaw sumindi", "nag-shutdown", "nagso-shutdown", "nag-sut down",
+                          "power supply", "psu", "hardware", "hardware problem", "hardware issue", "physical", "physical repair",
+                          "motherboard", "ram stick", "ram slot", "gpu physical", "video card physical", "hardware repair",
+                          "thermal", "pasting", "repasting", "thermal paste", "overheat", "overheating", "heatsink", "init", "mainit", "mabilis uminit",
+                          "fan noise", "beep", "beep code", "sira ang fan", "tunog sa loob", "pundido",
                           "printer", "scanner", "photocopy", "xerox", "copier", "ink", "iphone", "android", "samsung", 
                           "phone screen", "mobile", "cellphone", "ipad", "tablet", "water damage", "nabasa", "mabasa",
                           "hinge", "basag na screen", "crack na casing", "dent", "dent repair", "soldering", "reball",
@@ -2400,12 +2408,12 @@ export default function App() {
                         ];
                         const servicesKeywords = [
                           "sira", "broken", "pc won't", "boot", "black screen", "blue screen", "bsod", "slow", "lag", "hang", 
-                          "overheat", "overheating", "init", "mainit", "mabilis uminit", "cpu temp", "gpu temp", "crash", 
+                          "crash", 
                           "virus", "malware", "bios", "mbr", "gpt", "partition", "deleted", "recover", "restoration", "lost file",
                           "clone", "cloning", "backup", "system image", "os image", "iso image", "windows image", "backup image", "windows install", "reformat", "format", "password reset", 
-                          "reset password", "forgot password", "unblock", "lock screen", "assemble", "build pc", "parts", 
-                          "compatibility", "compatible", "upgrade", "thermal", "pindot", "ayaw mag-open", "ayaw bumukas", 
-                          "no power", "restart", "restarting"
+                          "reset password", "forgot password", "unblock", "lock screen", "assemble", "build pc", 
+                          "compatibility", "compatible", "upgrade", "pindot", "ayaw mag-open", "ayaw bumukas", 
+                          "no power", "restart", "restarting", "migration", "migrate", "transfer", "ssd", "hdd", "hard drive", "drive", "disk", "os transfer", "transfer os"
                         ];
 
                         const isNoHelpOfPC = 
@@ -2518,48 +2526,60 @@ export default function App() {
                           // code logic already handled above or can be left or handled here cleanly.
                           // Since we processed code in the original block, we'll keep the chain consistent
                         } else if (norm.includes("cpu")) {
-                          replyText = "Teka pre, computer ba ang tinutukoy mo? Kasi ang CPU, part lang siya ng computer at hindi kami nag-aayos ng physical hardware. Online repair lang ang gawa namin dito. Ano ba ang problema ng PC mo, pre? 💻⚡";
+                          replyText = "Teka, computer ba ang tinutukoy ninyo? Kasi ang CPU, part lang siya ng computer at hindi kami nag-aayos ng physical hardware. Online software troubleshooting lang ang gawa namin dito. Ano ba ang problema ng PC ninyo? 💻⚡";
                         } else if (isHardwareRepair) {
-                           replyText = "Pasensya na, pre, pero hindi kami nag-o-offer ng hardware repair. Tanging online repair services lamang ang iniaalok namin—ibig sabihin ay inaayos namin ang inyong PC online kaya hindi kami pwedeng makasama ninyo nang personal o pumunta dyan habang ginagawa ito. 💻⚡";
-                         } else if (isAppointmentInClient) {
-                          replyText = "Ayos pre! Pwedeng-pwede tayong mag-schedule ng appointment para matingnan natin ang computer mo sa aming Portal. I-click mo lang 'tong button sa ibaba para mag-set up at mag-book agad ng slot! 📅⚡";
+                          replyText = "Pasensya na po, subalit naka-focus lamang po kami sa online software troubleshooting at hindi po namin iniaalok ang ganyang uri ng mga serbisyo. May kailangan po ba kayong tulong sa ating available computer services? 😊";
+                        } else if (isAppointmentInClient) {
+                          replyText = "Pwedeng-pwede po kayong mag-schedule ng appointment para matingnan po natin ang computer ninyo. Maaari kayong mag-book ng slot sa 'Appointments' tab o sa pag-click ng appointment button sa ibaba! 📅⚡";
                           isReplyAppointment = true;
                         } else if (isNoHelpOfPC) {
-                          replyText = "Sige pre, okay lang! Pero baka may napapansin ka namang kakaiba o problema sa computer mo tulad ng lag, overheating, o boot issues para ma-check natin kung pasok sa high-level diagnostics natin? 😎";
+                          replyText = "Sige po, walang problema! Kung sakaling magkaroon po kayo ng problema sa computer (tulad ng Blue Screen, Boot Failure, o kailangan ng Reformat, Password Removal, BIOS Update, o Software Installation), sabihan niyo lamang po ako para matulungan namin kayo! 😊";
                         } else if (isConfusedInClient) {
-                          replyText = "Ayos lang 'yan, pre! Hindi mo kailangang malaman yung mga teknikal na terms na yan. Ano ba yung mismong napapansin mong nagiging sakit ng ulo o problema sa computer mo ngayon para malaman natin kung active digital services natin ang makakasolve dyan? 👊";
+                          replyText = "Matutulungan po namin kayo! Para malaman natin kung alin sa ating services ang kailangan, ano po ba ang problema sa inyong PC—tulad po ba ng Blue Screen, Boot Failure, Reformat, Data Recovery, Password Removal, BIOS Update, Secure Boot, MBR to GPT, o Software/Game Installation (Photoshop, Office 365, Windows 11 Activation)? 😊";
                         } else if (isNonServiceInClient) {
-                          replyText = "Naku pre, pasensya na pero hindi natin siniservicuhan yung ganyang uri ng request (tulad ng screen replacement, mobile phone repairs, hinges, water damage, or game consoles). Focus tayo sa core digital configurations at expertise natin! 👊";
+                          replyText = "Pasensya na po, subalit naka-focus lamang po kami sa online software troubleshooting at hindi po namin iniaalok ang ganyang uri ng mga serbisyo. May kailangan po ba kayong tulong sa ating available computer services? 😊";
                         } else if (isServiceInClient) {
-                          if (norm.includes("blue screen") || norm.includes("bsod")) {
-                            replyText = "Hala, sakit nga sa ulo nyan, pre. Silipin natin baka makuha sa driver conflict o system recovery. 👊";
-                          } else if (norm.includes("slow") || norm.includes("lag") || norm.includes("hang")) {
-                            replyText = "Bumibigat ba system natin? Tingnan natin kung kailangan lang ng kaunting systems cleaning at optimization, bro. 😎";
-                          } else if (norm.includes("overheat") || norm.includes("init") || norm.includes("temp")) {
-                            replyText = "Mainit ba nang mabilis? Check natin baka kailangan ng thermal repasting o silipin natin yung processes na kumakain ng resources. 🛡️";
-                          } else if (norm.includes("boot") || norm.includes("bumukas") || norm.includes("power") || norm.includes("start")) {
-                            replyText = "Ayaw ba sumindi o mag-boot nang maayos, lods? Tsek natin baka sa boot configuration o BIOS setting lang, gawan natin ng paraan! ⚡";
+                          const appointmentGuide = "Gusto niyo po ba mag-set ng appointment? Maaari kayong mag-book ng slot sa ating 'Appointments' tab sa portal o sa pamamagitan ng pag-click sa appointment button dito sa chat. 😊";
+                          if (norm.includes("photoshop") || norm.includes("adobe")) {
+                            replyText = `Opo! Nag-o-offer po kami ng Adobe Photoshop installation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("office 365") || norm.includes("office") || norm.includes("ms office")) {
+                            replyText = `Opo! Nag-o-offer po kami ng Microsoft Office 365 Installation & Activation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("windows 11") || norm.includes("activation") || norm.includes("activate")) {
+                            replyText = `Opo! Nag-o-offer po kami ng Windows 11 Permanent Activation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("game") || norm.includes("games")) {
+                            replyText = `Opo! Nag-o-offer po kami ng Game Installation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("mbr") || norm.includes("gpt")) {
+                            replyText = `Opo! Nag-o-offer po kami ng MBR to GPT Conversion services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (
+                            norm.includes("clone") || norm.includes("cloning") ||
+                            norm.includes("migration") || norm.includes("migrate") ||
+                            norm.includes("transfer") || norm.includes("lipat") ||
+                            (norm.includes("os") && (norm.includes("ssd") || norm.includes("hdd") || norm.includes("drive") || norm.includes("hard drive"))) ||
+                            (norm.includes("ssd") && norm.includes("hdd"))
+                          ) {
+                            replyText = `Opo! Nag-o-offer po kami ng O.S. Migration at O.S. Cloning services (tulad ng pag-transfer ng OS mula SSD hanggang HDD o vice versa). Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("backup")) {
+                            replyText = `Opo! Nag-o-offer po kami ng System and Files Backup services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("format") || norm.includes("reformat")) {
+                            replyText = `Opo! Nag-o-offer po kami ng Format / Reformat services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("secure boot") || norm.includes("tpm")) {
+                            replyText = `Opo! Nag-o-offer po kami ng Secure Boot Issue configuration services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
                           } else if (norm.includes("password") || norm.includes("lock")) {
-                            replyText = "Naka-lock out ba, pre? Check natin kung paano natin ma-reset at ma-recover ng ligtas nang di nawawala yung files mo. 😇";
-                          } else if (norm.includes("virus") || norm.includes("malware")) {
-                            replyText = "May hinalang virus ba, pre? Silipin natin kung paano natin malilinis at mase-secure ulit yung os nyan. 🛡️";
+                            replyText = `Opo! Nag-o-offer po kami ng Password Removal / Reset services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
                           } else if (norm.includes("recover") || norm.includes("restoration") || norm.includes("deleted") || norm.includes("lost")) {
-                            replyText = "Nawawalan ng files, bro? Check natin kung pwedeng ma-recover or restore yan, subukan nating gawan ng paraan! 😎";
-                          } else if (norm.includes("assemble") || norm.includes("build") || norm.includes("parts")) {
-                            replyText = "Mag-aassemble ba or upgrade ng components? Pwede nating silipin at tsek yung hardware compatibility nyan, pre. 👊";
+                            replyText = `Opo! Nag-o-offer po kami ng Data Recovery at File Restoration services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("bios")) {
+                            replyText = `Opo! Nag-o-offer po kami ng BIOS Update services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("blue screen") || norm.includes("bsod")) {
+                            replyText = `Opo! Nag-o-offer po kami ng Blue Screen (BSOD) system recovery services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("boot") || norm.includes("bumukas") || norm.includes("power") || norm.includes("start")) {
+                            replyText = `Opo! Nag-o-offer po kami ng Boot Failure recovery services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("slow") || norm.includes("lag") || norm.includes("hang")) {
+                            replyText = `Opo! Nag-o-offer po kami ng PC optimization at cleaning services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
+                          } else if (norm.includes("virus") || norm.includes("malware")) {
+                            replyText = `Opo! Nag-o-offer po kami ng virus removal at security cleanup services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
                           } else {
-                            const friendlyOptions = [
-                              "Check natin pre, baka magawan natin ng paraan yan! 😎",
-                              "Silipin natin kung anong kailangang diskarte dyan, lods. Check natin! 👊",
-                              "Hala sige pre, tsek natin baka sakaling makuha natin sa mabilisang troubleshooting.",
-                              "Tingnan natin kung paano natin matutulungan yang unit mo, bro. Try natin gawan ng paraan! ⚡",
-                              "Sige pre, silipin natin baka may mabilisang system diagnostics dyan."
-                            ];
-                            let sum = 0;
-                            for (let i = 0; i < norm.length; i++) {
-                              sum += norm.charCodeAt(i);
-                            }
-                            replyText = friendlyOptions[sum % friendlyOptions.length];
+                            replyText = `Opo! Nag-o-offer po kami ng online computer repair service at technical support via remote access. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
                           }
                         } else if (
                           norm.includes("anong meron") ||
@@ -2573,7 +2593,7 @@ export default function App() {
                           norm.includes("repair") ||
                           norm.includes("computer")
                         ) {
-                          replyText = "Tumutulong kami sa system configurations, PC repairs, tsaka general diagnostics, pre! Check natin baka magawan natin ng paraan sa system mo. ⚡";
+                          replyText = "Matutulungan po namin kayo diyan! Nag-o-offer po kami ng online computer repair service at technical support via remote access. Gusto niyo po ba mag-set ng appointment kung nais ninyong makausap o makontak nang direkta ang owner? 😊";
                         } else if (
                           norm.includes("sino ka") ||
                           norm.includes("sino si shadow") ||
