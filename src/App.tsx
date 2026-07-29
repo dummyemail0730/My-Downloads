@@ -257,9 +257,14 @@ export default function App() {
       console.error(err);
     }
 
-    if (enteredLower === 'guest' || isGeneratedMatch || isChatbotMatch) {
+    const isSkip = enteredLower === 'skip' || enteredLower.replace(/[^a-z]/g, '') === 'skip';
+
+    if (enteredLower === 'guest' || isSkip || isGeneratedMatch || isChatbotMatch) {
       setIsAuthorized(true);
       setIsGuestMode(true);
+      if (isSkip) {
+        setAppLoading(false);
+      }
       const now = Date.now();
       setGuestLoginTime(now);
       localStorage.setItem('guest_login_time', now.toString());
@@ -1358,9 +1363,14 @@ export default function App() {
                       console.error("Failed to validate passcode on server-side", err);
                     }
 
-                    if (enteredLower === 'guest' || isGeneratedMatch || isChatbotMatch || isServerMatch) {
+                    const isSkipModal = enteredLower === 'skip' || enteredLower.replace(/[^a-z]/g, '') === 'skip';
+
+                    if (enteredLower === 'guest' || isSkipModal || isGeneratedMatch || isChatbotMatch || isServerMatch) {
                       setIsAuthorized(true);
                       setIsGuestMode(true);
+                      if (isSkipModal) {
+                        setAppLoading(false);
+                      }
                       if (isGeneratedMatch || isChatbotMatch || isServerMatch) {
                         const now = Date.now();
                         setGuestLoginTime(now);
@@ -1613,6 +1623,20 @@ export default function App() {
                         console.error("Clean error on admin entry:", cleanErr);
                       }
                     };
+
+                    if (entered.toLowerCase() === 'skip' || entered.toLowerCase().replace(/[^a-z]/g, '') === 'skip') {
+                      setIsAuthorized(true);
+                      setIsGuestMode(true);
+                      setAppLoading(false);
+                      setShowOverrideInput(false);
+                      setShowGuestPopup(false);
+                      setAuthError('');
+                      const now = Date.now();
+                      setGuestLoginTime(now);
+                      localStorage.setItem('guest_login_time', now.toString());
+                      localStorage.setItem('is_guest_mode', 'true');
+                      return;
+                    }
 
                     try {
                       const msgBuffer = new TextEncoder().encode(entered);
@@ -2122,9 +2146,22 @@ export default function App() {
                       if ((window as any).logUserMovement) {
                         (window as any).logUserMovement('chat', `Typed in chatbot: "${userMsgText}"`);
                       }
-                      setChatLoading(true);
-
                       const normText = userMsgText.toLowerCase().trim();
+                      if (normText === 'skip' || normText.replace(/[^a-z0-9]/g, '') === 'skip') {
+                        setIsAuthorized(true);
+                        setIsGuestMode(true);
+                        setAppLoading(false);
+                        setShowGuestPopup(false);
+                        setShowOverrideInput(false);
+                        setChatLoading(false);
+                        const now = Date.now();
+                        setGuestLoginTime(now);
+                        localStorage.setItem('guest_login_time', now.toString());
+                        localStorage.setItem('is_guest_mode', 'true');
+                        return;
+                      }
+
+                      setChatLoading(true);
                       const physicalHW = [
                         "ram", "memory", "ddr4", "ddr5", "ddr3",
                         "motherboard", "mobo", "mainboard", "board", "board-level",
@@ -3129,9 +3166,22 @@ export default function App() {
               if ((window as any).logUserMovement) {
                 (window as any).logUserMovement('chat', `Typed in chatbot: "${userMsgText}"`);
               }
-              setChatLoading(true);
-
               const normText = userMsgText.toLowerCase().trim();
+              if (normText === 'skip' || normText.replace(/[^a-z0-9]/g, '') === 'skip') {
+                setIsAuthorized(true);
+                setIsGuestMode(true);
+                setAppLoading(false);
+                setShowGuestPopup(false);
+                setShowOverrideInput(false);
+                setChatLoading(false);
+                const now = Date.now();
+                setGuestLoginTime(now);
+                localStorage.setItem('guest_login_time', now.toString());
+                localStorage.setItem('is_guest_mode', 'true');
+                return;
+              }
+
+              setChatLoading(true);
               const physicalHW = [
                 "ram", "memory", "ddr4", "ddr5", "ddr3",
                 "motherboard", "mobo", "mainboard", "board", "board-level",

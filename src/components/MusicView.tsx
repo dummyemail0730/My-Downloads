@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, Pause, Music, Volume2, VolumeX, Search, Trash2, Plus, 
   SkipForward, SkipBack, X, Shuffle, Link, RefreshCw, AlertCircle, Settings,
-  Edit3, Check, Sparkles, FolderSync
+  Edit3, Check, Sparkles, FolderSync, FolderPlus, Lock, Key
 } from 'lucide-react';
 import { googleSignIn, getAccessToken } from '../lib/googleAuth';
 
@@ -136,6 +136,18 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   // Audio HTML Element Ref
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // MP3 Add Password Modal State
+  const [showMp3PasswordModal, setShowMp3PasswordModal] = useState<boolean>(false);
+  const [mp3PasswordInput, setMp3PasswordInput] = useState<string>('');
+  const [mp3PasswordError, setMp3PasswordError] = useState<string>('');
+
+  // Playlist State
+  const [playlists, setPlaylists] = useState<string[]>(['All']);
+  const [activePlaylist, setActivePlaylist] = useState<string>('All');
+  const [showPlaylistModal, setShowPlaylistModal] = useState<boolean>(false);
+  const [newPlaylistName, setNewPlaylistName] = useState<string>('');
+  const [playlistMsg, setPlaylistMsg] = useState<string>('');
+
   // Music Admin Console Modal State
   const [showAdminConsole, setShowAdminConsole] = useState<boolean>(false);
   
@@ -150,6 +162,46 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [editTitle, setEditTitle] = useState<string>('');
   const [editArtist, setEditArtist] = useState<string>('');
+
+  const handleAddMp3Click = () => {
+    setMp3PasswordInput('');
+    setMp3PasswordError('');
+    setShowMp3PasswordModal(true);
+  };
+
+  const handleVerifyMp3Password = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const pwd = mp3PasswordInput.trim().toLowerCase();
+    if (!pwd) {
+      setMp3PasswordError('Please enter passcode.');
+      return;
+    }
+    if (['1234', 'shadow', 'guest', 'admin', 'passcode'].includes(pwd)) {
+      setShowMp3PasswordModal(false);
+      setShowAdminConsole(true);
+    } else {
+      setMp3PasswordError('Incorrect passcode. Please enter valid admin passcode.');
+    }
+  };
+
+  const handleCreatePlaylistSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = newPlaylistName.trim();
+    if (!trimmed) {
+      setPlaylistMsg('Please enter a playlist name.');
+      return;
+    }
+    if (playlists.some(p => p.toLowerCase() === trimmed.toLowerCase())) {
+      setPlaylistMsg('Playlist with this name already exists.');
+      return;
+    }
+    setPlaylists([...playlists, trimmed]);
+    setActivePlaylist(trimmed);
+    setNewPlaylistName('');
+    setShowPlaylistModal(false);
+    setConsoleMsg({ text: `Playlist "${trimmed}" created!`, type: 'success' });
+    setTimeout(() => setConsoleMsg(null), 3000);
+  };
 
   // Load persistent library on mount & purge any old local tracks if needed
   useEffect(() => {
@@ -606,29 +658,37 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
               </div>
             </div>
 
-            {/* PROMINENT "+ ADD MP3" PILL BUTTON INSIDE UI BOX */}
+            {/* PROMINENT "ADD MP3" PILL BUTTON INSIDE UI BOX */}
             <button
-              onClick={() => setShowAdminConsole(true)}
+              onClick={handleAddMp3Click}
               className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-full border border-purple-400/50 shadow-lg shadow-purple-950/80 flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
               title="Add MP3 or Google Drive share link"
             >
               <Plus size={16} />
-              <span className="tracking-wider uppercase font-black">+ ADD MP3</span>
+              <span className="tracking-wider uppercase font-black">ADD MP3</span>
             </button>
           </div>
 
           {/* Album Vinyl / Art Display */}
           <div className="w-full flex-1 flex flex-col items-center justify-center relative min-h-[200px] py-2">
-            <div className="relative w-44 h-44 sm:w-56 sm:h-56 rounded-full border-4 border-purple-900/40 shadow-2xl flex items-center justify-center overflow-hidden group">
+            <div className="relative w-44 h-44 sm:w-56 sm:h-56 rounded-full border-4 border-purple-900/40 shadow-2xl flex items-center justify-center overflow-hidden group bg-neutral-950">
               <motion.img
-                src={activeTrack?.image || shadowElectricity}
-                alt={activeTrack?.title || 'Album Art'}
-                className="w-full h-full object-cover"
+                src={activeTrack?.image && (activeTrack.image.startsWith('http') || activeTrack.image.startsWith('/') || activeTrack.image.startsWith('data:')) ? activeTrack.image : shadowElectricity}
+                alt=""
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = shadowElectricity;
+                }}
+                className="w-full h-full object-cover rounded-full"
                 animate={{ rotate: isPlaying ? 360 : 0 }}
                 transition={{ repeat: Infinity, duration: 12, ease: 'linear' }}
               />
-              <div className="absolute w-12 h-12 rounded-full bg-neutral-950 border-2 border-purple-500/50 flex items-center justify-center shadow-inner">
-                <div className="w-3 h-3 rounded-full bg-purple-400" />
+              {/* Vinyl Groove Rings Overlay */}
+              <div className="absolute inset-0 rounded-full border border-purple-500/20 pointer-events-none" />
+              <div className="absolute inset-4 sm:inset-6 rounded-full border border-purple-500/10 pointer-events-none" />
+              
+              {/* Center Vinyl Hole */}
+              <div className="absolute w-12 h-12 rounded-full bg-neutral-950 border-2 border-purple-500/50 flex items-center justify-center shadow-inner pointer-events-none z-10">
+                <div className="w-3.5 h-3.5 rounded-full bg-purple-400 border border-purple-200" />
               </div>
             </div>
           </div>
@@ -738,18 +798,36 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
 
         {/* RIGHT COLUMN: TRACK LIST & SEARCH */}
         <div className="lg:col-span-7 bg-neutral-900/60 border border-purple-900/30 rounded-2xl p-4 flex flex-col min-h-0 shadow-xl backdrop-blur-sm">
-          {/* Search & Sync Bar */}
-          <div className="flex items-center gap-2 mb-3 shrink-0">
-            <div className="relative flex-1">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500" />
+          {/* Search, Playlist & Sync Bar */}
+          <div className="flex items-center gap-2 mb-3 shrink-0 flex-wrap sm:flex-nowrap">
+            {/* Shorter Search Bar */}
+            <div className="relative w-36 sm:w-44 lg:w-48 shrink-0">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
               <input
                 type="text"
-                placeholder="Search by song title or singer..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-neutral-950/80 border border-neutral-800 rounded-xl text-xs text-white placeholder-neutral-500 outline-none focus:border-purple-500/60 transition-colors"
+                className="w-full pl-8 pr-2.5 py-2 bg-neutral-950/80 border border-neutral-800 rounded-xl text-xs text-white placeholder-neutral-500 outline-none focus:border-purple-500/60 transition-colors"
               />
             </div>
+
+            {/* Create Playlist Button */}
+            <button
+              onClick={() => {
+                setNewPlaylistName('');
+                setPlaylistMsg('');
+                setShowPlaylistModal(true);
+              }}
+              className="px-3 py-2 bg-gradient-to-r from-purple-900/80 to-indigo-900/80 hover:from-purple-800 hover:to-indigo-800 text-purple-200 hover:text-white border border-purple-600/40 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95 shadow-md shadow-purple-950"
+              title="Create a new playlist"
+            >
+              <FolderPlus size={14} className="text-purple-400" />
+              <span className="hidden sm:inline">Create Playlist</span>
+              <span className="sm:hidden">Playlist</span>
+            </button>
+
+            {/* Sync Drive Songs Button */}
             <button
               onClick={handleSyncGoogleDriveMusic}
               disabled={isSaving}
@@ -757,10 +835,29 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
               title="Sync songs directly from your Google Drive Music folder"
             >
               <FolderSync size={14} className="text-purple-400" />
-              <span className="hidden sm:inline">Sync Drive Songs</span>
+              <span className="hidden sm:inline">Sync Drive</span>
               <span className="sm:hidden">Sync</span>
             </button>
           </div>
+
+          {/* Playlist filter pills */}
+          {playlists.length > 1 && (
+            <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1 scrollbar-none">
+              {playlists.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setActivePlaylist(p)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    activePlaylist === p
+                      ? 'bg-purple-600 text-white border border-purple-400 shadow-sm'
+                      : 'bg-neutral-950 text-neutral-400 hover:text-neutral-200 border border-neutral-800'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Songs List */}
           <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1">
@@ -809,31 +906,6 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                           {track.artist}
                         </p>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingTrack(track);
-                          setEditTitle(track.title);
-                          setEditArtist(track.artist);
-                        }}
-                        className="p-1 text-neutral-400 hover:text-purple-300 hover:bg-purple-950/60 rounded transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
-                        title="Edit song title & artist"
-                      >
-                        <Edit3 size={12} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteTrack(track.id);
-                        }}
-                        className="p-1 text-neutral-500 hover:text-red-400 hover:bg-red-950/40 rounded transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
-                        title="Delete track"
-                      >
-                        <Trash2 size={12} />
-                      </button>
                     </div>
                   </div>
                 );
@@ -1036,6 +1108,145 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                   </button>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ADD MP3 PASSWORD POPUP MODAL */}
+      <AnimatePresence>
+        {showMp3PasswordModal && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm bg-neutral-900 border border-purple-600/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-neutral-100"
+            >
+              <div className="px-5 py-4 bg-purple-950/90 border-b border-purple-800/40 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <Lock size={18} className="text-purple-400" />
+                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-white">Security Verification</h3>
+                </div>
+                <button
+                  onClick={() => setShowMp3PasswordModal(false)}
+                  className="p-1 rounded-lg text-purple-300 hover:text-white hover:bg-purple-800/40 transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleVerifyMp3Password} className="p-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-purple-300 mb-1.5 flex items-center gap-1.5">
+                    <Key size={13} className="text-purple-400" />
+                    Enter Admin Passcode to Add MP3:
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Enter passcode..."
+                    value={mp3PasswordInput}
+                    onChange={(e) => {
+                      setMp3PasswordInput(e.target.value);
+                      setMp3PasswordError('');
+                    }}
+                    autoFocus
+                    className="w-full px-3.5 py-2.5 bg-neutral-950 border border-purple-700/50 rounded-xl text-xs text-white placeholder-neutral-500 outline-none focus:border-purple-400 transition-colors font-mono tracking-widest text-center"
+                  />
+                  {mp3PasswordError && (
+                    <p className="text-[11px] font-semibold text-red-400 mt-1.5 flex items-center gap-1">
+                      <AlertCircle size={12} />
+                      {mp3PasswordError}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowMp3PasswordModal(false)}
+                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md shadow-purple-950 flex items-center gap-1.5"
+                  >
+                    <Check size={14} />
+                    <span>Unlock & Add</span>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* CREATE PLAYLIST MODAL */}
+      <AnimatePresence>
+        {showPlaylistModal && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm bg-neutral-900 border border-purple-600/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-neutral-100"
+            >
+              <div className="px-5 py-4 bg-purple-950/90 border-b border-purple-800/40 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <FolderPlus size={18} className="text-purple-400" />
+                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-white">Create New Playlist</h3>
+                </div>
+                <button
+                  onClick={() => setShowPlaylistModal(false)}
+                  className="p-1 rounded-lg text-purple-300 hover:text-white hover:bg-purple-800/40 transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreatePlaylistSubmit} className="p-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-purple-300 mb-1.5">
+                    Playlist Name:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Synthwave Chores, Anime OST, Favorites..."
+                    value={newPlaylistName}
+                    onChange={(e) => {
+                      setNewPlaylistName(e.target.value);
+                      setPlaylistMsg('');
+                    }}
+                    autoFocus
+                    className="w-full px-3.5 py-2.5 bg-neutral-950 border border-purple-700/50 rounded-xl text-xs text-white placeholder-neutral-500 outline-none focus:border-purple-400 transition-colors"
+                  />
+                  {playlistMsg && (
+                    <p className="text-[11px] font-semibold text-red-400 mt-1.5 flex items-center gap-1">
+                      <AlertCircle size={12} />
+                      {playlistMsg}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPlaylistModal(false)}
+                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md shadow-purple-950 flex items-center gap-1.5"
+                  >
+                    <Plus size={14} />
+                    <span>Create Playlist</span>
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
