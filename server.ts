@@ -1793,6 +1793,257 @@ async function startServer() {
     }
   });
 
+  // Helper to fetch Google Drive File metadata
+  async function fetchDriveFileInfo(fileId: string, customToken?: string): Promise<{ fileId: string; name: string }> {
+    const tokenToUse = customToken || (await getServerDriveToken()) || "";
+
+    if (tokenToUse) {
+      try {
+        const apiUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType`;
+        const gRes = await fetch(apiUrl, {
+          headers: { Authorization: `Bearer ${tokenToUse}` }
+        });
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          if (gData && gData.name) {
+            return { fileId, name: gData.name.trim() };
+          }
+        }
+      } catch (e) {
+        console.warn(`[Drive v3 API File Info] Error for ${fileId}:`, e);
+      }
+    }
+
+    try {
+      const fileUrl = `https://drive.google.com/file/d/${fileId}/view`;
+      const res = await fetch(fileUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept-Language": "en-US,en;q=0.9"
+        }
+      });
+
+      if (res.ok) {
+        const html = await res.text();
+
+        // 1. Check og:title meta tag
+        const ogMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i) ||
+                        html.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:title["']/i);
+        if (ogMatch && ogMatch[1]) {
+          let title = ogMatch[1].trim();
+          if (title && !title.toLowerCase().includes("google drive")) {
+            return { fileId, name: title };
+          }
+        }
+
+        // 2. Check <title> tag: "Song Name.mp3 - Google Drive"
+        const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+        if (titleMatch && titleMatch[1]) {
+          let t = titleMatch[1].replace(/\s*-\s*Google\s*Drive\s*$/i, "").trim();
+          if (t && !t.toLowerCase().includes("google drive") && t !== "Google Drive") {
+            return { fileId, name: t };
+          }
+        }
+
+        // 3. Match JS item payloads
+        const jsMatch = html.match(new RegExp(`"${fileId}"\\s*,\\s*"([^"]+)"`, "i")) ||
+                        html.match(/"name"\s*:\s*"([^"]+\.(?:mp3|m4a|flac|wav|ogg|aac|wma|opus))"/i);
+        if (jsMatch && jsMatch[1]) {
+          return { fileId, name: jsMatch[1].trim() };
+        }
+      }
+    } catch (e) {
+      console.warn(`[Drive File Info] Error fetching info for ${fileId}:`, e);
+    }
+
+    return { fileId, name: `Audio Track ${fileId.substring(0, 6)}` };
+  }
+
+  // API Route - Get File Info for single Drive file
+  app.get("/api/drive/file-info", async (req, res) => {
+    const fileId = (req.query.fileId as string || "").trim();
+    if (!fileId) return res.status(400).json({ error: "fileId required" });
+    const tokenToUse = (req.headers.authorization || "").replace("Bearer ", "").trim() || (await getServerDriveToken()) || "";
+    const info = await fetchDriveFileInfo(fileId, tokenToUse);
+    return res.json(info);
+  });
+
+  // API Route - Direct Music Sync from Google Drive
+  app.get("/api/drive/sync-music", async (req, res) => {
+    const accessToken = (req.headers.authorization || "").replace("Bearer ", "").trim() || (req.query.accessToken as string) || (await getServerDriveToken()) || "";
+    if (accessToken) {
+      persistServerDriveToken(accessToken);
+    }
+
+    if (!accessToken) {
+      return res.status(401).json({ error: "Missing Google Drive access token. Please connect Google Drive." });
+    }
+
+    try {
+      // 1. Search for a folder named "Music" / "music" / "My Music"
+      let targetFolderId: string | null = null;
+      const findUrl = new URL("https://www.googleapis.com/drive/v3/files");
+      findUrl.searchParams.set("q", "(name = 'Music' or name = 'music' or name = 'MY MUSIC' or name = 'My Music' or name = 'Music Folder') and mimeType = 'application/vnd.google-apps.folder' and trashed = false");
+      findUrl.searchParams.set("pageSize", "5");
+      findUrl.searchParams.set("fields", "files(id, name)");
+
+      const findRes = await fetch(findUrl.toString(), {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      if (findRes.ok) {
+        const findData = await findRes.json();
+        if (findData.files && findData.files.length > 0) {
+          targetFolderId = findData.files[0].id;
+        }
+      }
+
+      // 2. Query audio files
+      let q = "trashed = false and (mimeType contains 'audio' or name contains '.mp3' or name contains '.m4a' or name contains '.flac' or name contains '.wav' or name contains '.ogg' or name contains '.aac' or name contains '.wma' or name contains '.opus')";
+      if (targetFolderId) {
+        q = `'${targetFolderId}' in parents and ${q}`;
+      }
+
+      const searchUrl = new URL("https://www.googleapis.com/drive/v3/files");
+      searchUrl.searchParams.set("q", q);
+      searchUrl.searchParams.set("pageSize", "500");
+      searchUrl.searchParams.set("fields", "files(id, name, mimeType, size)");
+
+      const searchRes = await fetch(searchUrl.toString(), {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      if (!searchRes.ok) {
+        const errText = await searchRes.text();
+        return res.status(searchRes.status).json({ error: errText });
+      }
+
+      const searchData = await searchRes.json();
+      const files = (searchData.files || []).map((f: any) => ({
+        fileId: f.id,
+        name: f.name
+      }));
+
+      return res.json({
+        folderId: targetFolderId,
+        count: files.length,
+        files
+      });
+    } catch (err: any) {
+      console.error("[Drive Sync Music] Error:", err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API Route - Google Drive Folder Scanner
+  app.get("/api/drive/scan-folder", async (req, res) => {
+    const folderId = (req.query.folderId as string || "").trim();
+    if (!folderId) {
+      return res.status(400).json({ error: "Folder ID required" });
+    }
+
+    const tokenToUse = (req.headers.authorization || "").replace("Bearer ", "").trim() || (await getServerDriveToken()) || "";
+
+    const tracksFound: Array<{ fileId: string; name: string }> = [];
+
+    // 1. Try Google Drive API v3 with OAuth Token if token exists
+    if (tokenToUse) {
+      try {
+        const q = `'${folderId}' in parents and trashed = false and (mimeType contains 'audio' or name contains '.mp3' or name contains '.m4a' or name contains '.flac' or name contains '.wav' or name contains '.ogg' or name contains '.aac' or name contains '.wma' or name contains '.opus')`;
+        const url = new URL("https://www.googleapis.com/drive/v3/files");
+        url.searchParams.set("q", q);
+        url.searchParams.set("pageSize", "500");
+        url.searchParams.set("fields", "files(id, name, mimeType, size)");
+
+        const gRes = await fetch(url.toString(), {
+          headers: { Authorization: `Bearer ${tokenToUse}` }
+        });
+
+        if (gRes.ok) {
+          const data = await gRes.json();
+          if (data.files && Array.isArray(data.files)) {
+            for (const f of data.files) {
+              tracksFound.push({ fileId: f.id, name: f.name });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[Drive Folder Scan] OAuth API query failed:", e);
+      }
+    }
+
+    // 2. Fallback: If no token or no tracks found, fetch embedded folder view for public shared folders
+    if (tracksFound.length === 0) {
+      try {
+        const publicUrls = [
+          `https://drive.google.com/embeddedfolderview?id=${folderId}`,
+          `https://drive.google.com/drive/folders/${folderId}`
+        ];
+
+        for (const pUrl of publicUrls) {
+          if (tracksFound.length > 0) break;
+
+          const pRes = await fetch(pUrl, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              "Accept-Language": "en-US,en;q=0.9"
+            }
+          });
+
+          if (pRes.ok) {
+            const html = await pRes.text();
+            
+            // Regex match file entries in public folder HTML
+            const idMatches = html.match(/\/file\/d\/([a-zA-Z0-9_-]{20,50})/g) || [];
+            const uniqueIds = Array.from(new Set(idMatches.map(m => m.replace("/file/d/", ""))));
+
+            for (const fid of uniqueIds) {
+              let name = "";
+              
+              // Try multiple regex patterns on folder HTML
+              const r1 = new RegExp(`"${fid}"\\s*,\\s*"([^"]+)"`, "i");
+              const r2 = new RegExp(`"\\[\\s*"${fid}"\\s*,\\s*"([^"]+)"`, "i");
+              const r3 = new RegExp(`"${fid}"[^\\]]*?"([^"]+\\.(?:mp3|m4a|flac|wav|ogg|aac|wma|opus))"`, "i");
+
+              const m1 = html.match(r1) || html.match(r2) || html.match(r3);
+              if (m1 && m1[1] && !m1[1].startsWith("http")) {
+                name = m1[1].trim();
+              }
+
+              tracksFound.push({ fileId: fid, name: name || `Audio Track ${fid.substring(0, 6)}` });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[Drive Folder Scan] Public folder fetch failed:", e);
+      }
+    }
+
+    // 3. For any track where the name wasn't found or starts with "Audio Track", resolve exact name concurrently
+    const unresolved = tracksFound.filter(t => !t.name || t.name.startsWith("Audio Track "));
+    if (unresolved.length > 0) {
+      console.log(`[Drive Folder Scan] Fetching exact file info for ${unresolved.length} unresolved tracks...`);
+      
+      // Batch fetch in chunks of 10 to avoid overwhelming network
+      const chunkSize = 10;
+      for (let i = 0; i < unresolved.length; i += chunkSize) {
+        const chunk = unresolved.slice(i, i + chunkSize);
+        const resolvedResults = await Promise.all(
+          chunk.map(item => fetchDriveFileInfo(item.fileId))
+        );
+
+        for (const res of resolvedResults) {
+          const match = tracksFound.find(t => t.fileId === res.fileId);
+          if (match && res.name && !res.name.startsWith("Audio Track ")) {
+            match.name = res.name;
+          }
+        }
+      }
+    }
+
+    return res.json({ folderId, count: tracksFound.length, files: tracksFound });
+  });
+
   // API Route to register/refresh Google Drive Access Token
   app.post("/api/drive/token", (req, res) => {
     const { token } = req.body || {};
@@ -1919,10 +2170,9 @@ async function startServer() {
       }
 
       if (!gRes || !gRes.ok) {
-        res.setHeader("X-Drive-Error", tokenExpired ? "token_expired" : "file_access_denied");
-        return res.status(401).json({
-          error: tokenExpired ? "token_expired" : "file_access_denied",
-          message: "Google Drive authentication required or session expired. Please connect Google Drive."
+        return res.status(404).json({
+          error: "stream_unavailable",
+          message: "Audio stream unavailable or file restricted."
         });
       }
 
@@ -2069,10 +2319,8 @@ async function startServer() {
     return [];
   };
 
-  // Run initial server background sync if token exists
-  if (serverDriveToken) {
-    fetchAndSaveDriveMusicToServer().catch(() => {});
-  }
+  // Run initial server background sync disabled to allow user clean state
+  // if (serverDriveToken) { fetchAndSaveDriveMusicToServer().catch(() => {}); }
 
   // API Route - Get Persisted Music Library from Firestore/File
   app.get("/api/music/library", async (req, res) => {
@@ -2081,7 +2329,7 @@ async function startServer() {
       if (firebaseDb) {
         const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
         const docSnap = await getClientGetDoc(docRef);
-        if (docSnap.exists() && docSnap.data().tracks && Array.isArray(docSnap.data().tracks) && docSnap.data().tracks.length > 0) {
+        if (docSnap.exists() && docSnap.data().tracks && Array.isArray(docSnap.data().tracks)) {
           return res.json({ tracks: docSnap.data().tracks, syncedAt: docSnap.data().syncedAt });
         }
       }
@@ -2092,16 +2340,8 @@ async function startServer() {
         const content = fs.readFileSync(musicFilePath, "utf-8");
         const parsed = JSON.parse(content);
         const fileTracks = parsed.tracks || parsed;
-        if (Array.isArray(fileTracks) && fileTracks.length > 0) {
+        if (Array.isArray(fileTracks)) {
           return res.json({ tracks: fileTracks, syncedAt: parsed.syncedAt });
-        }
-      }
-
-      // If empty and server token available, trigger auto-sync from Google Drive
-      if (serverDriveToken) {
-        const autoTracks = await fetchAndSaveDriveMusicToServer();
-        if (autoTracks && autoTracks.length > 0) {
-          return res.json({ tracks: autoTracks, syncedAt: new Date().toISOString() });
         }
       }
 
