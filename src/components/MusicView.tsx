@@ -23,6 +23,8 @@ export interface Track {
   image: string;
   fileId?: string;
   isDrive?: boolean;
+  playlists?: string[];
+  protocol?: string;
 }
 
 export interface MusicViewProps {
@@ -120,9 +122,77 @@ export function parseAudioTitleAndArtist(rawName: string): { title: string; arti
   return { title: name, artist: 'Google Drive MP3' };
 }
 
+const DEFAULT_MUSIC_TRACKS: Track[] = [
+  {
+    id: 'default-track-1',
+    fileId: '1zUW4zza5mVJYG2DETaSEHVPUq26mLPqT',
+    title: 'HIGHEST (Official Theme)',
+    artist: 'OxT / Shadow Garden',
+    duration: '03:45',
+    quality: 'FLAC [LOSSLESS]',
+    size: '12.4 MB',
+    link: 'https://drive.google.com/file/d/1zUW4zza5mVJYG2DETaSEHVPUq26mLPqT/view',
+    streamUrl: '/api/drive/audio-stream?fileId=1zUW4zza5mVJYG2DETaSEHVPUq26mLPqT',
+    image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80',
+    protocol: 'GDRIVE_STREAM',
+    isDrive: true
+  },
+  {
+    id: 'default-track-2',
+    fileId: '1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY',
+    title: 'School Life (OST Theme)',
+    artist: 'Eminence in Shadow',
+    duration: '02:50',
+    quality: 'MP3 [320KBPS]',
+    size: '8.1 MB',
+    link: 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view',
+    streamUrl: '/api/drive/audio-stream?fileId=1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY',
+    image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80',
+    protocol: 'GDRIVE_STREAM',
+    isDrive: true
+  },
+  {
+    id: 'default-track-3',
+    fileId: '1-eZazHgsDtT0xAW94L2woWfK4sbFPC71',
+    title: 'Xado Theme Orchestral',
+    artist: 'Shadow Symphony',
+    duration: '04:12',
+    quality: 'FLAC [LOSSLESS]',
+    size: '15.6 MB',
+    link: 'https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view',
+    streamUrl: '/api/drive/audio-stream?fileId=1-eZazHgsDtT0xAW94L2woWfK4sbFPC71',
+    image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&auto=format&fit=crop&q=80',
+    protocol: 'GDRIVE_STREAM',
+    isDrive: true
+  },
+  {
+    id: 'default-track-4',
+    fileId: '1JOkYke7BPH_i8A6biBkw3hclsnAwFrOv',
+    title: 'Shadow Garden Lofi Chill',
+    artist: 'Lo-fi Music Suite',
+    duration: '03:18',
+    quality: 'MP3 [320KBPS]',
+    size: '9.2 MB',
+    link: 'https://drive.google.com/file/d/1JOkYke7BPH_i8A6biBkw3hclsnAwFrOv/view',
+    streamUrl: '/api/drive/audio-stream?fileId=1JOkYke7BPH_i8A6biBkw3hclsnAwFrOv',
+    image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
+    protocol: 'GDRIVE_STREAM',
+    isDrive: true
+  }
+];
+
 export default function MusicView({ isAdmin = false }: MusicViewProps) {
   // Main Track Library State
-  const [musicList, setMusicList] = useState<Track[]>([]);
+  const [musicList, setMusicList] = useState<Track[]>(() => {
+    try {
+      const stored = localStorage.getItem('shadow_gdrive_tracks');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_MUSIC_TRACKS;
+  });
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [playerProgress, setPlayerProgress] = useState<number>(0);
@@ -141,12 +211,31 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   const [mp3PasswordInput, setMp3PasswordInput] = useState<string>('');
   const [mp3PasswordError, setMp3PasswordError] = useState<string>('');
 
-  // Playlist State
-  const [playlists, setPlaylists] = useState<string[]>(['All']);
+  // Persistent Playlist State
+  const [playlists, setPlaylists] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('shadow_music_playlists');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.includes('All') ? parsed : ['All', ...parsed];
+        }
+      }
+    } catch (e) {}
+    return ['All'];
+  });
   const [activePlaylist, setActivePlaylist] = useState<string>('All');
   const [showPlaylistModal, setShowPlaylistModal] = useState<boolean>(false);
   const [newPlaylistName, setNewPlaylistName] = useState<string>('');
   const [playlistMsg, setPlaylistMsg] = useState<string>('');
+
+  // Manage Songs in Playlist Modal State
+  const [showManagePlaylistModal, setShowManagePlaylistModal] = useState<boolean>(false);
+  const [targetPlaylistForManage, setTargetPlaylistForManage] = useState<string>('');
+  const [playlistSearchQuery, setPlaylistSearchQuery] = useState<string>('');
+
+  // Quick Track Playlist Popover State
+  const [activePlaylistTrackMenu, setActivePlaylistTrackMenu] = useState<string | null>(null);
 
   // Music Admin Console Modal State
   const [showAdminConsole, setShowAdminConsole] = useState<boolean>(false);
@@ -163,25 +252,84 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
   const [editTitle, setEditTitle] = useState<string>('');
   const [editArtist, setEditArtist] = useState<string>('');
 
+  const savePlaylistsToStorage = (newPlaylists: string[]) => {
+    setPlaylists(newPlaylists);
+    try {
+      localStorage.setItem('shadow_music_playlists', JSON.stringify(newPlaylists));
+    } catch (e) {}
+    saveLibraryToServer(musicList, newPlaylists);
+  };
+
   const handleAddMp3Click = () => {
+    if (isAdmin) {
+      setShowAdminConsole(true);
+      return;
+    }
     setMp3PasswordInput('');
     setMp3PasswordError('');
     setShowMp3PasswordModal(true);
   };
 
-  const handleVerifyMp3Password = (e?: React.FormEvent) => {
+  const handleVerifyMp3Password = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const pwd = mp3PasswordInput.trim().toLowerCase();
+    const rawInput = mp3PasswordInput.trim();
+    const pwd = rawInput.toLowerCase();
     if (!pwd) {
       setMp3PasswordError('Please enter passcode.');
       return;
     }
-    if (['1234', 'shadow', 'guest', 'admin', 'passcode'].includes(pwd)) {
+
+    // 1. Check master portal admin passphrase (KGab0730)
+    let isMasterAdmin = false;
+    try {
+      const msgBuffer = new TextEncoder().encode(rawInput);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      if (hashHex === 'cf7a14191ac01a39913eadfae86c9e032ec7bd69fe01d452113f54ea6eef68ef' || btoa(rawInput) === 'S0dhYjA3MzA=' || pwd === 'kgab0730') {
+        isMasterAdmin = true;
+      }
+    } catch (err) {
+      if (btoa(rawInput) === 'S0dhYjA3MzA=' || pwd === 'kgab0730') {
+        isMasterAdmin = true;
+      }
+    }
+
+    const validDefaults = ['kgab0730', '1234', 'shadow', 'guest', 'admin', 'passcode'];
+    if (isMasterAdmin || validDefaults.includes(pwd)) {
       setShowMp3PasswordModal(false);
       setShowAdminConsole(true);
-    } else {
-      setMp3PasswordError('Incorrect passcode. Please enter valid admin passcode.');
+      return;
     }
+
+    // 2. Check local stored guest passcodes
+    try {
+      const genGuest = localStorage.getItem('generated_guest_passcode');
+      const copiedBuf = localStorage.getItem('copied_passcode_buffer');
+      if ((genGuest && (rawInput === genGuest || pwd === genGuest.toLowerCase())) ||
+          (copiedBuf && (rawInput === copiedBuf || pwd === copiedBuf.toLowerCase()))) {
+        setShowMp3PasswordModal(false);
+        setShowAdminConsole(true);
+        return;
+      }
+    } catch (e) {}
+
+    // 3. Query backend validate-passcode endpoint
+    try {
+      const apiRes = await fetch('/api/validate-passcode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode: rawInput })
+      });
+      const apiData = await apiRes.json();
+      if (apiData && apiData.valid) {
+        setShowMp3PasswordModal(false);
+        setShowAdminConsole(true);
+        return;
+      }
+    } catch (err) {}
+
+    setMp3PasswordError('Incorrect passcode. Please enter valid admin passcode.');
   };
 
   const handleCreatePlaylistSubmit = (e?: React.FormEvent) => {
@@ -195,12 +343,72 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       setPlaylistMsg('Playlist with this name already exists.');
       return;
     }
-    setPlaylists([...playlists, trimmed]);
+    const updatedPlaylists = [...playlists, trimmed];
+    savePlaylistsToStorage(updatedPlaylists);
     setActivePlaylist(trimmed);
     setNewPlaylistName('');
     setShowPlaylistModal(false);
-    setConsoleMsg({ text: `Playlist "${trimmed}" created!`, type: 'success' });
-    setTimeout(() => setConsoleMsg(null), 3000);
+
+    // Open option to add music in that playlist immediately!
+    setTargetPlaylistForManage(trimmed);
+    setPlaylistSearchQuery('');
+    setShowManagePlaylistModal(true);
+  };
+
+  const handleDeletePlaylist = (playlistToDelete: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (playlistToDelete === 'All') return;
+
+    if (!window.confirm(`Are you sure you want to remove the playlist "${playlistToDelete}"? Songs will remain in your main deck.`)) {
+      return;
+    }
+
+    const updatedPlaylists = playlists.filter(p => p !== playlistToDelete);
+    savePlaylistsToStorage(updatedPlaylists);
+
+    const updatedTracks = musicList.map(t => {
+      if (!t.playlists) return t;
+      return {
+        ...t,
+        playlists: t.playlists.filter(p => p !== playlistToDelete)
+      };
+    });
+
+    setMusicList(updatedTracks);
+    saveLibraryToServer(updatedTracks);
+
+    if (activePlaylist === playlistToDelete) {
+      setActivePlaylist('All');
+    }
+  };
+
+  const handleToggleTrackInPlaylist = (trackId: string, playlistName: string) => {
+    const updatedTracks = musicList.map(t => {
+      if (t.id !== trackId) return t;
+      const current = t.playlists || [];
+      const exists = current.includes(playlistName);
+      const next = exists 
+        ? current.filter(p => p !== playlistName)
+        : [...current, playlistName];
+      return { ...t, playlists: next };
+    });
+
+    setMusicList(updatedTracks);
+    saveLibraryToServer(updatedTracks);
+  };
+
+  const handleSelectAllTracksForPlaylist = (playlistName: string, selectAll: boolean) => {
+    const updatedTracks = musicList.map(t => {
+      const current = t.playlists || [];
+      let next = current.filter(p => p !== playlistName);
+      if (selectAll) {
+        next.push(playlistName);
+      }
+      return { ...t, playlists: next };
+    });
+
+    setMusicList(updatedTracks);
+    saveLibraryToServer(updatedTracks);
   };
 
   // Load persistent library on mount & purge any old local tracks if needed
@@ -324,52 +532,60 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     let loadedTracks: Track[] = [];
     try {
       const res = await fetch('/api/music/library');
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
+        if (data && Array.isArray(data.playlists) && data.playlists.length > 0) {
+          savePlaylistsToStorage(data.playlists);
+        }
         if (data && Array.isArray(data.tracks)) {
           loadedTracks = data.tracks;
-          setMusicList(loadedTracks);
-          if (loadedTracks.length === 0) {
-            localStorage.removeItem('shadow_gdrive_tracks');
-          } else {
+          if (loadedTracks.length > 0) {
+            setMusicList(loadedTracks);
             localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(loadedTracks));
             autoFixUnresolvedTracks(loadedTracks);
+            return;
           }
-          return;
         }
       }
     } catch (e) {
       console.warn('Failed to load library from server:', e);
     }
 
-    // Fallback
+    // Fallback to localStorage
     try {
       const stored = localStorage.getItem('shadow_gdrive_tracks');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           setMusicList(parsed);
           autoFixUnresolvedTracks(parsed);
+          return;
         }
       }
     } catch (e) {}
+
+    // Fallback to DEFAULT_MUSIC_TRACKS
+    setMusicList(DEFAULT_MUSIC_TRACKS);
+    localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(DEFAULT_MUSIC_TRACKS));
+    handleSyncGoogleDriveMusic();
   };
 
-  const saveLibraryToServer = async (tracks: Track[]) => {
+  const saveLibraryToServer = async (tracks: Track[], currentPlaylists?: string[]) => {
+    if (tracks.length === 0) return;
     setIsSaving(true);
     try {
-      if (tracks.length === 0) {
-        localStorage.removeItem('shadow_gdrive_tracks');
-      } else {
-        localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(tracks));
-      }
+      localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(tracks));
     } catch (e) {}
 
     try {
       await fetch('/api/music/library', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tracks })
+        body: JSON.stringify({
+          tracks,
+          playlists: currentPlaylists || playlists
+        })
       });
     } catch (e) {
       console.warn('Failed to save library to server:', e);
@@ -378,9 +594,16 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     }
   };
 
-  // Filtered music list based on user search query
+  // Filtered music list based on active playlist & search query
   const filteredMusicList = useMemo(() => {
     let list = musicList;
+
+    // Filter by Active Playlist
+    if (activePlaylist !== 'All') {
+      list = list.filter(t => t.playlists && t.playlists.includes(activePlaylist));
+    }
+
+    // Filter by Search Query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(
@@ -388,7 +611,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
       );
     }
     return list;
-  }, [musicList, searchQuery]);
+  }, [musicList, activePlaylist, searchQuery]);
 
   const activeTrack = useMemo(() => {
     return filteredMusicList[currentTrackIndex] || filteredMusicList[0] || musicList[0];
@@ -631,9 +854,23 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
     }
   };
 
+  const handleAudioError = () => {
+    const audio = audioRef.current;
+    if (!audio || !activeTrack) return;
+    const driveId = extractDriveFileId(activeTrack.fileId || activeTrack.link || activeTrack.streamUrl || activeTrack.id);
+    if (driveId && audio.src && !audio.src.includes('uc?export=download')) {
+      console.warn('[Audio Player] Proxy stream failed or unreached, falling back to direct Google Drive download URL...');
+      audio.src = `https://drive.google.com/uc?export=download&id=${driveId}`;
+      audio.load();
+      audio.play().catch(() => setIsPlaying(false));
+    } else {
+      setIsPlaying(false);
+    }
+  };
+
   return (
     <div className="w-full h-full flex flex-col bg-neutral-950 text-neutral-100 overflow-hidden font-sans">
-      <audio ref={audioRef} />
+      <audio ref={audioRef} onError={handleAudioError} />
 
       {/* MAIN MUSIC PLAYER BODY - FULL SCREEN SPACING */}
       <div className="flex-1 min-h-0 p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 overflow-hidden">
@@ -826,36 +1063,62 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
               <span className="hidden sm:inline">Create Playlist</span>
               <span className="sm:hidden">Playlist</span>
             </button>
-
-            {/* Sync Drive Songs Button */}
-            <button
-              onClick={handleSyncGoogleDriveMusic}
-              disabled={isSaving}
-              className="px-3 py-2 bg-purple-900/60 hover:bg-purple-800/80 text-purple-200 hover:text-white border border-purple-600/40 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95 shadow-md shadow-purple-950"
-              title="Sync songs directly from your Google Drive Music folder"
-            >
-              <FolderSync size={14} className="text-purple-400" />
-              <span className="hidden sm:inline">Sync Drive</span>
-              <span className="sm:hidden">Sync</span>
-            </button>
           </div>
 
           {/* Playlist filter pills */}
-          {playlists.length > 1 && (
-            <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1 scrollbar-none">
-              {playlists.map((p) => (
+          <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1 scrollbar-none">
+            {playlists.map((p) => {
+              const songCount = p === 'All' 
+                ? musicList.length 
+                : musicList.filter(t => t.playlists?.includes(p)).length;
+              return (
                 <button
                   key={p}
                   onClick={() => setActivePlaylist(p)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
                     activePlaylist === p
                       ? 'bg-purple-600 text-white border border-purple-400 shadow-sm'
                       : 'bg-neutral-950 text-neutral-400 hover:text-neutral-200 border border-neutral-800'
                   }`}
                 >
-                  {p}
+                  <span>{p}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${activePlaylist === p ? 'bg-purple-800 text-purple-200' : 'bg-neutral-800 text-neutral-400'}`}>
+                    {songCount}
+                  </span>
                 </button>
-              ))}
+              );
+            })}
+          </div>
+
+          {/* Active Playlist Header Banner */}
+          {activePlaylist !== 'All' && (
+            <div className="mb-2 px-3 py-1.5 bg-purple-950/70 border border-purple-600/40 rounded-xl flex items-center justify-between gap-2 text-xs text-purple-200">
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="font-extrabold text-white text-[11px]">Playlist: "{activePlaylist}"</span>
+                <span className="text-[10px] text-purple-300">
+                  ({filteredMusicList.length} song{filteredMusicList.length !== 1 ? 's' : ''})
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => {
+                    setTargetPlaylistForManage(activePlaylist);
+                    setPlaylistSearchQuery('');
+                    setShowManagePlaylistModal(true);
+                  }}
+                  className="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-extrabold rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow"
+                >
+                  <Plus size={11} />
+                  <span>Add / Manage Music</span>
+                </button>
+                <button
+                  onClick={(e) => handleDeletePlaylist(activePlaylist, e)}
+                  className="p-1 text-purple-300 hover:text-red-400 hover:bg-purple-900/60 rounded-lg transition-colors cursor-pointer"
+                  title="Delete this playlist"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
             </div>
           )}
 
@@ -864,10 +1127,28 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
             {filteredMusicList.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-8 text-neutral-500">
                 <Music size={32} className="mb-2 text-neutral-600" />
-                <p className="text-xs font-semibold text-neutral-400">Your Music Deck is empty</p>
-                <p className="text-[11px] text-neutral-600 mt-1 max-w-xs">
-                  Click the purple <span className="text-purple-400 font-bold">"+ ADD MP3"</span> button above to input your Google Drive share links.
+                <p className="text-xs font-semibold text-neutral-400">
+                  {activePlaylist !== 'All' 
+                    ? `No songs in "${activePlaylist}" playlist yet`
+                    : 'Your Music Deck is empty'}
                 </p>
+                {activePlaylist !== 'All' ? (
+                  <button
+                    onClick={() => {
+                      setTargetPlaylistForManage(activePlaylist);
+                      setPlaylistSearchQuery('');
+                      setShowManagePlaylistModal(true);
+                    }}
+                    className="mt-2.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-purple-950"
+                  >
+                    <Plus size={14} />
+                    <span>Add Music to {activePlaylist}</span>
+                  </button>
+                ) : (
+                  <p className="text-[11px] text-neutral-600 mt-1 max-w-xs">
+                    Click the purple <span className="text-purple-400 font-bold">"+ ADD MP3"</span> button above to input your Google Drive share links.
+                  </p>
+                )}
               </div>
             ) : (
               filteredMusicList.map((track, idx) => {
@@ -906,6 +1187,94 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                           {track.artist}
                         </p>
                       </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+                      {/* Playlist Badge / Quick Selector */}
+                      {playlists.length > 1 && (
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActivePlaylistTrackMenu(activePlaylistTrackMenu === track.id ? null : track.id);
+                            }}
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold border transition-all flex items-center gap-1 ${
+                              track.playlists && track.playlists.length > 0
+                                ? 'bg-purple-900/80 text-purple-200 border-purple-500/50'
+                                : 'bg-neutral-900/60 text-neutral-400 border-neutral-800 hover:text-white'
+                            }`}
+                            title="Add or remove from playlists"
+                          >
+                            <FolderPlus size={10} />
+                            <span>
+                              {track.playlists && track.playlists.length > 0 
+                                ? `${track.playlists.length} playlist${track.playlists.length > 1 ? 's' : ''}` 
+                                : '+ Playlist'}
+                            </span>
+                          </button>
+
+                          {/* Quick Playlist Popover */}
+                          {activePlaylistTrackMenu === track.id && (
+                            <div 
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute right-0 top-6 z-40 w-44 bg-neutral-900 border border-purple-600/50 rounded-xl shadow-2xl p-2 space-y-1 text-xs"
+                            >
+                              <div className="text-[10px] font-bold text-purple-300 uppercase tracking-wider px-1 pb-1 border-b border-neutral-800">
+                                Add to Playlist
+                              </div>
+                              <div className="max-h-36 overflow-y-auto space-y-1 pr-0.5">
+                                {playlists.filter(p => p !== 'All').map(p => {
+                                  const inPlaylist = track.playlists?.includes(p) || false;
+                                  return (
+                                    <button
+                                      key={p}
+                                      onClick={() => handleToggleTrackInPlaylist(track.id, p)}
+                                      className={`w-full px-2 py-1 rounded-lg text-left text-[11px] font-medium flex items-center justify-between transition-colors ${
+                                        inPlaylist 
+                                          ? 'bg-purple-900/70 text-white font-bold' 
+                                          : 'hover:bg-neutral-800 text-neutral-300'
+                                      }`}
+                                    >
+                                      <span className="truncate">{p}</span>
+                                      {inPlaylist && <Check size={12} className="text-purple-400 shrink-0" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <button
+                                onClick={() => setActivePlaylistTrackMenu(null)}
+                                className="w-full text-center text-[10px] text-neutral-400 hover:text-white pt-1 border-t border-neutral-800"
+                              >
+                                Close
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingTrack(track);
+                          setEditTitle(track.title);
+                          setEditArtist(track.artist);
+                        }}
+                        className="p-1 rounded text-neutral-400 hover:text-purple-300 hover:bg-neutral-800/80 transition-colors"
+                        title="Edit Song Title / Artist"
+                      >
+                        <Edit3 size={12} />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTrack(track.id);
+                        }}
+                        className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-neutral-800/80 transition-colors"
+                        title="Delete Song"
+                      >
+                        <Trash2 size={12} />
+                      </button>
                     </div>
                   </div>
                 );
@@ -984,7 +1353,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div>
                     <label className="block text-xs font-extrabold uppercase text-purple-200 mb-1">
-                      Song Title <span className="font-normal text-[10px] text-purple-400">(Single File only)</span>:
+                      Song Title:
                     </label>
                     <input
                       type="text"
@@ -997,7 +1366,7 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
 
                   <div>
                     <label className="block text-xs font-extrabold uppercase text-purple-200 mb-1">
-                      Singer / Artist <span className="font-normal text-[10px] text-purple-400">(Single File only)</span>:
+                      Singer / Artist:
                     </label>
                     <input
                       type="text"
@@ -1243,10 +1612,139 @@ export default function MusicView({ isAdmin = false }: MusicViewProps) {
                     className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md shadow-purple-950 flex items-center gap-1.5"
                   >
                     <Plus size={14} />
-                    <span>Create Playlist</span>
+                    <span>Create & Add Songs</span>
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MANAGE SONGS IN PLAYLIST MODAL */}
+      <AnimatePresence>
+        {showManagePlaylistModal && targetPlaylistForManage && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-neutral-900 border border-purple-600/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-neutral-100 max-h-[85vh]"
+            >
+              <div className="px-5 py-4 bg-purple-950/90 border-b border-purple-800/40 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <FolderPlus size={18} className="text-purple-400" />
+                  <div>
+                    <h3 className="text-sm font-extrabold uppercase tracking-wide text-white">
+                      Add Songs to "{targetPlaylistForManage}"
+                    </h3>
+                    <p className="text-[10px] text-purple-300">Select music from your deck to include in this playlist</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowManagePlaylistModal(false)}
+                  className="p-1 rounded-lg text-purple-300 hover:text-white hover:bg-purple-800/40 transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-3 flex-1 overflow-hidden flex flex-col">
+                {/* Search Bar inside Modal */}
+                <div className="relative shrink-0">
+                  <Search size={14} className="absolute left-3 top-2.5 text-neutral-400" />
+                  <input
+                    type="text"
+                    placeholder="Search songs by title or artist..."
+                    value={playlistSearchQuery}
+                    onChange={(e) => setPlaylistSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3.5 py-2 bg-neutral-950 border border-purple-700/40 rounded-xl text-xs text-white placeholder-neutral-500 outline-none focus:border-purple-400 transition-colors"
+                  />
+                </div>
+
+                {/* Bulk Select / Deselect Controls */}
+                <div className="flex items-center justify-between px-1 text-[11px] text-neutral-400 shrink-0">
+                  <span>
+                    {musicList.filter(t => t.playlists?.includes(targetPlaylistForManage)).length} of {musicList.length} song(s) selected
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAllTracksForPlaylist(targetPlaylistForManage, true)}
+                      className="text-purple-400 hover:text-purple-300 font-bold transition-colors cursor-pointer"
+                    >
+                      Select All
+                    </button>
+                    <span>•</span>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAllTracksForPlaylist(targetPlaylistForManage, false)}
+                      className="text-neutral-400 hover:text-neutral-200 font-medium transition-colors cursor-pointer"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+
+                {/* Song Checkbox List */}
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-1 pr-1 border border-neutral-800/80 rounded-xl p-1 bg-neutral-950/50">
+                  {musicList.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-neutral-500">
+                      No songs in your music deck yet. Add songs first to populate playlists!
+                    </div>
+                  ) : (
+                    musicList
+                      .filter(t => {
+                        if (!playlistSearchQuery.trim()) return true;
+                        const q = playlistSearchQuery.toLowerCase().trim();
+                        return t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q);
+                      })
+                      .map((track) => {
+                        const isChecked = track.playlists?.includes(targetPlaylistForManage) || false;
+                        return (
+                          <div
+                            key={track.id}
+                            onClick={() => handleToggleTrackInPlaylist(track.id, targetPlaylistForManage)}
+                            className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 cursor-pointer transition-all ${
+                              isChecked
+                                ? 'bg-purple-950/80 border-purple-500/60 text-white shadow-sm'
+                                : 'bg-neutral-900/40 border-neutral-800/60 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/40'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {}} // handled by parent div onClick
+                                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 bg-neutral-950 border-neutral-700 cursor-pointer"
+                              />
+                              <div className="min-w-0 leading-tight">
+                                <p className={`text-xs font-bold truncate ${isChecked ? 'text-purple-200' : 'text-neutral-300'}`}>
+                                  {track.title}
+                                </p>
+                                <p className="text-[10px] text-neutral-400 truncate">
+                                  {track.artist}
+                                </p>
+                              </div>
+                            </div>
+                            {isChecked && <Check size={14} className="text-purple-400 shrink-0" />}
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end pt-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowManagePlaylistModal(false)}
+                    className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md shadow-purple-950 flex items-center justify-center gap-1.5"
+                  >
+                    <Check size={15} />
+                    <span>Done & Save Playlist</span>
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

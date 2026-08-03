@@ -7,7 +7,7 @@ import { initializeApp as initClientApp, getApps as getClientApps, getApp as get
 import { getFirestore as getClientFirestore, doc as getClientDoc, getDoc as getClientGetDoc, setDoc as getClientSetDoc, terminate as terminateFirestore } from "firebase/firestore";
 import fs from "fs";
 
-async function startServer() {
+export async function createExpressApp() {
   const app = express();
   const PORT = 3000;
 
@@ -2217,7 +2217,8 @@ async function startServer() {
 
   // Server-side Google Drive Music Auto-Sync Engine
   const fetchAndSaveDriveMusicToServer = async () => {
-    if (!serverDriveToken) return [];
+    const token = await getServerDriveToken();
+    if (!token) return [];
     try {
       console.log("[Music Auto-Sync] Auto-fetching Google Drive music files using server token...");
       let allFiles: any[] = [];
@@ -2236,7 +2237,7 @@ async function startServer() {
         if (pageToken) url.searchParams.set("pageToken", pageToken);
 
         const gRes = await fetch(url.toString(), {
-          headers: { Authorization: `Bearer ${serverDriveToken}` }
+          headers: { Authorization: `Bearer ${token}` }
         });
 
         if (!gRes.ok) break;
@@ -2329,8 +2330,12 @@ async function startServer() {
       if (firebaseDb) {
         const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
         const docSnap = await getClientGetDoc(docRef);
-        if (docSnap.exists() && docSnap.data().tracks && Array.isArray(docSnap.data().tracks)) {
-          return res.json({ tracks: docSnap.data().tracks, syncedAt: docSnap.data().syncedAt });
+        if (docSnap.exists() && docSnap.data().tracks && Array.isArray(docSnap.data().tracks) && docSnap.data().tracks.length > 0) {
+          return res.json({
+            tracks: docSnap.data().tracks,
+            playlists: docSnap.data().playlists || ['All'],
+            syncedAt: docSnap.data().syncedAt
+          });
         }
       }
 
@@ -2340,12 +2345,81 @@ async function startServer() {
         const content = fs.readFileSync(musicFilePath, "utf-8");
         const parsed = JSON.parse(content);
         const fileTracks = parsed.tracks || parsed;
-        if (Array.isArray(fileTracks)) {
-          return res.json({ tracks: fileTracks, syncedAt: parsed.syncedAt });
+        if (Array.isArray(fileTracks) && fileTracks.length > 0) {
+          return res.json({
+            tracks: fileTracks,
+            playlists: parsed.playlists || ['All'],
+            syncedAt: parsed.syncedAt
+          });
         }
       }
 
-      return res.json({ tracks: [] });
+      // If empty, auto-sync songs from Google Drive using saved token
+      const autoTracks = await fetchAndSaveDriveMusicToServer();
+      if (autoTracks && autoTracks.length > 0) {
+        return res.json({ tracks: autoTracks, syncedAt: new Date().toISOString() });
+      }
+
+      const defaultTracks = [
+        {
+          id: 'default-track-1',
+          fileId: '1zUW4zza5mVJYG2DETaSEHVPUq26mLPqT',
+          title: 'HIGHEST (Official Theme)',
+          artist: 'OxT / Shadow Garden',
+          duration: '03:45',
+          quality: 'FLAC [LOSSLESS]',
+          size: '12.4 MB',
+          link: 'https://drive.google.com/file/d/1zUW4zza5mVJYG2DETaSEHVPUq26mLPqT/view',
+          streamUrl: '/api/drive/audio-stream?fileId=1zUW4zza5mVJYG2DETaSEHVPUq26mLPqT',
+          image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80',
+          protocol: 'GDRIVE_STREAM',
+          isDrive: true
+        },
+        {
+          id: 'default-track-2',
+          fileId: '1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY',
+          title: 'School Life (OST Theme)',
+          artist: 'Eminence in Shadow',
+          duration: '02:50',
+          quality: 'MP3 [320KBPS]',
+          size: '8.1 MB',
+          link: 'https://drive.google.com/file/d/1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY/view',
+          streamUrl: '/api/drive/audio-stream?fileId=1JPS3xKOMEzrKTg0Ux0JZDe3TJoHtnBxY',
+          image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80',
+          protocol: 'GDRIVE_STREAM',
+          isDrive: true
+        },
+        {
+          id: 'default-track-3',
+          fileId: '1-eZazHgsDtT0xAW94L2woWfK4sbFPC71',
+          title: 'Xado Theme Orchestral',
+          artist: 'Shadow Symphony',
+          duration: '04:12',
+          quality: 'FLAC [LOSSLESS]',
+          size: '15.6 MB',
+          link: 'https://drive.google.com/file/d/1-eZazHgsDtT0xAW94L2woWfK4sbFPC71/view',
+          streamUrl: '/api/drive/audio-stream?fileId=1-eZazHgsDtT0xAW94L2woWfK4sbFPC71',
+          image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&auto=format&fit=crop&q=80',
+          protocol: 'GDRIVE_STREAM',
+          isDrive: true
+        },
+        {
+          id: 'default-track-4',
+          fileId: '1JOkYke7BPH_i8A6biBkw3hclsnAwFrOv',
+          title: 'Shadow Garden Lofi Chill',
+          artist: 'Lo-fi Music Suite',
+          duration: '03:18',
+          quality: 'MP3 [320KBPS]',
+          size: '9.2 MB',
+          link: 'https://drive.google.com/file/d/1JOkYke7BPH_i8A6biBkw3hclsnAwFrOv/view',
+          streamUrl: '/api/drive/audio-stream?fileId=1JOkYke7BPH_i8A6biBkw3hclsnAwFrOv',
+          image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
+          protocol: 'GDRIVE_STREAM',
+          isDrive: true
+        }
+      ];
+
+      return res.json({ tracks: defaultTracks });
     } catch (err: any) {
       console.error("[Music API] Error fetching music library:", err);
       return res.status(500).json({ error: err.message });
@@ -2355,13 +2429,14 @@ async function startServer() {
   // API Route - Save/Update Persisted Music Library to Firestore/File
   app.post("/api/music/library", async (req, res) => {
     try {
-      const { tracks } = req.body || {};
+      const { tracks, playlists } = req.body || {};
       if (!Array.isArray(tracks)) {
         return res.status(400).json({ error: "Invalid payload: 'tracks' array required" });
       }
 
       const payload = {
         tracks,
+        playlists: Array.isArray(playlists) ? playlists : undefined,
         syncedAt: new Date().toISOString(),
         totalCount: tracks.length
       };
@@ -2517,9 +2592,13 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+  return app;
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  createExpressApp().then((app) => {
+    app.listen(3000, "0.0.0.0", () => {
+      console.log(`Server running on port 3000`);
+    });
+  });
+}

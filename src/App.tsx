@@ -262,6 +262,13 @@ export default function App() {
     if (enteredLower === 'guest' || isSkip || isGeneratedMatch || isChatbotMatch) {
       setIsAuthorized(true);
       setIsGuestMode(true);
+      if (isGeneratedMatch) {
+        setIsTimedGuestSession(true);
+        localStorage.setItem('is_timed_guest_session', 'true');
+      } else {
+        setIsTimedGuestSession(false);
+        localStorage.setItem('is_timed_guest_session', 'false');
+      }
       if (isSkip) {
         setAppLoading(false);
       }
@@ -517,6 +524,9 @@ export default function App() {
   const [guestLoginTime, setGuestLoginTime] = useState<number | null>(() => {
     const stored = localStorage.getItem('guest_login_time');
     return stored ? parseInt(stored, 10) : null;
+  });
+  const [isTimedGuestSession, setIsTimedGuestSession] = useState<boolean>(() => {
+    return localStorage.getItem('is_timed_guest_session') === 'true';
   });
   const [guestSessionExpired, setGuestSessionExpired] = useState(false);
 
@@ -927,7 +937,7 @@ export default function App() {
 
   // Guest active session watchdog timer
   useEffect(() => {
-    if (!isAuthorized || !isGuestMode || !guestLoginTime || !generatedGuestPasscodeDuration) {
+    if (!isAuthorized || !isGuestMode || !isTimedGuestSession || !guestLoginTime || !generatedGuestPasscodeDuration) {
       setGuestSessionExpired(false);
       return;
     }
@@ -942,10 +952,10 @@ export default function App() {
     checkExpiration();
     const interval = setInterval(checkExpiration, 1000);
     return () => clearInterval(interval);
-  }, [isAuthorized, isGuestMode, guestLoginTime, generatedGuestPasscodeDuration]);
+  }, [isAuthorized, isGuestMode, isTimedGuestSession, guestLoginTime, generatedGuestPasscodeDuration]);
 
   const getGuestTimeRemainingStr = () => {
-    if (!guestLoginTime || !generatedGuestPasscodeDuration) return '';
+    if (!isTimedGuestSession || !guestLoginTime || !generatedGuestPasscodeDuration) return '';
     const elapsed = Date.now() - guestLoginTime;
     const remaining = Math.max(0, (generatedGuestPasscodeDuration * 60 * 1000) - elapsed);
     const totalSeconds = Math.floor(remaining / 1000);
@@ -961,9 +971,11 @@ export default function App() {
   const handleLogout = () => {
     setIsAuthorized(false);
     setIsGuestMode(false);
+    setIsTimedGuestSession(false);
     setGuestLoginTime(null);
     setGuestSessionExpired(false);
     localStorage.removeItem('guest_login_time');
+    localStorage.removeItem('is_timed_guest_session');
     localStorage.setItem('is_guest_mode', 'false');
     sessionStorage.removeItem('is_authorized');
     sessionStorage.removeItem('is_admin_mode');
@@ -977,6 +989,7 @@ export default function App() {
   useEffect(() => {
     localStorage.removeItem('shadow_sys_authorized');
     localStorage.removeItem('guest_login_time');
+    localStorage.removeItem('is_timed_guest_session');
     localStorage.setItem('is_guest_mode', 'false');
     sessionStorage.removeItem('is_authorized');
     sessionStorage.removeItem('is_admin_mode');
@@ -1368,6 +1381,13 @@ export default function App() {
                     if (enteredLower === 'guest' || isSkipModal || isGeneratedMatch || isChatbotMatch || isServerMatch) {
                       setIsAuthorized(true);
                       setIsGuestMode(true);
+                      if (isGeneratedMatch) {
+                        setIsTimedGuestSession(true);
+                        localStorage.setItem('is_timed_guest_session', 'true');
+                      } else {
+                        setIsTimedGuestSession(false);
+                        localStorage.setItem('is_timed_guest_session', 'false');
+                      }
                       if (isSkipModal) {
                         setAppLoading(false);
                       }
@@ -1627,6 +1647,8 @@ export default function App() {
                     if (entered.toLowerCase() === 'skip' || entered.toLowerCase().replace(/[^a-z]/g, '') === 'skip') {
                       setIsAuthorized(true);
                       setIsGuestMode(true);
+                      setIsTimedGuestSession(false);
+                      localStorage.setItem('is_timed_guest_session', 'false');
                       setAppLoading(false);
                       setShowOverrideInput(false);
                       setShowGuestPopup(false);
@@ -2150,6 +2172,8 @@ export default function App() {
                       if (normText === 'skip' || normText.replace(/[^a-z0-9]/g, '') === 'skip') {
                         setIsAuthorized(true);
                         setIsGuestMode(true);
+                        setIsTimedGuestSession(false);
+                        localStorage.setItem('is_timed_guest_session', 'false');
                         setAppLoading(false);
                         setShowGuestPopup(false);
                         setShowOverrideInput(false);
@@ -3170,6 +3194,8 @@ export default function App() {
               if (normText === 'skip' || normText.replace(/[^a-z0-9]/g, '') === 'skip') {
                 setIsAuthorized(true);
                 setIsGuestMode(true);
+                setIsTimedGuestSession(false);
+                localStorage.setItem('is_timed_guest_session', 'false');
                 setAppLoading(false);
                 setShowGuestPopup(false);
                 setShowOverrideInput(false);
