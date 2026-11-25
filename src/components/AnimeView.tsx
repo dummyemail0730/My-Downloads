@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Tv, ExternalLink, Film, ArrowLeft, RefreshCw, Download, Copy, Check } from 'lucide-react';
 import { getDownloadCount, incrementDownloadCount } from '../utils/downloadTracker';
+import { hasStrictAdminAuthority } from '../firebase';
 
 import shadowOnRoof from '../assets/images/shadow_on_roof_1779250618867.png';
 import shadowAura from '../assets/images/shadow_mysterious_aura_1779250659900.png';
@@ -236,7 +237,7 @@ const getEpisodeStreamLink = (url: string, defaultVideo: string) => {
   return url;
 };
 
-export default function AnimeView() {
+export default function AnimeView({ isAdmin = false }: { isAdmin?: boolean }) {
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
   const [inlineLinkInput, setInlineLinkInput] = useState('');
   const [selectedTab, setSelectedTab] = useState<'S1' | 'S2' | 'MOVIE'>('S1');
@@ -313,7 +314,7 @@ export default function AnimeView() {
       return item;
     });
 
-    if (isHealed) {
+    if (isHealed && isAdmin && hasStrictAdminAuthority()) {
       localStorage.setItem('custom_anime', JSON.stringify(loaded));
       setTimeout(() => {
         window.dispatchEvent(new Event('shadow_sync_update'));
@@ -396,21 +397,23 @@ export default function AnimeView() {
   }, []);
 
   const handleUpdateEpisodeLink = (episodeId: string, newLink: string) => {
+    const cleanLink = newLink.trim();
     const updated = animeList.map(item => {
       if (item.id === episodeId) {
-        return { ...item, link: newLink.trim() };
+        return { ...item, link: cleanLink };
       }
       return item;
     });
     setAnimeList(updated);
-    
-    // Save locally
-    localStorage.setItem('custom_anime', JSON.stringify(updated));
-    localStorage.setItem('admin_console_link', newLink.trim());
-    
-    // Update active state
+
+    // Only verified Admin persists permanent catalog edits to Firestore/localStorage
+    if (isAdmin && hasStrictAdminAuthority()) {
+      localStorage.setItem('custom_anime', JSON.stringify(updated));
+    }
+
+    // Update active player preview state
     if (activeVideo && activeVideo.id === episodeId) {
-      setActiveVideo((prev: any) => prev ? ({ ...prev, link: newLink.trim() }) : null);
+      setActiveVideo((prev: any) => prev ? ({ ...prev, link: cleanLink }) : null);
     }
     setInlineLinkInput('');
   };

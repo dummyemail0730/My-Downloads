@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary, Key, Database, Search } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary, Key, Database, Search, Download } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import shadowChibiSticker from '../assets/images/shadow_chibi_avatar_1779438320279.png';
@@ -22,6 +22,17 @@ import systemRecoveryBg from '../assets/images/system_recovery_bg_1779205058378.
 import hardwareBackground from '../assets/images/hardware_background_1779204942117.png';
 import computerSoftwareBg from '../assets/images/computer_software_bg_1781345966685.jpg';
 import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from '../constants';
+import { onAuthStateChanged } from 'firebase/auth';
+import { googleSignIn } from '../lib/googleAuth';
+import {
+  auth,
+  isFirebaseAdminUser,
+  hasStrictAdminAuthority,
+  getAdminIdToken,
+  syncPublicCatalogToFirestore,
+  syncPrivateGlobalConfigsToFirestore,
+  flushAllLocalCatalogAndConfigsToFirestore,
+} from '../firebase';
 
 
 
@@ -364,6 +375,64 @@ export default function ShadowProject({
     }
   }, [isAdmin]);
 
+  const [isFirebaseAdmin, setIsFirebaseAdmin] = useState<boolean>(() => isFirebaseAdminUser());
+  const [isLinkingFirebaseAdmin, setIsLinkingFirebaseAdmin] = useState<boolean>(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setIsFirebaseAdmin(isFirebaseAdminUser(user));
+    });
+    return () => unsub();
+  }, []);
+
+  const persistAdminConfigs = async (patch: Record<string, any>): Promise<boolean> => {
+    if (!hasStrictAdminAuthority()) {
+      return false;
+    }
+
+    const publicKeys = [
+      'admin_console_link',
+      'custom_projects',
+      'custom_anime',
+      'custom_games',
+      'shadow_master_tutorials',
+      'custom_tools',
+      'deleted_item_ids',
+    ];
+    const publicPatch: Record<string, any> = {};
+    for (const k of publicKeys) {
+      if (k in patch) publicPatch[k] = patch[k];
+    }
+
+    const tasks: Promise<any>[] = [];
+    if (Object.keys(publicPatch).length > 0) {
+      tasks.push(syncPublicCatalogToFirestore(publicPatch));
+    }
+    tasks.push(syncPrivateGlobalConfigsToFirestore(patch));
+
+    const idToken = await getAdminIdToken();
+    if (idToken) {
+      tasks.push(
+        fetch('/api/configs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify(patch),
+        })
+      );
+    }
+
+    try {
+      await Promise.all(tasks);
+      return true;
+    } catch (err) {
+      console.error('Admin persistence sync error:', err);
+      return false;
+    }
+  };
+
   // Security Lockout and Authentication State trackers
   const [passwordAttempts, setPasswordAttempts] = useState(() => {
     const saved = localStorage.getItem('shadow_admin_password_attempts');
@@ -424,9 +493,16 @@ export default function ShadowProject({
   const [saveHistorySuccess, setSaveHistorySuccess] = useState(false);
   const [saveHistoryError, setSaveHistoryError] = useState<string | null>(null);
 
-  const handleSaveUserHistory = () => {
+  const handleSaveUserHistory = async () => {
+    if (!hasStrictAdminAuthority()) {
+      setIsSavingHistory(false);
+      setSaveHistorySuccess(false);
+      setSaveHistoryError('Admin Google Sign-In required. Click "LINK FIREBASE ADMIN" in the header above to save permanently.');
+      return;
+    }
+
     if ((window as any).logUserMovement) {
-      (window as any).logUserMovement('action', 'Initiated secure permanent disk synchronization protocol');
+      (window as any).logUserMovement('action', 'Initiated secure permanent Firebase synchronization protocol');
     }
 
     setIsSavingHistory(true);
@@ -452,35 +528,26 @@ export default function ShadowProject({
       user_activity_logs: JSON.parse(localStorage.getItem('shadow_user_movements') || '[]')
     };
 
-    fetch('/api/configs', {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    })
-    .then(res => {
+    try {
+      const ok = await persistAdminConfigs(payload);
       clearInterval(interval);
-      if (!res.ok) throw new Error("Server storage write failure");
-      return res.json();
-    })
-    .then(() => {
+      if (!ok) {
+        throw new Error('Firebase Admin authorization required for permanent write.');
+      }
       setSaveHistoryProgress(100);
       if ((window as any).logUserMovement) {
-        (window as any).logUserMovement('action', 'Completed permanent configuration database lock');
+        (window as any).logUserMovement('action', 'Completed permanent Firebase configuration database lock');
       }
       setTimeout(() => {
         setIsSavingHistory(false);
         setSaveHistorySuccess(true);
-        // Force fully synchronize state
         window.dispatchEvent(new Event('shadow_sync_update'));
-      }, 500);
-    })
-    .catch((err: any) => {
+      }, 450);
+    } catch (err: any) {
       clearInterval(interval);
       setIsSavingHistory(false);
-      setSaveHistoryError(err.message || "Failed to commit user files to disk");
-    });
+      setSaveHistoryError(err.message || 'Failed to commit admin files to Firebase');
+    }
   };
 
   const handleDeleteSpecificUser = (userToDelete: string) => {
@@ -512,11 +579,7 @@ export default function ShadowProject({
         user_activity_logs: updated
       };
       
-      fetch('/api/configs', {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      }).catch(err => console.error("Error syncing after user deletion:", err));
+      persistAdminConfigs(payload).catch(err => console.error("Error syncing after user deletion:", err));
 
       if (selectedUserLog === userToDelete) {
         setSelectedUserLog(null);
@@ -542,11 +605,7 @@ export default function ShadowProject({
         user_activity_logs: []
       };
       
-      fetch('/api/configs', {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      }).catch(err => console.error("Error syncing after purging all logs:", err));
+      persistAdminConfigs(payload).catch(err => console.error("Error syncing after purging all logs:", err));
 
       setSelectedUserLog(null);
       window.dispatchEvent(new Event('shadow_sync_update'));
@@ -1106,24 +1165,16 @@ export default function ShadowProject({
           localStorage.setItem('admin_console_link', gameFile);
           setConsoleLink(gameFile);
 
-          // Synchronize and write custom admin console link securely to server database
-          fetch('/api/configs', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ admin_console_link: gameFile })
-          })
-          .then(res => {
-            if (res.ok) {
-              if ((window as any).logUserMovement) {
-                (window as any).logUserMovement('action', `Updated Admin Console global file link to: "${gameFile}"`);
-              }
-            } else {
-              console.error('Failed to sync admin console link to server database');
-            }
-          })
-          .catch(err => console.error('Error synchronizing admin console link:', err));
+          // Synchronize custom admin console link & catalog entries securely under Admin authority
+          if (hasStrictAdminAuthority()) {
+            persistAdminConfigs({ admin_console_link: gameFile })
+              .then((ok) => {
+                if (ok && (window as any).logUserMovement) {
+                  (window as any).logUserMovement('action', `Updated Admin Console global file link to: "${gameFile}"`);
+                }
+              })
+              .catch(err => console.error('Error synchronizing admin console link:', err));
+          }
 
           // Reset inputs / state
           setGameTitle('');
@@ -1307,11 +1358,17 @@ export default function ShadowProject({
           }
 
           if (isMatch) {
+            sessionStorage.setItem('is_authorized', 'true');
+            sessionStorage.setItem('is_admin_mode', 'true');
+            window.dispatchEvent(new Event('shadow_admin_authenticated'));
             setIsAuthenticated(true);
             setShowPasswordModal(false);
             setPasswordError('');
             setPasswordInput('');
             setIsModalOpen(true);
+            if (isFirebaseAdminUser()) {
+              flushAllLocalCatalogAndConfigsToFirestore().catch(() => {});
+            }
             
             // Reset security tracker
             setPasswordAttempts(0);
@@ -1383,6 +1440,7 @@ export default function ShadowProject({
             const updated = suggestions.filter(s => s.id !== deleteItemId);
             setSuggestions(updated);
             localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+            persistAdminConfigs({ user_suggestions: updated }).catch(() => {});
             
             setShowDeletePasswordModal(false);
             setDeletePasswordError('');
@@ -1441,6 +1499,7 @@ export default function ShadowProject({
             const updated = shouts.filter(s => s.id !== deleteShoutId);
             setShouts(updated);
             localStorage.setItem('shadow_shout_outs_v3', JSON.stringify(updated));
+            persistAdminConfigs({ user_shout_outs: updated }).catch(() => {});
             
             setShowDeleteShoutPasswordModal(false);
             setDeleteShoutPasswordError('');
@@ -1847,19 +1906,13 @@ export default function ShadowProject({
     // Reset core reference link
     setConsoleLink('https://drive.google.com');
 
-    // Sync clear to server permanently
-    fetch('/api/configs', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        admin_console_link: 'https://drive.google.com',
-        custom_projects: [],
-        custom_anime: [],
-        custom_games: [],
-        custom_tools: []
-      })
+    // Sync clear to Firebase & backend permanently under verified Admin authority
+    persistAdminConfigs({
+      admin_console_link: 'https://drive.google.com',
+      custom_projects: [],
+      custom_anime: [],
+      custom_games: [],
+      custom_tools: []
     })
     .then(() => {
       window.dispatchEvent(new Event('shadow_sync_update'));
@@ -2577,8 +2630,19 @@ export default function ShadowProject({
         transition={{ delay: 1.0, duration: 0.8, ease: "easeInOut" }}
         className="fixed top-0 left-0 right-0 z-40 bg-neutral-950/95 backdrop-blur-md border-b border-purple-500/15 px-4 py-3 md:px-12 md:py-4 flex flex-row items-center justify-between gap-4 shadow-[0_4px_30px_rgba(0,0,0,0.6)]"
       >
-        <div className="flex items-center gap-3 sm:gap-4 md:gap-5 shrink-0">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full border border-purple-500/35 shadow-[0_0_20px_rgba(168,85,247,0.45)] overflow-hidden flex items-center justify-center bg-black shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 md:gap-5 shrink-0">
+          {onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              title="Back to Shadow Hub"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/35 text-purple-200 font-mono text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 whitespace-nowrap"
+            >
+              <ArrowLeft size={12} />
+              <span className="hidden sm:inline">Hub</span>
+            </button>
+          )}
+          <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full border border-purple-500/35 shadow-[0_0_20px_rgba(168,85,247,0.45)] overflow-hidden flex items-center justify-center bg-black shrink-0">
             <img 
               src={shadowLogoLarge} 
               alt="ShadowTech Logo" 
@@ -3311,7 +3375,42 @@ export default function ShadowProject({
                   >
                     <Search size={14} />
                   </button>
-                  <div className="px-2.5 py-1 bg-neutral-900 border border-neutral-800 rounded-md text-[9px] uppercase tracking-wider text-neutral-300 flex items-center gap-1.5 font-bold">
+                  {isFirebaseAdmin ? (
+                    <div className="px-2.5 py-1 bg-emerald-950/50 border border-emerald-500/40 rounded-md text-[9px] uppercase tracking-wider text-emerald-300 flex items-center gap-1.5 font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      FIREBASE ADMIN: PERMANENT
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isLinkingFirebaseAdmin}
+                      onClick={async () => {
+                        setIsLinkingFirebaseAdmin(true);
+                        try {
+                          const res = await googleSignIn();
+                          if (res?.user && isFirebaseAdminUser(res.user)) {
+                            sessionStorage.setItem('is_admin_mode', 'true');
+                            setIsFirebaseAdmin(true);
+                            await flushAllLocalCatalogAndConfigsToFirestore();
+                            setSuccessStatus('FIREBASE ADMIN LINKED // CHANGES SAVED PERMANENTLY');
+                            setTimeout(() => setSuccessStatus(null), 2000);
+                          } else {
+                            setSaveHistoryError('Please sign in with the authorized Admin Google account (adriangabionza1990@gmail.com).');
+                          }
+                        } catch (err) {
+                          console.error('Firebase Admin Google sign-in error:', err);
+                        } finally {
+                          setIsLinkingFirebaseAdmin(false);
+                        }
+                      }}
+                      className="px-2.5 py-1 bg-amber-950/70 hover:bg-amber-900/80 border border-amber-500/50 rounded-md text-[9px] uppercase tracking-wider text-amber-200 flex items-center gap-1.5 font-extrabold cursor-pointer transition-all disabled:opacity-50"
+                      title="Sign in with Admin Google account to persist website edits permanently in Firebase"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                      {isLinkingFirebaseAdmin ? 'LINKING...' : 'LINK FIREBASE ADMIN'}
+                    </button>
+                  )}
+                  <div className="px-2.5 py-1 bg-neutral-900 border border-neutral-800 rounded-md text-[9px] uppercase tracking-wider text-neutral-300 hidden sm:flex items-center gap-1.5 font-bold">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     LINK: COMPATIBLE
                   </div>
@@ -5276,6 +5375,7 @@ export default function ShadowProject({
                                 const updated = suggestions.map(s => s.id === item.id ? { ...s, status: nextStatus } : s);
                                 setSuggestions(updated);
                                 localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+                                persistAdminConfigs({ user_suggestions: updated }).catch(() => {});
                               }}
                               className={`px-2 py-0.5 font-mono text-[7.5px] uppercase tracking-widest rounded border cursor-pointer select-none font-extrabold transition-all hover:brightness-110 active:scale-95 ${
                                 item.status === 'NEW' 
@@ -5302,6 +5402,7 @@ export default function ShadowProject({
                             const updated = suggestions.filter(s => s.id !== item.id);
                             setSuggestions(updated);
                             localStorage.setItem('shadow_suggestions', JSON.stringify(updated));
+                            persistAdminConfigs({ user_suggestions: updated }).catch(() => {});
                           }}
                           className="p-1.5 hover:bg-red-955/40 hover:text-red-400 text-neutral-500 border border-transparent hover:border-red-900/35 rounded-lg transition-all cursor-pointer self-start shrink-0"
                           title="Purge suggestion record"
@@ -5429,6 +5530,7 @@ export default function ShadowProject({
                           const filtered = appointments.filter(item => item.id !== apt.id);
                           setAppointments(filtered);
                           localStorage.setItem('shadow_appointments', JSON.stringify(filtered));
+                          persistAdminConfigs({ user_appointments: filtered }).catch(() => {});
                         }}
                         className="px-3 py-1.5 font-mono text-[8.5px] bg-red-955/25 border border-red-500/30 hover:border-red-500 text-red-400 hover:bg-neutral-900 transition-all uppercase tracking-widest font-extrabold cursor-pointer rounded-lg shrink-0 self-start md:self-center"
                       >
@@ -6559,8 +6661,8 @@ export default function ShadowProject({
                         setEnteringArchiveProgress(1);
                       }}
                       disabled={isEnteringArchive || isAccessingTutorials}
-                      className={`group flex items-center justify-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs transition-all duration-200 cursor-pointer w-full sm:w-auto ${
-                        (isEnteringArchive || isAccessingTutorials) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-neutral-200'
+                      className={`group relative flex items-center justify-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs transition-all duration-300 cursor-pointer w-full sm:w-auto shadow-[0_0_30px_rgba(168,85,247,0.5),0_0_12px_rgba(255,255,255,0.8)] hover:shadow-[0_0_45px_rgba(168,85,247,0.85)] ring-2 ring-purple-400/80 hover:ring-purple-300 ${
+                        (isEnteringArchive || isAccessingTutorials) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-neutral-100'
                       }`}
                     >
                       Enter Archive
@@ -6608,70 +6710,39 @@ export default function ShadowProject({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <motion.button 
-                      initial={skip ? { opacity: 1 } : { opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={skip ? { duration: 0 } : { 
-                        duration: 5.0, 
-                        ease: "easeInOut", 
-                        delay: 3.3 
+                  {/* Directing Arrow Highlighting "Enter Archive" */}
+                  <motion.div 
+                    initial={skip ? { opacity: 1 } : { opacity: 0, x: 15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={skip ? { duration: 0 } : { 
+                      duration: 1.2, 
+                      ease: "easeOut", 
+                      delay: 3.2 
+                    }}
+                    className="flex items-center gap-3 w-full sm:w-auto"
+                  >
+                    <motion.div
+                      animate={{ 
+                        x: [-7, 3, -7] 
                       }}
-                      whileHover={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 1.02 }}
-                      whileTap={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 0.98 }}
-                      onClick={() => {
-                        setIsAccessingTutorials(true);
-                        setAccessingTutorialsProgress(1);
+                      transition={{ 
+                        duration: 1.3, 
+                        repeat: Infinity, 
+                        ease: "easeInOut" 
                       }}
-                      disabled={isEnteringArchive || isAccessingTutorials}
-                      className={`group flex items-center justify-center gap-4 px-8 py-3 bg-purple-950/45 hover:bg-purple-900/40 border border-purple-500/50 hover:border-purple-400 text-purple-200 hover:text-white font-black uppercase tracking-widest text-xs transition-all duration-200 cursor-pointer w-full sm:w-auto ${
-                        (isEnteringArchive || isAccessingTutorials) ? 'opacity-40 cursor-not-allowed' : ''
-                      }`}
+                      className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-purple-950/70 border border-purple-500/60 shadow-[0_0_25px_rgba(168,85,247,0.45)] select-none"
                     >
-                      Master Shadow Tutorial
-                      <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500 text-purple-400" />
-                    </motion.button>
+                      {/* Desktop arrow: points left directly at Enter Archive button */}
+                      <ArrowLeft className="w-5 h-5 text-purple-400 stroke-[3] hidden sm:block animate-pulse" />
+                      
+                      {/* Mobile arrow: points up directly at Enter Archive button when stacked vertically */}
+                      <ArrowLeft className="w-4 h-4 text-purple-400 stroke-[3] sm:hidden -rotate-90 animate-pulse" />
 
-                    {isAccessingTutorials && (
-                      <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
-                        {/* Outer rotating dashed purple ring */}
-                        <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/30 animate-spin [animation-duration:12s]" />
-                        
-                        {/* Inner SVG Circular Progress */}
-                        <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 80 80">
-                          {/* Background Track */}
-                          <circle
-                            cx="40"
-                            cy="40"
-                            r="34"
-                            className="stroke-neutral-950/85"
-                            strokeWidth="6"
-                            fill="transparent"
-                          />
-                          {/* Foreground Progress */}
-                          <circle
-                            cx="40"
-                            cy="40"
-                            r="34"
-                            className="stroke-purple-500 transition-all duration-100 ease-out"
-                            strokeWidth="6"
-                            fill="transparent"
-                            strokeDasharray="213.6"
-                            strokeDashoffset={213.6 * (1 - accessingTutorialsProgress / 100)}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        
-                        {/* Center text showing percentage and TX label */}
-                        <div className="absolute flex flex-col items-center justify-center font-mono">
-                          <span className="text-[10px] font-black text-purple-400 leading-none">
-                            {accessingTutorialsProgress}%
-                          </span>
-                          <span className="text-[5px] font-black text-purple-500/60 tracking-wider uppercase leading-none mt-0.5">SYS</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                      <span className="font-mono text-[11px] font-black uppercase tracking-[0.2em] text-purple-200">
+                        Enter Here
+                      </span>
+                    </motion.div>
+                  </motion.div>
                 </div>
               </div>
             </div>

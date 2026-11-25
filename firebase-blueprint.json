@@ -1,29 +1,250 @@
 {
   "entities": {
-    "GlobalConfig": {
-      "title": "GlobalConfig",
-      "description": "Global settings for the ShadowTech Portal",
+    "PublicCatalog": {
+      "title": "PublicCatalog",
+      "description": "Public non-PII catalog entries, toolkits, tutorials, anime links, and soft-deletion list managed strictly by admin",
       "type": "object",
       "properties": {
-        "admin_console_link": { "type": "string" },
-        "custom_projects": { "type": "array" },
-        "custom_anime": { "type": "array" },
-        "custom_games": { "type": "array" },
-        "shadow_master_tutorials": { "type": "array" },
-        "custom_tools": { "type": "array" },
-        "deleted_item_ids": { "type": "array" },
-        "user_suggestions": { "type": "array" },
-        "user_appointments": { "type": "array" },
-        "user_shout_outs": { "type": "array" },
-        "user_activity_logs": { "type": "array" },
-        "chatbot_passcodes": { "type": "array" }
+        "admin_console_link": {
+          "type": "string",
+          "maxLength": 512,
+          "description": "Global workspace link"
+        },
+        "custom_projects": {
+          "type": "array",
+          "description": "Bounded list of custom software projects (max 100 items)"
+        },
+        "custom_anime": {
+          "type": "array",
+          "description": "Bounded list of custom anime entries (max 100 items)"
+        },
+        "custom_games": {
+          "type": "array",
+          "description": "Bounded list of custom games/media entries (max 100 items)"
+        },
+        "shadow_master_tutorials": {
+          "type": "array",
+          "description": "Bounded list of tutorial entries (max 100 items)"
+        },
+        "custom_tools": {
+          "type": "array",
+          "description": "Bounded list of custom toolkit entries (max 100 items)"
+        },
+        "deleted_item_ids": {
+          "type": "array",
+          "description": "Bounded list of hidden/deleted item IDs (max 200 items)"
+        },
+        "updatedBy": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID of admin performing the update"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update"
+        }
+      },
+      "required": ["updatedBy", "updatedAt"]
+    },
+    "GlobalConfig": {
+      "title": "GlobalConfig",
+      "description": "Admin-restricted portal configuration, suggestions, appointments, shoutouts, activity logs, and passcodes",
+      "type": "object",
+      "properties": {
+        "admin_console_link": {
+          "type": "string",
+          "maxLength": 512,
+          "description": "Google Drive console share URL"
+        },
+        "custom_projects": {
+          "type": "array",
+          "description": "Bounded list of custom software projects (max 100 items)"
+        },
+        "custom_anime": {
+          "type": "array",
+          "description": "Bounded list of custom anime entries (max 100 items)"
+        },
+        "custom_games": {
+          "type": "array",
+          "description": "Bounded list of custom games/media entries (max 100 items)"
+        },
+        "shadow_master_tutorials": {
+          "type": "array",
+          "description": "Bounded list of tutorial entries (max 100 items)"
+        },
+        "custom_tools": {
+          "type": "array",
+          "description": "Bounded list of custom toolkit entries (max 100 items)"
+        },
+        "deleted_item_ids": {
+          "type": "array",
+          "description": "Bounded list of hidden/deleted item IDs (max 200 items)"
+        },
+        "user_suggestions": {
+          "type": "array",
+          "description": "Bounded list of user suggestions (max 200 items)"
+        },
+        "user_appointments": {
+          "type": "array",
+          "description": "Bounded list of scheduled user appointments (max 200 items)"
+        },
+        "user_shout_outs": {
+          "type": "array",
+          "description": "Bounded list of guestbook shoutouts (max 200 items)"
+        },
+        "user_activity_logs": {
+          "type": "array",
+          "description": "Bounded list of portal activity logs (max 200 items)"
+        },
+        "chatbot_passcodes": {
+          "type": "array",
+          "description": "Bounded list of generated guest passcodes (max 100 items)"
+        },
+        "updatedBy": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID of admin performing the update"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update"
+        }
+      },
+      "required": ["updatedBy", "updatedAt"]
+    },
+    "MusicLibrary": {
+      "title": "MusicLibrary",
+      "description": "Persisted Google Drive music track catalog and playlists",
+      "type": "object",
+      "properties": {
+        "tracks": {
+          "type": "array",
+          "description": "Bounded list of music track metadata objects (max 500 items)"
+        },
+        "playlists": {
+          "type": "array",
+          "description": "Bounded list of playlist names (max 50 items)"
+        },
+        "syncedAt": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "ISO timestamp of last Google Drive sync"
+        },
+        "totalCount": {
+          "type": "number",
+          "description": "Total number of synced tracks"
+        },
+        "updatedBy": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID of admin performing the sync"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last write"
+        }
+      },
+      "required": ["tracks", "totalCount", "updatedBy", "updatedAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile with isolated PII ownership",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "User display name"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254,
+          "description": "Verified user email address"
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 512,
+          "description": "User profile avatar URL"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of profile creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last profile update"
+        }
+      },
+      "required": ["uid", "email", "createdAt", "updatedAt"]
+    },
+    "AdminRole": {
+      "title": "AdminRole",
+      "description": "Server-managed admin role marker document",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "grantedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid"]
+    },
+    "ConnectionProbe": {
+      "title": "ConnectionProbe",
+      "description": "Read-only connection verification document",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "maxLength": 32
+        }
       }
     }
   },
   "firestore": {
+    "/portalSettings/publicCatalog": {
+      "schema": { "$ref": "#/entities/PublicCatalog" },
+      "description": "Publicly readable, strictly admin-writable website catalog, links, tutorials, and deletion registry"
+    },
     "/portalSettings/globalConfigs": {
-      "schema": "GlobalConfig",
-      "description": "Dynamic configurations for ShadowTech portal"
+      "schema": { "$ref": "#/entities/GlobalConfig" },
+      "description": "Admin-restricted portal configuration and user submissions (PII isolated)"
+    },
+    "/portalSettings/musicLibrary": {
+      "schema": { "$ref": "#/entities/MusicLibrary" },
+      "description": "Publicly readable, strictly admin-writable synced music tracks and playlists"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profiles gated strictly by owner UID or admin"
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminRole" },
+      "description": "Read-only admin membership lookup documents"
+    },
+    "/test/connection": {
+      "schema": { "$ref": "#/entities/ConnectionProbe" },
+      "description": "Public read-only boot connectivity check document"
     }
   }
 }

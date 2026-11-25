@@ -3,8 +3,8 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
-import { initializeApp as initClientApp, getApps as getClientApps, getApp as getClientApp } from "firebase/app";
-import { getFirestore as getClientFirestore, doc as getClientDoc, getDoc as getClientGetDoc, setDoc as getClientSetDoc, terminate as terminateFirestore } from "firebase/firestore";
+import { initializeApp as initializeAdminApp, getApps as getAdminApps, getApp as getAdminApp } from "firebase-admin/app";
+import { getAuth as getAdminAuth } from "firebase-admin/auth";
 import fs from "fs";
 
 export async function createExpressApp() {
@@ -441,82 +441,68 @@ export async function createExpressApp() {
     };
   }
 
-  let dbClient: any = null;
-  const quotaFlagPath = path.join(process.cwd(), ".firestore_quota_exceeded");
-  let isFirestoreQuotaExceeded = false;
+  const ADMIN_EMAIL = "adriangabionza1990@gmail.com";
+  const PUBLIC_CONFIG_KEYS = [
+    "admin_console_link",
+    "custom_projects",
+    "custom_anime",
+    "custom_games",
+    "shadow_master_tutorials",
+    "custom_tools",
+    "deleted_item_ids",
+  ];
 
-  try {
-    if (fs.existsSync(quotaFlagPath)) {
-      isFirestoreQuotaExceeded = true;
-      console.log("[FIREBASE] Persistent quota limit flag detected on boot. Seamlessly utilizing local file storage.");
-    }
-  } catch (_) {}
-
-  function handleFirestoreError(err: any) {
-    if (
-      err?.message?.includes("Quota limit exceeded") ||
-      err?.message?.includes("RESOURCE_EXHAUSTED") ||
-      err?.message?.includes("Quota exceeded") ||
-      err?.code === "resource-exhausted" ||
-      err?.code === 8
-    ) {
-      if (!isFirestoreQuotaExceeded) {
-        isFirestoreQuotaExceeded = true;
-        try {
-          fs.writeFileSync(
-            quotaFlagPath,
-            JSON.stringify({ timestamp: Date.now(), reason: err?.message || "RESOURCE_EXHAUSTED" }),
-            "utf-8"
-          );
-        } catch (_) {}
-        if (dbClient) {
-          try {
-            terminateFirestore(dbClient).catch(() => {});
-          } catch (_) {}
-          dbClient = null;
-        }
-        console.warn("[FIREBASE] Daily write quota exceeded. Terminated Firestore client instance and seamlessly switched persistence strictly to local file storage.");
+  function getAdminAuthInstance() {
+    try {
+      if (getAdminApps().length > 0) {
+        return getAdminAuth(getAdminApp());
       }
+      const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+      if (fs.existsSync(configPath)) {
+        const cfg = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+        if (cfg.projectId && !String(cfg.projectId).startsWith("remixed-")) {
+          const adminApp = initializeAdminApp({ projectId: cfg.projectId });
+          return getAdminAuth(adminApp);
+        }
+      }
+    } catch (err) {
+      console.warn("[FIREBASE ADMIN] Auth init notice:", err);
+    }
+    return null;
+  }
+
+  async function verifyFirebaseAdminRequest(req: express.Request): Promise<{ ok: boolean; status: number; email?: string; error?: string }> {
+    const authHeader = req.headers.authorization || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return { ok: false, status: 403, error: "Forbidden: Verified admin Firebase token required" };
+    }
+    const idToken = authHeader.slice("Bearer ".length).trim();
+    if (!idToken) {
+      return { ok: false, status: 403, error: "Forbidden: Empty Bearer token" };
+    }
+    const adminAuth = getAdminAuthInstance();
+    if (!adminAuth) {
+      return { ok: false, status: 500, error: "Firebase Auth verifier not configured" };
+    }
+    try {
+      const decoded = await adminAuth.verifyIdToken(idToken);
+      if (!decoded.email_verified || decoded.email?.toLowerCase() !== ADMIN_EMAIL) {
+        return { ok: false, status: 403, error: "Forbidden: Admin privileges required" };
+      }
+      return { ok: true, status: 200, email: decoded.email };
+    } catch (err: any) {
+      return { ok: false, status: 403, error: "Forbidden: Invalid or expired Firebase ID token" };
     }
   }
 
-  function getFirebaseDB() {
-    if (isFirestoreQuotaExceeded) return null;
-    if (dbClient) return dbClient;
-    try {
-      const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-      if (fs.existsSync(configPath)) {
-        const configRaw = fs.readFileSync(configPath, "utf-8");
-        const config = JSON.parse(configRaw);
-        
-        const firebaseConfig = {
-          apiKey: config.apiKey,
-          authDomain: config.authDomain,
-          projectId: config.projectId,
-          storageBucket: config.storageBucket,
-          messagingSenderId: config.messagingSenderId,
-          appId: config.appId
-        };
-
-        if (getClientApps().length === 0) {
-          initClientApp(firebaseConfig);
-        }
-        
-        const app = getClientApp();
-        const dbId = config.firestoreDatabaseId || process.env.FIRESTORE_DATABASE_ID || "ai-studio-4c46b102-5ec1-4f13-b6a7-8d1159b686ab";
-        if (dbId) {
-          dbClient = getClientFirestore(app, dbId);
-        } else {
-          dbClient = getClientFirestore(app);
-        }
-        console.log("[FIREBASE] Client initialized successfully with database ID:", dbId);
-      } else {
-        console.warn("[FIREBASE] firebase-applet-config.json not found! Falling back to local file storage.");
+  function filterPublicConfig(config: any) {
+    const publicOnly: Record<string, any> = {};
+    for (const key of PUBLIC_CONFIG_KEYS) {
+      if (config && config[key] !== undefined) {
+        publicOnly[key] = config[key];
       }
-    } catch (err) {
-      console.error("[FIREBASE] Client initialization failed:", err);
     }
-    return dbClient;
+    return publicOnly;
   }
 
   function sanitizeConfig(config: any) {
@@ -591,11 +577,9 @@ export async function createExpressApp() {
   }
 
   async function getDurableConfig() {
-    const firebaseDb = getFirebaseDB();
     const localPath = path.join(process.cwd(), "public/custom_configs.json");
     const { promises: fsPromises } = await import("fs");
-    
-    // Read local fallback as base
+
     let currentLocal: any = {};
     try {
       const localData = await fsPromises.readFile(localPath, "utf-8");
@@ -617,37 +601,10 @@ export async function createExpressApp() {
       };
     }
 
-    let mergedConfig = currentLocal;
-
-    if (firebaseDb) {
-      try {
-        const docRef = getClientDoc(firebaseDb, "portalSettings", "globalConfigs");
-        // Race Firestore fetch with a strict 800ms timeout to avoid hanging on quota limits or network slowdowns
-        const docSnapPromise = getClientGetDoc(docRef);
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 800));
-        const docSnap: any = await Promise.race([docSnapPromise, timeoutPromise]);
-
-        if (docSnap && typeof docSnap.exists === 'function' && docSnap.exists()) {
-          const data = docSnap.data();
-          mergedConfig = { ...currentLocal, ...data };
-        }
-      } catch (err: any) {
-        handleFirestoreError(err);
-        if (!isFirestoreQuotaExceeded) {
-          console.warn("[FIREBASE] Failed to fetch config from Firestore, using local fallback:", err?.message || err);
-        }
-        mergedConfig = currentLocal;
-      }
-    }
-
-    // Apply strict sanitization before returning
-    const sanitized = sanitizeConfig(mergedConfig);
-    
-    // If anything was modified, update local and Firestore durably
+    const sanitized = sanitizeConfig(currentLocal);
     const rawClean = JSON.stringify(sanitized);
-    const rawIncoming = JSON.stringify(mergedConfig);
+    const rawIncoming = JSON.stringify(currentLocal);
     if (rawClean !== rawIncoming) {
-      console.log("[SANITIZER] Config cleanup triggered. Writing sanitized config back to local storage & background Firestore.");
       saveDurableConfig(sanitized).catch(() => {});
     }
 
@@ -655,37 +612,14 @@ export async function createExpressApp() {
   }
 
   async function saveDurableConfig(newConfig: any) {
-    const firebaseDb = getFirebaseDB();
     const localPath = path.join(process.cwd(), "public/custom_configs.json");
-
-    // Pre-sanitize any incoming saves
     const sanitizedConfig = sanitizeConfig(newConfig);
 
     try {
       fs.writeFileSync(localPath, JSON.stringify(sanitizedConfig, null, 2), "utf-8");
     } catch (err) {
-      console.warn("[FIREBASE] Failed to save config to local fallback file:", err);
+      console.warn("[CONFIG] Failed to save config to local fallback file:", err);
     }
-
-    if (!firebaseDb || isFirestoreQuotaExceeded) {
-      return;
-    }
-
-    // Non-blocking background Firestore save with 1s timeout race
-    const docRef = getClientDoc(firebaseDb, "portalSettings", "globalConfigs");
-    const writePromise = getClientSetDoc(docRef, sanitizedConfig).catch((err: any) => {
-      handleFirestoreError(err);
-      if (!isFirestoreQuotaExceeded) {
-        console.warn("[FIREBASE] Firestore write notice (quota or network):", err?.message || err);
-      }
-    });
-
-    Promise.race([
-      writePromise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore write timeout")), 1000))
-    ]).then(() => {
-      console.log("[FIREBASE] Config updated in Firestore durably and sanitized perfectly.");
-    }).catch(() => {});
   }
 
   // Helper to persist generated passcodes
@@ -742,8 +676,12 @@ export async function createExpressApp() {
     return res.json({ valid: false });
   });
 
-  // API Route - Register Passcode globally
+  // API Route - Register Passcode globally (Admin only)
   app.post("/api/register-passcode", async (req, res) => {
+    const authCheck = await verifyFirebaseAdminRequest(req);
+    if (!authCheck.ok) {
+      return res.status(authCheck.status).json({ success: false, error: authCheck.error });
+    }
     const { passcode } = req.body;
     if (passcode && typeof passcode === 'string') {
       await savePasscodesToConfig([passcode]);
@@ -1652,60 +1590,22 @@ export async function createExpressApp() {
     }
   });
 
-  // Google Drive API Token Memory & Persistence
-  let serverDriveToken: string | null = (() => {
-    try {
-      const tokenPath = path.join(process.cwd(), "shadow_gdrive_config.json");
-      if (fs.existsSync(tokenPath)) {
-        const config = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
-        return config.accessToken || config.token || null;
-      }
-    } catch (e) {}
-    return null;
-  })();
+  // Google Drive API Token Memory Cache (in-memory only; never persisted to disk or Firestore)
+  let serverDriveToken: string | null = null;
+  try {
+    const legacyTokenPath = path.join(process.cwd(), "shadow_gdrive_config.json");
+    if (fs.existsSync(legacyTokenPath)) {
+      fs.unlinkSync(legacyTokenPath);
+    }
+  } catch (_) {}
 
   const getServerDriveToken = async (): Promise<string | null> => {
-    if (serverDriveToken) return serverDriveToken;
-    try {
-      const tokenPath = path.join(process.cwd(), "shadow_gdrive_config.json");
-      if (fs.existsSync(tokenPath)) {
-        const config = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
-        if (config.accessToken) {
-          serverDriveToken = config.accessToken;
-          return serverDriveToken;
-        }
-      }
-      const firebaseDb = getFirebaseDB();
-      if (firebaseDb) {
-        const docRef = getClientDoc(firebaseDb, "portalSettings", "gdriveConfig");
-        const docSnap = await getClientGetDoc(docRef);
-        if (docSnap.exists() && docSnap.data()?.accessToken) {
-          serverDriveToken = docSnap.data().accessToken;
-          return serverDriveToken;
-        }
-      }
-    } catch (e) {}
-    return null;
+    return serverDriveToken;
   };
 
-  let lastPersistedToken = "";
   const persistServerDriveToken = (token: string) => {
-    if (!token || token === lastPersistedToken) return;
-    lastPersistedToken = token;
+    if (!token) return;
     serverDriveToken = token;
-    try {
-      const tokenPath = path.join(process.cwd(), "shadow_gdrive_config.json");
-      fs.writeFileSync(tokenPath, JSON.stringify({ accessToken: token, updatedAt: new Date().toISOString() }, null, 2));
-      const firebaseDb = getFirebaseDB();
-      if (firebaseDb && !isFirestoreQuotaExceeded) {
-        const docRef = getClientDoc(firebaseDb, "portalSettings", "gdriveConfig");
-        getClientSetDoc(docRef, { accessToken: token, updatedAt: new Date().toISOString() }, { merge: true }).catch((err) => {
-          handleFirestoreError(err);
-        });
-      }
-    } catch (e) {
-      console.warn("[Server Drive Token] Error persisting token:", e);
-    }
   };
 
   // API Route - Google Drive Files & Audio Scanner Proxy
@@ -1868,70 +1768,138 @@ export async function createExpressApp() {
     return res.json(info);
   });
 
-  // API Route - Direct Music Sync from Google Drive
+  // API Route - Direct Music Sync from Google Drive (including subfolders as playlists)
   app.get("/api/drive/sync-music", async (req, res) => {
     const accessToken = (req.headers.authorization || "").replace("Bearer ", "").trim() || (req.query.accessToken as string) || (await getServerDriveToken()) || "";
-    if (accessToken) {
-      persistServerDriveToken(accessToken);
-    }
 
     if (!accessToken) {
-      return res.status(401).json({ error: "Missing Google Drive access token. Please connect Google Drive." });
+      return res.status(401).json({ error: "Missing Google Drive access token. Please sign in with Google." });
     }
+    persistServerDriveToken(accessToken);
 
     try {
-      // 1. Search for a folder named "Music" / "music" / "My Music"
-      let targetFolderId: string | null = null;
-      const findUrl = new URL("https://www.googleapis.com/drive/v3/files");
-      findUrl.searchParams.set("q", "(name = 'Music' or name = 'music' or name = 'MY MUSIC' or name = 'My Music' or name = 'Music Folder') and mimeType = 'application/vnd.google-apps.folder' and trashed = false");
-      findUrl.searchParams.set("pageSize", "5");
-      findUrl.searchParams.set("fields", "files(id, name)");
+      const fetchDriveQuery = async (q: string) => {
+        const items: any[] = [];
+        let pageToken: string | undefined = undefined;
+        let pages = 0;
+        while (pages < 25) {
+          pages++;
+          const url = new URL("https://www.googleapis.com/drive/v3/files");
+          url.searchParams.set("q", q);
+          url.searchParams.set("pageSize", "200");
+          url.searchParams.set("fields", "nextPageToken, files(id, name, mimeType, size, parents, webViewLink, webContentLink)");
+          url.searchParams.set("orderBy", "folder,name");
+          if (pageToken) url.searchParams.set("pageToken", pageToken);
 
-      const findRes = await fetch(findUrl.toString(), {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
+          const gRes = await fetch(url.toString(), {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+          if (!gRes.ok) {
+            const errText = await gRes.text();
+            const err: any = new Error(errText);
+            err.status = gRes.status;
+            throw err;
+          }
+          const data = await gRes.json();
+          if (Array.isArray(data.files)) items.push(...data.files);
+          pageToken = data.nextPageToken;
+          if (!pageToken || !data.files?.length) break;
+        }
+        return items;
+      };
 
-      if (findRes.ok) {
-        const findData = await findRes.json();
-        if (findData.files && findData.files.length > 0) {
-          targetFolderId = findData.files[0].id;
+      // 1. Search for a folder named "Music" / "music" / "My Music" / "Music Folder"
+      const candidateFolders = await fetchDriveQuery(
+        "(name = 'Music' or name = 'music' or name = 'MY MUSIC' or name = 'My Music' or name = 'Music Folder') and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+      );
+      const targetFolderId: string | null = candidateFolders.length > 0 ? candidateFolders[0].id : null;
+
+      const audioCondition = "(mimeType contains 'audio' or name contains '.mp3' or name contains '.m4a' or name contains '.flac' or name contains '.wav' or name contains '.ogg' or name contains '.aac' or name contains '.wma' or name contains '.opus')";
+      const folderPlaylists: string[] = [];
+      const collectedFiles: Array<{ fileId: string; name: string; size?: string; mimeType?: string; playlists: string[]; webViewLink?: string; webContentLink?: string }> = [];
+      const seenFileIds = new Set<string>();
+
+      const addAudioFile = (f: any, playlistName?: string) => {
+        if (!f || !f.id || f.mimeType === "application/vnd.google-apps.folder") return;
+        if (seenFileIds.has(f.id)) {
+          if (playlistName) {
+            const existing = collectedFiles.find(x => x.fileId === f.id);
+            if (existing && !existing.playlists.includes(playlistName)) {
+              existing.playlists.push(playlistName);
+            }
+          }
+          return;
+        }
+        seenFileIds.add(f.id);
+        collectedFiles.push({
+          fileId: f.id,
+          name: f.name,
+          size: f.size,
+          mimeType: f.mimeType,
+          webViewLink: f.webViewLink,
+          webContentLink: f.webContentLink,
+          playlists: playlistName ? [playlistName] : []
+        });
+      };
+
+      if (targetFolderId) {
+        // 2a. Get audio files directly inside the root Music folder
+        const rootFiles = await fetchDriveQuery(`'${targetFolderId}' in parents and trashed = false and ${audioCondition}`);
+        for (const f of rootFiles) addAudioFile(f);
+
+        // 2b. Get subfolders inside Music folder -> each subfolder becomes a playlist
+        const subfolders = await fetchDriveQuery(`'${targetFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
+        for (const sub of subfolders) {
+          if (!sub.name) continue;
+          if (!folderPlaylists.includes(sub.name)) {
+            folderPlaylists.push(sub.name);
+          }
+          const subFiles = await fetchDriveQuery(`'${sub.id}' in parents and trashed = false and ${audioCondition}`);
+          for (const f of subFiles) {
+            addAudioFile(f, sub.name);
+          }
         }
       }
 
-      // 2. Query audio files
-      let q = "trashed = false and (mimeType contains 'audio' or name contains '.mp3' or name contains '.m4a' or name contains '.flac' or name contains '.wav' or name contains '.ogg' or name contains '.aac' or name contains '.wma' or name contains '.opus')";
-      if (targetFolderId) {
-        q = `'${targetFolderId}' in parents and ${q}`;
+      // 3. Fallback: if Music folder had 0 files or doesn't exist, scan all audio files across Drive and group by parent folder
+      if (collectedFiles.length === 0) {
+        const allAudio = await fetchDriveQuery(`trashed = false and ${audioCondition}`);
+        const parentIds = Array.from(new Set(allAudio.flatMap(f => Array.isArray(f.parents) ? f.parents : []).filter(Boolean)));
+        const parentNameMap = new Map<string, string>();
+        for (const pid of parentIds.slice(0, 30)) {
+          try {
+            const pRes = await fetch(`https://www.googleapis.com/drive/v3/files/${pid}?fields=id,name`, {
+              headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            if (pRes.ok) {
+              const pData = await pRes.json();
+              if (pData?.name && pData.name.toLowerCase() !== "my drive") {
+                parentNameMap.set(pid, pData.name);
+                if (!folderPlaylists.includes(pData.name)) {
+                  folderPlaylists.push(pData.name);
+                }
+              }
+            }
+          } catch (_) {}
+        }
+
+        for (const f of allAudio) {
+          const firstParent = Array.isArray(f.parents) ? f.parents[0] : undefined;
+          const pName = firstParent ? parentNameMap.get(firstParent) : undefined;
+          addAudioFile(f, pName);
+        }
       }
-
-      const searchUrl = new URL("https://www.googleapis.com/drive/v3/files");
-      searchUrl.searchParams.set("q", q);
-      searchUrl.searchParams.set("pageSize", "500");
-      searchUrl.searchParams.set("fields", "files(id, name, mimeType, size)");
-
-      const searchRes = await fetch(searchUrl.toString(), {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-
-      if (!searchRes.ok) {
-        const errText = await searchRes.text();
-        return res.status(searchRes.status).json({ error: errText });
-      }
-
-      const searchData = await searchRes.json();
-      const files = (searchData.files || []).map((f: any) => ({
-        fileId: f.id,
-        name: f.name
-      }));
 
       return res.json({
         folderId: targetFolderId,
-        count: files.length,
-        files
+        playlists: ["All", ...folderPlaylists],
+        count: collectedFiles.length,
+        files: collectedFiles
       });
     } catch (err: any) {
       console.error("[Drive Sync Music] Error:", err);
-      return res.status(500).json({ error: err.message });
+      const status = err?.status && typeof err.status === "number" ? err.status : 500;
+      return res.status(status).json({ error: err.message });
     }
   });
 
@@ -2301,14 +2269,6 @@ export async function createExpressApp() {
           totalCount: tracks.length
         };
 
-        const firebaseDb = getFirebaseDB();
-        if (firebaseDb && !isFirestoreQuotaExceeded) {
-          const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
-          await getClientSetDoc(docRef, payload, { merge: true }).catch((err) => {
-            handleFirestoreError(err);
-          });
-        }
-
         const musicFilePath = path.join(process.cwd(), "shadow_music_library.json");
         fs.writeFileSync(musicFilePath, JSON.stringify(payload, null, 2));
         console.log(`[Music Auto-Sync] Automatically synced and saved ${tracks.length} Google Drive songs to server library!`);
@@ -2323,21 +2283,9 @@ export async function createExpressApp() {
   // Run initial server background sync disabled to allow user clean state
   // if (serverDriveToken) { fetchAndSaveDriveMusicToServer().catch(() => {}); }
 
-  // API Route - Get Persisted Music Library from Firestore/File
+  // API Route - Get Persisted Music Library from local server fallback
   app.get("/api/music/library", async (req, res) => {
     try {
-      const firebaseDb = getFirebaseDB();
-      if (firebaseDb) {
-        const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
-        const docSnap = await getClientGetDoc(docRef);
-        if (docSnap.exists() && docSnap.data().tracks && Array.isArray(docSnap.data().tracks) && docSnap.data().tracks.length > 0) {
-          return res.json({
-            tracks: docSnap.data().tracks,
-            playlists: docSnap.data().playlists || ['All'],
-            syncedAt: docSnap.data().syncedAt
-          });
-        }
-      }
 
       // Fallback to local storage file if Firestore empty or unavailable
       const musicFilePath = path.join(process.cwd(), "shadow_music_library.json");
@@ -2426,9 +2374,14 @@ export async function createExpressApp() {
     }
   });
 
-  // API Route - Save/Update Persisted Music Library to Firestore/File
+  // API Route - Save/Update Persisted Music Library (Admin-only)
   app.post("/api/music/library", async (req, res) => {
     try {
+      const authCheck = await verifyFirebaseAdminRequest(req);
+      if (!authCheck.ok) {
+        return res.status(authCheck.status).json({ error: authCheck.error });
+      }
+
       const { tracks, playlists } = req.body || {};
       if (!Array.isArray(tracks)) {
         return res.status(400).json({ error: "Invalid payload: 'tracks' array required" });
@@ -2441,21 +2394,6 @@ export async function createExpressApp() {
         totalCount: tracks.length
       };
 
-      const firebaseDb = getFirebaseDB();
-      if (firebaseDb && !isFirestoreQuotaExceeded) {
-        try {
-          const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
-          await getClientSetDoc(docRef, payload, { merge: true });
-          console.log(`[Music API] Saved ${tracks.length} tracks to Firestore document 'portalSettings/musicLibrary'.`);
-        } catch (fsErr: any) {
-          handleFirestoreError(fsErr);
-          if (!isFirestoreQuotaExceeded) {
-            console.warn(`[Music API] Firestore write notice (quota or network):`, fsErr?.message || fsErr);
-          }
-        }
-      }
-
-      // Always write local fallback file as well
       const musicFilePath = path.join(process.cwd(), "shadow_music_library.json");
       fs.writeFileSync(musicFilePath, JSON.stringify(payload, null, 2));
 
@@ -2466,23 +2404,15 @@ export async function createExpressApp() {
     }
   });
 
-  // API Route - Clear Persisted Music Library
+  // API Route - Clear Persisted Music Library (Admin-only)
   app.delete("/api/music/library", async (req, res) => {
     try {
-      const payload = { tracks: [], syncedAt: new Date().toISOString(), totalCount: 0 };
-      const firebaseDb = getFirebaseDB();
-      if (firebaseDb && !isFirestoreQuotaExceeded) {
-        try {
-          const docRef = getClientDoc(firebaseDb, "portalSettings", "musicLibrary");
-          await getClientSetDoc(docRef, payload);
-        } catch (fsErr: any) {
-          handleFirestoreError(fsErr);
-          if (!isFirestoreQuotaExceeded) {
-            console.warn(`[Music API] Firestore clear notice (quota or network):`, fsErr?.message || fsErr);
-          }
-        }
+      const authCheck = await verifyFirebaseAdminRequest(req);
+      if (!authCheck.ok) {
+        return res.status(authCheck.status).json({ error: authCheck.error });
       }
 
+      const payload = { tracks: [], syncedAt: new Date().toISOString(), totalCount: 0 };
       const musicFilePath = path.join(process.cwd(), "shadow_music_library.json");
       if (fs.existsSync(musicFilePath)) {
         fs.writeFileSync(musicFilePath, JSON.stringify(payload, null, 2));
@@ -2554,20 +2484,29 @@ export async function createExpressApp() {
     return merged;
   }
 
-  // API Route - Get Configs
+  // API Route - Get Configs (unauthenticated receives non-PII public catalog only; verified admin receives full config)
   app.get("/api/configs", async (req, res) => {
     try {
       const config = await getDurableConfig();
-      return res.json(config);
+      const authCheck = await verifyFirebaseAdminRequest(req);
+      if (authCheck.ok) {
+        return res.json(config);
+      }
+      return res.json(filterPublicConfig(config));
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  // API Route - Update Configs
+  // API Route - Update Configs (Strict verified Admin only)
   app.post("/api/configs", async (req, res) => {
     try {
-      const newConfig = req.body;
+      const authCheck = await verifyFirebaseAdminRequest(req);
+      if (!authCheck.ok) {
+        return res.status(authCheck.status).json({ error: authCheck.error });
+      }
+
+      const newConfig = req.body && typeof req.body === "object" ? req.body : {};
       const currentConfig = await getDurableConfig();
       const updatedConfig = { ...currentConfig, ...newConfig };
       await saveDurableConfig(updatedConfig);
@@ -2576,6 +2515,11 @@ export async function createExpressApp() {
       res.status(500).json({ error: error.message });
     }
   });
+
+  // Serve static assets from public directory
+  app.use(express.static(path.join(process.cwd(), "public")));
+
+
 
   // Vite middleware for development vs static serve for production
   if (process.env.NODE_ENV !== "production") {

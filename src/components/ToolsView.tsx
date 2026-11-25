@@ -4,6 +4,7 @@ import { TOOLS as STATIC_TOOLS } from '../constants';
 import { Terminal, Cpu, Database, ExternalLink, Download } from 'lucide-react';
 import { Tool } from '../types';
 import { getDownloadCount, incrementDownloadCount } from '../utils/downloadTracker';
+import DrivePickerTrigger from './DrivePickerModal';
 
 import cyberTerminalBg from '../assets/images/cyber_terminal_tool_bg_1781609678510.jpg';
 import hardwareDiagnosticsBg from '../assets/images/hardware_diagnostics_bg_1781609697998.jpg';
@@ -85,6 +86,9 @@ export default function ToolsView() {
 
     for (const tool of mapped) {
       if (!tool || !tool.name) continue;
+      if (tool.name.toLowerCase().includes('technocal')) {
+        tool.name = tool.name.replace(/technocal/gi, 'technical');
+      }
       const normName = tool.name.trim().toLowerCase();
       if (!seenNames.has(normName)) {
         seenNames.add(normName);
@@ -165,6 +169,21 @@ export default function ToolsView() {
 
   return (
     <div className="h-full flex flex-col bg-neutral-950">
+      <div className="px-5 py-3.5 border-b border-neutral-900 bg-neutral-950/90 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-purple-300">
+            Google Drive Integration
+          </p>
+          <p className="text-[11px] text-neutral-400">
+            Browse and preview files directly from your Google Drive with Google Picker.
+          </p>
+        </div>
+        <DrivePickerTrigger
+          viewMode="all"
+          label="Open Google Picker"
+          className="px-4 py-2 rounded-xl bg-purple-950/70 hover:bg-purple-900/80 border border-purple-500/45 text-purple-100 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-2"
+        />
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-b border-neutral-900">
         {tools.map((tool, idx) => {
           const Tag = motion.div;

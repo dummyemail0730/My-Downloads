@@ -320,7 +320,7 @@
     {
       "description": "Sergei Strelec",
       "id": "1780907612498",
-      "name": "technocal toolkit",
+      "name": "technical toolkit",
       "link": "https://drive.google.com/file/d/1X-5SPugrF5vMcfbQwEf9W9bcl2olDxNH/view?usp=sharing",
       "category": "G: DRIVE"
     },
@@ -1087,7 +1087,7 @@
       "user": "User 02",
       "date": "02:36:24 PM",
       "id": "log_1782801384756_567102",
-      "text": "[User 02] Downloaded \"technocal toolkit\" from Maintenance Tools",
+      "text": "[User 02] Downloaded \"technical toolkit\" from Maintenance Tools",
       "type": "action"
     },
     {
@@ -1578,7 +1578,7 @@
       "date": "04:08:57 AM",
       "user": "User 02",
       "type": "action",
-      "text": "[User 02] Downloaded \"technocal toolkit\" from Maintenance Tools"
+      "text": "[User 02] Downloaded \"technical toolkit\" from Maintenance Tools"
     },
     {
       "text": "[User 02] Switched category tab to: \"TOOLS\"",

@@ -1,16 +1,31 @@
 import React, { useState, useEffect, useRef, MouseEvent, PointerEvent } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import {
+  auth,
+  isFirebaseAdminUser,
+  hasStrictAdminAuthority,
+  getAdminIdToken,
+  loadPublicCatalogFromFirestore,
+  loadPrivateGlobalConfigsFromFirestore,
+  loadMusicLibraryFromFirestore,
+  syncPrivateGlobalConfigsToFirestore,
+  flushAllLocalCatalogAndConfigsToFirestore,
+} from './firebase';
+import { googleSignIn } from './lib/googleAuth';
 import { motion, AnimatePresence } from 'motion/react';
 import { Folder, RotateCcw, User, Copy, Check, X, Shield, Mail, Github, Phone, ChevronLeft, Key, Terminal, Wrench, Lock, Unlock, AlertTriangle, ArrowLeft, Eye, EyeOff, Clock, ArrowRight, ShieldCheck, Clipboard, Calendar, Mic, MicOff } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import SoftwareView from './components/SoftwareView';
-import AnimeView from './components/AnimeView';
-import MusicView from './components/MusicView';
+import GmailView from './components/GmailView';
 import ToolsView from './components/ToolsView';
 import ExpertiseView from './components/ExpertiseView';
 import SupportView from './components/SupportView';
 import ShadowProject from './components/ShadowProject';
 import LoadingScreen from './components/LoadingScreen';
 import ShadowLoreView from './components/ShadowLoreView';
+import ShadowHubLanding from './components/ShadowHubLanding';
+import ShadowDenPortal from './components/ShadowDenPortal';
+import ShadowDenLoadingScreen from './components/ShadowDenLoadingScreen';
 import RedirectLoader from './components/RedirectLoader';
 import LogUpdateModal from './components/LogUpdateModal';
 import shadowBg from './assets/images/shadow_master_atomic_1779279129608.png';
@@ -22,8 +37,7 @@ import { PROJECTS as STATIC_PROJECTS, TOOLS as STATIC_TOOLS } from './constants'
 // TABS config for sidebar tabs
 const TABS = [
   { id: 'SOFTWARE', label: 'Software' },
-  { id: 'ANIME', label: 'Anime' },
-  { id: 'GAMES', label: 'Music' },
+  { id: 'GMAIL', label: 'Gmail' },
   { id: 'TOOLS', label: 'Tools' }
 ];
 
@@ -216,6 +230,8 @@ export default function App() {
   const activeTrack = playlist[currentTrackIndex] || playlist[0] || STATIC_PLAYLIST[0];
 
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+  const [firebaseAdminConnected, setFirebaseAdminConnected] = useState<boolean>(() => isFirebaseAdminUser());
+  const [isSyncingFirebaseAdmin, setIsSyncingFirebaseAdmin] = useState<boolean>(false);
   const [passcode, setPasscode] = useState('');
   const [authError, setAuthError] = useState('');
   const [showOverrideInput, setShowOverrideInput] = useState(false);
@@ -385,17 +401,29 @@ export default function App() {
 
   // Load chat history of current user on startup if exists
   useEffect(() => {
-    // Pre-fetch Google Drive Music Library in background as soon as portal initializes
-    fetch('/api/music/library')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.tracks && data.tracks.length > 0) {
-          try {
-            localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(data.tracks));
-          } catch (e) {}
+    // Pre-fetch Google Drive Music Library from Firebase Firestore first (falling back to /api/music/library)
+    (async () => {
+      try {
+        const fsLib = await loadMusicLibraryFromFirestore().catch(() => null);
+        if (fsLib && Array.isArray(fsLib.tracks) && fsLib.tracks.length > 0) {
+          localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(fsLib.tracks));
+          if (Array.isArray(fsLib.playlists) && fsLib.playlists.length > 0) {
+            localStorage.setItem('shadow_music_playlists', JSON.stringify(fsLib.playlists));
+          }
+          return;
         }
-      })
-      .catch(err => console.warn('Background portal music sync:', err));
+        const res = await fetch('/api/music/library');
+        const data = await res.json();
+        if (data && data.tracks && data.tracks.length > 0) {
+          localStorage.setItem('shadow_gdrive_tracks', JSON.stringify(data.tracks));
+          if (Array.isArray(data.playlists) && data.playlists.length > 0) {
+            localStorage.setItem('shadow_music_playlists', JSON.stringify(data.playlists));
+          }
+        }
+      } catch (err) {
+        console.warn('Background portal music sync:', err);
+      }
+    })();
 
     let userNumStr = localStorage.getItem('shadow_user_number');
     if (userNumStr) {
@@ -530,185 +558,143 @@ export default function App() {
   });
   const [guestSessionExpired, setGuestSessionExpired] = useState(false);
 
-  // Periodic background polling for configurations to synchronize data dynamically across tabs and devices
+  // Track Firebase Admin Google Auth session and automatically flush local edits upon verified admin login
   useEffect(() => {
-    const fetchConfigs = () => {
-      fetch('/api/configs')
-        .then(res => {
-          if (!res.ok) throw new Error('Response error');
-          return res.json();
-        })
-        .then(data => {
-          if (!data) return;
-          
-          let hasAnyDiff = false;
-          
-          // Verify and sync console link if different
-          if (data.admin_console_link) {
-            const currentVal = localStorage.getItem('admin_console_link');
-            if (currentVal !== data.admin_console_link) {
-              if ((window as any)._origSetItem) {
-                (window as any)._origSetItem.call(localStorage, 'admin_console_link', data.admin_console_link);
-              } else {
-                localStorage.setItem('admin_console_link', data.admin_console_link);
-              }
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setFirebaseAdminConnected(isFirebaseAdminUser(user));
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const handleAdminAuth = () => {
+      setIsGuestMode(false);
+      setIsAuthorized(true);
+    };
+    window.addEventListener('shadow_admin_authenticated', handleAdminAuth);
+    return () => window.removeEventListener('shadow_admin_authenticated', handleAdminAuth);
+  }, []);
+
+  useEffect(() => {
+    if (isAuthorized && !isGuestMode && firebaseAdminConnected) {
+      flushAllLocalCatalogAndConfigsToFirestore().catch(() => {});
+    }
+  }, [isAuthorized, isGuestMode, firebaseAdminConnected]);
+
+  // Periodic read-only synchronization from Firebase Firestore (and authenticated Express fallback)
+  useEffect(() => {
+    const writeNativeLocal = (k: string, v: string) => {
+      if ((window as any)._origSetItem) {
+        (window as any)._origSetItem.call(localStorage, k, v);
+      } else {
+        localStorage.setItem(k, v);
+      }
+    };
+
+    const fetchConfigs = async () => {
+      try {
+        const isStrictAdmin = hasStrictAdminAuthority();
+        const idToken = isStrictAdmin ? await getAdminIdToken() : null;
+
+        const [fsPublic, fsPrivate, serverData] = await Promise.all([
+          loadPublicCatalogFromFirestore().catch(() => null),
+          isStrictAdmin ? loadPrivateGlobalConfigsFromFirestore().catch(() => null) : Promise.resolve(null),
+          fetch('/api/configs', {
+            headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
+          })
+            .then((res) => (res.ok ? res.json() : null))
+            .catch(() => null),
+        ]);
+
+        // Authoritative hierarchy: Server fallback -> Firestore Private (admin only) -> Firestore Public Catalog
+        const merged: Record<string, any> = {
+          ...(serverData && typeof serverData === 'object' ? serverData : {}),
+          ...(fsPrivate && typeof fsPrivate === 'object' ? fsPrivate : {}),
+          ...(fsPublic && typeof fsPublic === 'object'
+            ? Object.fromEntries(Object.entries(fsPublic).filter(([, val]) => val !== undefined))
+            : {}),
+        };
+
+        if (Object.keys(merged).length === 0) return;
+
+        let hasAnyDiff = false;
+
+        if (typeof merged.admin_console_link === 'string' && merged.admin_console_link.trim()) {
+          const currentVal = localStorage.getItem('admin_console_link');
+          if (currentVal !== merged.admin_console_link) {
+            writeNativeLocal('admin_console_link', merged.admin_console_link);
+            hasAnyDiff = true;
+          }
+        }
+
+        const deletedList: string[] = Array.isArray(merged.deleted_item_ids)
+          ? merged.deleted_item_ids.map(String)
+          : [];
+        if (Array.isArray(merged.deleted_item_ids)) {
+          const deletedStr = JSON.stringify(deletedList);
+          if (localStorage.getItem('deleted_item_ids') !== deletedStr) {
+            writeNativeLocal('deleted_item_ids', deletedStr);
+            hasAnyDiff = true;
+          }
+        }
+
+        const publicSyncKeys = [
+          'custom_projects',
+          'custom_anime',
+          'custom_games',
+          'shadow_master_tutorials',
+          'custom_tools',
+        ];
+
+        for (const key of publicSyncKeys) {
+          const serverVal = merged[key];
+          if (Array.isArray(serverVal)) {
+            const cleanedList = serverVal.filter((item: any) => {
+              if (!item) return false;
+              const id = item.id !== undefined ? String(item.id) : String(item.name || item.title || '');
+              return !id || !deletedList.includes(id);
+            });
+            const nextStr = JSON.stringify(cleanedList);
+            if (localStorage.getItem(key) !== nextStr) {
+              writeNativeLocal(key, nextStr);
               hasAnyDiff = true;
             }
           }
+        }
 
-          const syncKeys = [
-            'custom_projects',
-            'custom_anime',
-            'custom_games',
-            'shadow_master_tutorials',
-            'custom_tools',
-            'deleted_item_ids',
-            'user_suggestions',
-            'user_appointments',
-            'user_shout_outs',
-            'user_activity_logs'
-          ];
-
-          const payloadToUpload: Record<string, any> = {};
-          let needsUpload = false;
-
-          let deletedIds: string[] = [];
-          try {
-            const serverDeleted = data.deleted_item_ids;
-            const localDeletedStr = localStorage.getItem('deleted_item_ids');
-            const localDeleted = localDeletedStr ? JSON.parse(localDeletedStr) : [];
-            const combined = new Set([
-              ...(Array.isArray(serverDeleted) ? serverDeleted : []),
-              ...(Array.isArray(localDeleted) ? localDeleted : [])
-            ]);
-            deletedIds = Array.from(combined).map(String);
-          } catch (e) {}
-
-          syncKeys.forEach(key => {
-            const localKeyName = (key === 'user_suggestions') ? 'shadow_suggestions' :
-                                 (key === 'user_appointments') ? 'shadow_appointments' :
-                                 (key === 'user_shout_outs') ? 'shadow_shout_outs_v3' :
-                                 (key === 'user_activity_logs') ? 'shadow_user_movements' : key;
-
-            if (key === 'deleted_item_ids') {
-              const serverVal = data.deleted_item_ids || [];
-              const localValStr = localStorage.getItem('deleted_item_ids');
-              let localVal: any[] = [];
-              try {
-                if (localValStr && localValStr.startsWith('[')) {
-                  localVal = JSON.parse(localValStr);
-                }
-              } catch (e) {}
-
-              const serverSet = new Set((Array.isArray(serverVal) ? serverVal : []).map(String));
-              const localSet = new Set((Array.isArray(localVal) ? localVal : []).map(String));
-              const mergedSet = new Set([...serverSet, ...localSet]);
-              
-              const mergedList = Array.from(mergedSet);
-              const mergedStr = JSON.stringify(mergedList);
-
-              if (localValStr !== mergedStr || JSON.stringify(serverVal) !== mergedStr) {
-                if ((window as any)._origSetItem) {
-                  (window as any)._origSetItem.call(localStorage, 'deleted_item_ids', mergedStr);
-                } else {
-                  localStorage.setItem('deleted_item_ids', mergedStr);
-                }
-                payloadToUpload.deleted_item_ids = mergedList;
-                needsUpload = true;
+        if (isStrictAdmin) {
+          const privateSyncMap: Record<string, string> = {
+            user_suggestions: 'shadow_suggestions',
+            user_appointments: 'shadow_appointments',
+            user_shout_outs: 'shadow_shout_outs_v3',
+            user_activity_logs: 'shadow_user_movements',
+          };
+          for (const [remoteKey, localKey] of Object.entries(privateSyncMap)) {
+            const remoteVal = merged[remoteKey];
+            if (Array.isArray(remoteVal)) {
+              const filteredRemote =
+                localKey === 'shadow_user_movements'
+                  ? remoteVal.filter((log: any) => !(log?.text && log.text.toLowerCase().includes('kgab0730')))
+                  : remoteVal;
+              const nextStr = JSON.stringify(filteredRemote);
+              if (localStorage.getItem(localKey) !== nextStr) {
+                writeNativeLocal(localKey, nextStr);
                 hasAnyDiff = true;
               }
-              return;
             }
-
-            const serverVal = data[key];
-            if (serverVal !== undefined && serverVal !== null) {
-              const currentLocalStr = localStorage.getItem(localKeyName);
-              
-              let localVal: any = null;
-              try {
-                if (currentLocalStr && (currentLocalStr.startsWith('[') || currentLocalStr.startsWith('{'))) {
-                  localVal = JSON.parse(currentLocalStr);
-                }
-              } catch (e) {}
-
-              const isServerEmpty = Array.isArray(serverVal) && serverVal.length === 0;
-              const isLocalEmpty = !localVal || (Array.isArray(localVal) && localVal.length === 0);
-
-              if (isServerEmpty && !isLocalEmpty) {
-                // Keep local values and schedule an upload to re-seed the restarted/reset server
-                payloadToUpload[key] = localVal;
-                needsUpload = true;
-              } else {
-                const serverList = Array.isArray(serverVal) ? serverVal : [];
-                const localList = Array.isArray(localVal) ? localVal : [];
-
-                const map = new Map();
-                
-                // Add server items (excluding deleted items)
-                serverList.forEach((item: any) => {
-                  if (item) {
-                    const id = item.id !== undefined ? String(item.id) : String(item.name || item.title || '');
-                    if (id && !deletedIds.includes(id)) {
-                      map.set(id, item);
-                    }
-                  }
-                });
-
-                // Add local items that do not exist yet on server
-                localList.forEach((item: any) => {
-                  if (item) {
-                     const id = item.id !== undefined ? String(item.id) : String(item.name || item.title || '');
-                     if (id && !deletedIds.includes(id) && !map.has(id)) {
-                       map.set(id, item);
-                     }
-                  }
-                });
-
-                let mergedList = Array.from(map.values());
-                if (localKeyName === 'shadow_user_movements') {
-                  mergedList = mergedList.filter((log: any) => !(log.text && log.text.toLowerCase().includes('kgab0730')));
-                }
-                const mergedStr = JSON.stringify(mergedList);
-
-                if (currentLocalStr !== mergedStr) {
-                  if ((window as any)._origSetItem) {
-                    (window as any)._origSetItem.call(localStorage, localKeyName, mergedStr);
-                  } else {
-                    localStorage.setItem(localKeyName, mergedStr);
-                  }
-                  hasAnyDiff = true;
-                }
-
-                if (JSON.stringify(serverVal) !== mergedStr) {
-                  payloadToUpload[key] = mergedList;
-                  needsUpload = true;
-                }
-              }
-            }
-          });
-
-          if (needsUpload) {
-            fetch('/api/configs', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(payloadToUpload)
-            }).catch(err => console.error('Failed to restore configs to server:', err));
           }
+        }
 
-          if (hasAnyDiff) {
-            // Dispatch dynamic update event to tell all mount instances to reload from localStorage
-            window.dispatchEvent(new Event('shadow_sync_update'));
-          }
-        })
-        .catch(err => {
-          // Silent fallback for transient fetch errors during background polling
-        });
+        if (hasAnyDiff) {
+          window.dispatchEvent(new Event('shadow_sync_update'));
+        }
+      } catch (_) {
+        // Silent fallback during background polling
+      }
     };
 
     fetchConfigs();
-    const pollInterval = setInterval(fetchConfigs, 1000); // Check every 1 second for instant replication
+    const pollInterval = setInterval(fetchConfigs, 3000); // Poll Firestore/backend every 3s cleanly without pushing visitor local state
 
     // Listen to native browser tab-to-tab localStorage modification events
     const handleStorageSync = (e: StorageEvent) => {
@@ -970,6 +956,9 @@ export default function App() {
 
   const handleLogout = () => {
     setIsAuthorized(false);
+    setActivePortal('hub');
+    setAppLoading(true);
+    setShowArchive(false);
     setIsGuestMode(false);
     setIsTimedGuestSession(false);
     setGuestLoginTime(null);
@@ -1014,7 +1003,9 @@ export default function App() {
     localStorage.setItem('is_guest_mode', isGuestMode.toString());
   }, [isGuestMode]);
 
+  const [activePortal, setActivePortal] = useState<'hub' | 'shadow_tech' | 'shadow_den'>('hub');
   const [appLoading, setAppLoading] = useState(true);
+  const [denLoading, setDenLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('SOFTWARE');
   const [activeTabLoggedFirst, setActiveTabLoggedFirst] = useState(false);
   useEffect(() => {
@@ -1034,6 +1025,25 @@ export default function App() {
   const [copiedText, setCopiedText] = useState<'EMAIL' | 'KEY' | 'PHONE' | null>(null);
   const [showSupportPage, setShowSupportPage] = useState(false);
   const [autoOpenAppointment, setAutoOpenAppointment] = useState(false);
+
+  const handleLaunchShadowTech = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+    } catch (_) {}
+
+    const isSessionAdmin = sessionStorage.getItem('is_admin_mode') === 'true';
+    setAudioApproved(true);
+    setIsGuestMode(!isSessionAdmin);
+    setIsTimedGuestSession(false);
+    localStorage.setItem('is_timed_guest_session', 'false');
+    setShowArchive(false);
+    setActivePortal('shadow_tech');
+    setAppLoading(true);
+    setIsAuthorized(true);
+  };
 
   const [redirectLoaderState, setRedirectLoaderState] = useState<{ isOpen: boolean; targetUrl: string; itemTitle: string }>({
     isOpen: false,
@@ -1116,19 +1126,28 @@ export default function App() {
         // Dispatch event so that open instances react immediately
         window.dispatchEvent(new Event('shadow_sync_update'));
 
-        // Background push to make changes immediately permanent on the server database
-        const payloadToUpload = {
-          admin_console_link: localStorage.getItem('admin_console_link') || 'https://drive.google.com',
-          user_suggestions: JSON.parse(localStorage.getItem('shadow_suggestions') || '[]'),
-          user_appointments: JSON.parse(localStorage.getItem('shadow_appointments') || '[]'),
-          user_shout_outs: JSON.parse(localStorage.getItem('shadow_shout_outs_v3') || '[]'),
-          user_activity_logs: updated
-        };
-        fetch('/api/configs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payloadToUpload)
-        }).catch(err => console.error("Auto-sync log save error:", err));
+        // Only verified Admin commits activity log updates permanently to Firestore + authenticated Express
+        if (hasStrictAdminAuthority()) {
+          const payloadToUpload = {
+            admin_console_link: localStorage.getItem('admin_console_link') || 'https://drive.google.com',
+            user_suggestions: JSON.parse(localStorage.getItem('shadow_suggestions') || '[]'),
+            user_appointments: JSON.parse(localStorage.getItem('shadow_appointments') || '[]'),
+            user_shout_outs: JSON.parse(localStorage.getItem('shadow_shout_outs_v3') || '[]'),
+            user_activity_logs: updated
+          };
+          syncPrivateGlobalConfigsToFirestore(payloadToUpload).catch(() => {});
+          getAdminIdToken().then((idToken) => {
+            if (!idToken) return;
+            fetch('/api/configs', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${idToken}`,
+              },
+              body: JSON.stringify(payloadToUpload)
+            }).catch(err => console.error("Auto-sync log save error:", err));
+          });
+        }
 
       } catch (e) {
         console.error("Failed to log activity:", e);
@@ -1158,10 +1177,8 @@ export default function App() {
     switch (activeTab) {
       case 'SOFTWARE':
         return <SoftwareView />;
-      case 'ANIME':
-        return <AnimeView />;
-      case 'GAMES':
-        return <MusicView isAdmin={!isGuestMode} />;
+      case 'GMAIL':
+        return <GmailView />;
       case 'TOOLS':
         return <ToolsView />;
       case 'EXPERTISE':
@@ -1291,278 +1308,43 @@ export default function App() {
 
   if (!isAuthorized) {
     return (
-      <div className="min-h-screen w-full bg-black relative flex items-center justify-center p-4 font-mono select-none overflow-hidden text-white">
-        {/* Guest Passcode Verification Modal Overlay */}
+      <div className="min-h-screen w-full bg-[#04050c] relative text-white">
+        <ShadowHubLanding
+          onEnterShadowTech={handleLaunchShadowTech}
+          onEnterShadowDen={() => {
+            setActivePortal('shadow_den');
+            setDenLoading(true);
+            setAppLoading(false);
+            setIsAuthorized(true);
+          }}
+          onOpenAdminLogin={() => {
+            setAuthError('');
+            setShowOverrideInput(true);
+          }}
+        />
+
+        {/* Admin Override Decryption Modal Overlay */}
         <AnimatePresence>
-          {showGuestPopup && (
+          {showOverrideInput && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-[4px] z-[100] flex items-center justify-center p-4"
+              className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4"
             >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -15 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="w-full max-w-sm bg-[#0d091e]/95 border-2 border-purple-500/85 rounded-[2rem] p-6 md:p-8 shadow-[0_0_90px_rgba(168,85,247,0.75),0_0_30px_rgba(139,92,246,0.4)] relative overflow-hidden"
-              >
-                {/* Active Corner Brackets to match style */}
-                <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-tl-xl" />
-                <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-tr-xl" />
-                <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-bl-xl" />
-                <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-br-xl" />
-
-                <div className="flex justify-between items-center mb-5 pb-3 border-b border-purple-950/40">
-                  <div className="flex items-center gap-2">
-                    <User size={14} className="text-purple-400" />
-                    <h3 className="text-xs font-black tracking-[0.2em] uppercase font-mono text-purple-200">
-                      GUEST LOGIN
-                    </h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowGuestPopup(false)}
-                    className="text-neutral-500 hover:text-white p-1 hover:bg-neutral-900/50 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-
-
-
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const enteredOriginal = guestPasscode.trim();
-                    const enteredLower = enteredOriginal.toLowerCase();
-                    const isGeneratedMatch = generatedGuestPasscode && (enteredOriginal === generatedGuestPasscode || enteredLower === generatedGuestPasscode.toLowerCase());
-                    
-                    // Retrieve/validate any passwords generated dynamically by the chatbot internally/regionally
-                    let isChatbotMatch = false;
-                    let matchedChatbotCode: string | null = null;
-                    try {
-                      const chatbotRaw = localStorage.getItem('chatbot_generated_passwords');
-                      if (chatbotRaw) {
-                        const chatbotCodes: string[] = JSON.parse(chatbotRaw);
-                        const found = chatbotCodes.find(code =>
-                          code && (enteredOriginal === code || enteredLower === code.toLowerCase())
-                        );
-                        if (found) {
-                          isChatbotMatch = true;
-                          matchedChatbotCode = found;
-                        }
-                      }
-                    } catch (err) {
-                      console.error("Failed to parse chatbot_generated_passwords", err);
-                    }
-
-                    // Query our backend to see if this code was registered globally on the server (works across all browsers and outside the studio)
-                    let isServerMatch = false;
-                    try {
-                      const apiResponse = await fetch('/api/validate-passcode', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ passcode: enteredOriginal })
-                      });
-                      const apiData = await apiResponse.json();
-                      if (apiData.valid) {
-                        isServerMatch = true;
-                      }
-                    } catch (err) {
-                      console.error("Failed to validate passcode on server-side", err);
-                    }
-
-                    const isSkipModal = enteredLower === 'skip' || enteredLower.replace(/[^a-z]/g, '') === 'skip';
-
-                    if (enteredLower === 'guest' || isSkipModal || isGeneratedMatch || isChatbotMatch || isServerMatch) {
-                      setIsAuthorized(true);
-                      setIsGuestMode(true);
-                      if (isGeneratedMatch) {
-                        setIsTimedGuestSession(true);
-                        localStorage.setItem('is_timed_guest_session', 'true');
-                      } else {
-                        setIsTimedGuestSession(false);
-                        localStorage.setItem('is_timed_guest_session', 'false');
-                      }
-                      if (isSkipModal) {
-                        setAppLoading(false);
-                      }
-                      if (isGeneratedMatch || isChatbotMatch || isServerMatch) {
-                        const now = Date.now();
-                        setGuestLoginTime(now);
-                      }
-                      
-                      // Consume (remove) the used chatbot password locally
-                      if (isChatbotMatch && matchedChatbotCode) {
-                        try {
-                          const chatbotRaw = localStorage.getItem('chatbot_generated_passwords');
-                          if (chatbotRaw) {
-                            const chatbotCodes: string[] = JSON.parse(chatbotRaw);
-                            const updatedList = chatbotCodes.filter(c => c !== matchedChatbotCode);
-                            localStorage.setItem('chatbot_generated_passwords', JSON.stringify(updatedList));
-                            setAvailablePasscodes(updatedList);
-                          }
-                        } catch (err) {
-                          console.error("Failed to update chatbot_generated_passwords after login", err);
-                        }
-                      }
-
-                      setShowGuestPopup(false);
-                      setGuestAuthError('');
-                    } else {
-                      setGuestAuthError('INVALID GUEST PASSPHRASE. LOGIN FAILED.');
-                      setGuestPasscode('');
-                    }
-                  }}
-                  className="space-y-4"
-                >
-                  <div>
-                    <label className="block text-[8px] uppercase tracking-[0.25em] text-neutral-400 font-extrabold mb-2.5 text-center">
-                      ENTER GUEST SECURITY PASSPHRASE
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        type={showGuestPasscode ? "text" : "password"}
-                        autoFocus
-                        placeholder="••••••••"
-                        value={guestPasscode}
-                        onChange={(e) => {
-                          setGuestPasscode(e.target.value);
-                          if (guestAuthError) setGuestAuthError('');
-                        }}
-                        className="w-full text-center text-sm font-mono bg-black hover:bg-neutral-900/45 focus:bg-black border border-neutral-800 focus:border-purple-500/60 text-purple-400 p-3 pr-20 rounded-xl outline-none transition-all placeholder:text-neutral-800/60 tracking-widest font-bold"
-                      />
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          let pastedText = '';
-                          try {
-                            // Try the standard clipboard API
-                            pastedText = await navigator.clipboard.readText();
-                          } catch (err) {
-                            // Securely fall back without console warning noise inside iframe sandbox
-                          }
-
-                          // 1. Fallback to global window copy-buffer if populated
-                          if (!pastedText && (window as any).lastShadowCopiedText) {
-                            pastedText = (window as any).lastShadowCopiedText;
-                          }
-
-                          // 2. Fallback to local storage copy-buffer if populated
-                          if (!pastedText) {
-                            const cached = localStorage.getItem('copied_passcode_buffer');
-                            if (cached) pastedText = cached;
-                          }
-
-                          // 3. Fallback to parsing latest active passcode from the chatbot registry
-                          if (!pastedText) {
-                            try {
-                              const chatbotRaw = localStorage.getItem('chatbot_generated_passwords');
-                              if (chatbotRaw) {
-                                const chatbotCodes: string[] = JSON.parse(chatbotRaw);
-                                if (chatbotCodes && chatbotCodes.length > 0) {
-                                  pastedText = chatbotCodes[chatbotCodes.length - 1];
-                                }
-                              }
-                            } catch (_) {}
-                          }
-
-                          // 4. Fallback to generatedGuestPasscode variable
-                          if (!pastedText && generatedGuestPasscode) {
-                            pastedText = generatedGuestPasscode;
-                          }
-
-                          if (pastedText && pastedText.trim()) {
-                            setGuestPasscode(pastedText.trim());
-                            if (guestAuthError) setGuestAuthError('');
-                          } else {
-                            // Show helpful guidance instructing them on manual paste (browser standard)
-                            setGuestAuthError("SECURITY: PROCESS BLOCKED BY BROWSER PERMISSIONS. PLEASE NATIVELY PRESS CTRL+V OR LONG-PRESS TO PASTE.");
-                          }
-                        }}
-                        className="absolute right-10 text-neutral-500 hover:text-purple-400 transition-colors p-1.5 rounded cursor-pointer z-10"
-                        title="Paste passcode"
-                      >
-                        <Clipboard size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowGuestPasscode(!showGuestPasscode)}
-                        className="absolute right-3 text-neutral-500 hover:text-purple-400 transition-colors p-1.5 rounded cursor-pointer z-10"
-                        title={showGuestPasscode ? "Hide Passcode" : "Show Passcode"}
-                      >
-                        {showGuestPasscode ? <EyeOff size={14} /> : <Eye size={14} />}
-                      </button>
-                    </div>
-
-                  </div>
-
-                  {guestAuthError && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-[9px] text-red-400 text-center font-bold tracking-wider leading-relaxed px-2 py-1.5 bg-red-950/10 border border-red-900/30 rounded-lg font-mono"
-                    >
-                      {guestAuthError}
-                    </motion.p>
-                  )}
-
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      className="w-full py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-98 text-white font-mono text-[9px] font-extrabold tracking-widest rounded-xl flex items-center justify-center gap-1.5 shadow-lg transition-all cursor-pointer"
-                    >
-                      <Unlock size={10} />
-                      GUEST LOGIN
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-
-
-        {/* Immersive background matching the theme */}
-        <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
-          <img 
-            src={shadowBg} 
-            alt="Shadow Master" 
-            className="w-full h-full object-cover scale-102"
-            referrerPolicy="no-referrer"
-          />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/85 to-black/75 z-10" />
-        
-        {/* Micro-grid overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(147,51,234,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(147,51,234,0.015)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none z-10" />
-
-        {/* Outer glowing ambient atmosphere */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-900/10 rounded-full blur-[140px] pointer-events-none z-10" />
-
-        <div className="w-full max-w-lg relative z-20 flex flex-col items-center gap-3 sm:gap-4 px-4">
-          <AnimatePresence mode="wait">
-            {showOverrideInput && (
               <motion.div
                 key="access-card"
                 initial={{ opacity: 0, scale: 0.96, y: -15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 15 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-                className="w-full bg-[#0f0b21]/85 border-2 border-purple-500/80 rounded-[2.2rem] p-8 md:p-10 shadow-[0_0_80px_rgba(168,85,247,0.75),0_0_30px_rgba(139,92,246,0.4)] backdrop-blur-xl relative overflow-hidden"
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="w-full max-w-md bg-[#0f0b21]/95 border-2 border-purple-500/80 rounded-[2.2rem] p-8 md:p-10 shadow-[0_0_80px_rgba(168,85,247,0.75),0_0_30px_rgba(139,92,246,0.4)] backdrop-blur-xl relative overflow-hidden font-mono"
               >
-                {/* Active Corner Brackets */}
-                <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-tl-xl" />
-                <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-tr-xl" />
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-bl-xl" />
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)] rounded-br-xl" />
+                <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-purple-400 rounded-tl-xl" />
+                <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-purple-400 rounded-tr-xl" />
+                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-purple-400 rounded-bl-xl" />
+                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-purple-400 rounded-br-xl" />
 
-                {/* X Close top-right button */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1575,117 +1357,58 @@ export default function App() {
                   <X size={16} />
                 </button>
 
-                {/* Lock icon */}
                 <div className="flex justify-center mb-6">
                   <div className="relative w-16 h-16 flex items-center justify-center">
-                    <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-purple-500/35 fill-purple-950/20 filter drop-shadow-[0_0_8px_rgba(168,85,247,0.4)]">
+                    <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-purple-500/35 fill-purple-950/20">
                       <polygon points="50,5 93,25 93,75 50,95 7,75 7,25" stroke="currentColor" strokeWidth="2.5" />
                     </svg>
-                    <Lock className="w-7 h-7 text-purple-300 relative z-10 animate-pulse" />
+                    <Lock className="w-7 h-7 text-purple-300 relative z-10" />
                   </div>
                 </div>
 
                 <h2 className="text-sm md:text-base font-black text-center text-white tracking-[0.2em] font-mono mb-2 uppercase">
                   DECRYPT HARDWARE LINK
                 </h2>
-
                 <p className="text-[10px] md:text-[11px] text-neutral-400 tracking-wide leading-relaxed text-center mb-6 font-mono">
-                  Type in your secure verification passcode. If authentic, the root system loading screen will be initiated.
+                  Enter your Admin security passcode to initialize root access.
                 </p>
 
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
                     const entered = passcode.trim();
-                    
-                    const deleteUserHistory = () => {
-                      try {
-                        const shadowUserNum = localStorage.getItem('shadow_user_number');
-                        if (shadowUserNum) {
-                          const numPart = shadowUserNum.replace(/\D/g, '');
-                          const formattedUser = 'User ' + numPart.padStart(2, '0');
-                          
-                          const existingStr = localStorage.getItem('shadow_user_movements');
-                          if (existingStr) {
-                            const logs = JSON.parse(existingStr);
-                            if (Array.isArray(logs)) {
-                              const updated = logs.filter((log: any) => {
-                                let logUser = log.user;
-                                if (!logUser && log.text) {
-                                  const match = /\[(?:User|USER)\s*(\d+)\]/i.exec(log.text);
-                                  if (match) logUser = 'User ' + match[1];
-                                }
-                                if (!logUser) return true;
-                                const logNumPart = logUser.replace(/\D/g, '');
-                                const formattedLogUser = 'User ' + logNumPart.padStart(2, '0');
-                                return formattedLogUser !== formattedUser;
-                              });
-                              localStorage.setItem('shadow_user_movements', JSON.stringify(updated));
-                              window.dispatchEvent(new Event('shadow_sync_update'));
-                              
-                              // sync to backend server config
-                              const payloadToUpload = {
-                                admin_console_link: localStorage.getItem('admin_console_link') || 'https://drive.google.com',
-                                user_suggestions: JSON.parse(localStorage.getItem('shadow_suggestions') || '[]'),
-                                user_appointments: JSON.parse(localStorage.getItem('shadow_appointments') || '[]'),
-                                user_shout_outs: JSON.parse(localStorage.getItem('shadow_shout_outs_v3') || '[]'),
-                                user_activity_logs: updated
-                              };
-                              fetch('/api/configs', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payloadToUpload)
-                              }).catch(err => console.error("Auto-sync clean save error:", err));
-                            }
-                          }
-                        }
-                      } catch (cleanErr) {
-                        console.error("Clean error on admin entry:", cleanErr);
-                      }
-                    };
-
-                    if (entered.toLowerCase() === 'skip' || entered.toLowerCase().replace(/[^a-z]/g, '') === 'skip') {
-                      setIsAuthorized(true);
-                      setIsGuestMode(true);
-                      setIsTimedGuestSession(false);
-                      localStorage.setItem('is_timed_guest_session', 'false');
-                      setAppLoading(false);
-                      setShowOverrideInput(false);
-                      setShowGuestPopup(false);
-                      setAuthError('');
-                      const now = Date.now();
-                      setGuestLoginTime(now);
-                      localStorage.setItem('guest_login_time', now.toString());
-                      localStorage.setItem('is_guest_mode', 'true');
-                      return;
-                    }
 
                     try {
                       const msgBuffer = new TextEncoder().encode(entered);
                       const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
                       const hashArray = Array.from(new Uint8Array(hashBuffer));
                       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                      
+
                       if (hashHex === 'cf7a14191ac01a39913eadfae86c9e032ec7bd69fe01d452113f54ea6eef68ef') {
-                        setIsAuthorized(true);
-                        setIsGuestMode(false);
-                        setAuthError('');
                         sessionStorage.setItem('is_authorized', 'true');
                         sessionStorage.setItem('is_admin_mode', 'true');
-                        deleteUserHistory();
+                        setIsGuestMode(false);
+                        setAuthError('');
+                        setShowOverrideInput(false);
+                        setActivePortal('shadow_tech');
+                        setAppLoading(true);
+                        setShowArchive(false);
+                        setIsAuthorized(true);
                       } else {
                         setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
                         setPasscode('');
                       }
-                    } catch (err) {
-                      // Fallback verification using basic obscuration in case subtle crypto is unavailable
+                    } catch (_) {
                       if (btoa(entered) === 'S0dhYjA3MzA=') {
-                        setIsAuthorized(true);
-                        setIsGuestMode(false);
-                        setAuthError('');
                         sessionStorage.setItem('is_authorized', 'true');
                         sessionStorage.setItem('is_admin_mode', 'true');
-                        deleteUserHistory();
+                        setIsGuestMode(false);
+                        setAuthError('');
+                        setShowOverrideInput(false);
+                        setActivePortal('shadow_tech');
+                        setAppLoading(true);
+                        setShowArchive(false);
+                        setIsAuthorized(true);
                       } else {
                         setAuthError('INVALID SECURITY PASSPHRASE. LINK DENIED.');
                         setPasscode('');
@@ -1699,7 +1422,7 @@ export default function App() {
                       ENTER ACCESS PASSCODE
                     </label>
                     <div className="relative flex items-center">
-                      <input 
+                      <input
                         type={showAdminPasscode ? "text" : "password"}
                         autoFocus
                         placeholder="••••••••"
@@ -1708,42 +1431,8 @@ export default function App() {
                           setPasscode(e.target.value);
                           if (authError) setAuthError('');
                         }}
-                        className="w-full text-center text-sm font-mono bg-black hover:bg-neutral-900/45 focus:bg-black border border-neutral-800 focus:border-purple-500/60 text-purple-400 p-3 pr-20 rounded-xl outline-none transition-all placeholder:text-neutral-800 tracking-widest font-bold"
+                        className="w-full text-center text-sm font-mono bg-black border border-neutral-800 focus:border-purple-500/60 text-purple-400 p-3 pr-12 rounded-xl outline-none transition-all tracking-widest font-bold"
                       />
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          let pastedText = '';
-                          try {
-                            // Try the standard clipboard API
-                            pastedText = await navigator.clipboard.readText();
-                          } catch (err) {
-                            // Securely fall back without console warning noise inside iframe sandbox
-                          }
-
-                          // 1. Fallback to global window copy-buffer if populated
-                          if (!pastedText && (window as any).lastShadowCopiedText) {
-                            pastedText = (window as any).lastShadowCopiedText;
-                          }
-
-                          // 2. Fallback to local storage copy-buffer if populated
-                          if (!pastedText) {
-                            const cached = localStorage.getItem('copied_passcode_buffer');
-                            if (cached) pastedText = cached;
-                          }
-
-                          if (pastedText && pastedText.trim()) {
-                            setPasscode(pastedText.trim());
-                            if (authError) setAuthError('');
-                          } else {
-                            setAuthError("SECURITY: PROCESS BLOCKED BY BROWSER PERMISSIONS. PLEASE NATIVELY PRESS CTRL+V OR LONG-PRESS TO PASTE.");
-                          }
-                        }}
-                        className="absolute right-10 text-neutral-500 hover:text-purple-400 transition-colors p-1.5 rounded cursor-pointer z-10"
-                        title="Paste passcode"
-                      >
-                        <Clipboard size={14} />
-                      </button>
                       <button
                         type="button"
                         onClick={() => setShowAdminPasscode(!showAdminPasscode)}
@@ -1756,1043 +1445,53 @@ export default function App() {
                   </div>
 
                   {authError && (
-                    <motion.p 
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-[9px] text-red-400 text-center font-bold tracking-wider leading-relaxed px-2 py-1.5 bg-red-950/10 border border-red-900/30 rounded-lg font-mono"
-                    >
+                    <p className="text-[9px] text-red-400 text-center font-bold tracking-wider px-2 py-1.5 bg-red-950/10 border border-red-900/30 rounded-lg font-mono">
                       {authError}
-                    </motion.p>
+                    </p>
                   )}
 
                   <div className="pt-2 flex flex-col gap-2">
                     <button
                       type="submit"
-                      className="w-full py-3 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 active:scale-98 text-white font-mono text-[10px] font-extrabold tracking-widest rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
+                      className="w-full py-3 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white font-mono text-[10px] font-extrabold tracking-widest rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
                     >
                       <Unlock size={11} />
                       <span>INITIALIZE TERMINAL</span>
                     </button>
-
                     <button
                       type="button"
                       onClick={() => {
                         setShowOverrideInput(false);
                         setAuthError('');
                       }}
-                      className="w-full py-2 bg-transparent border border-neutral-900 hover:border-neutral-800 hover:bg-neutral-900/30 text-neutral-500 hover:text-neutral-300 font-mono text-[9px] uppercase font-bold tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      className="w-full py-2 bg-transparent border border-neutral-900 hover:border-neutral-800 text-neutral-400 hover:text-white font-mono text-[9px] uppercase font-bold tracking-widest rounded-xl transition-all cursor-pointer"
                     >
-                      <ChevronLeft size={10} />
-                      <span>CLOSE</span>
+                      CANCEL
                     </button>
                   </div>
                 </form>
               </motion.div>
-            )}
-
-            {!showOverrideInput && (
-              <motion.div
-                key="chatbot-card"
-                initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -15 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-                className="w-[74%] min-[360px]:w-[78%] min-[400px]:w-[80%] sm:w-full max-w-[245px] min-[360px]:max-w-[275px] min-[400px]:max-w-[315px] sm:max-w-[380px] h-[430px] min-[360px]:h-[455px] min-[400px]:h-[485px] sm:h-[515px] bg-[#1d1f2b] border-2 border-purple-500/70 rounded-[2rem] shadow-[0_0_60px_rgba(168,85,247,0.65),0_0_20px_rgba(139,92,246,0.35),0_15px_50px_rgba(147,51,234,0.25)] flex flex-col overflow-visible relative font-sans text-white backdrop-blur-md"
-              >
-                {/* Left Side vertical glowing banner (Visible on Mobile + Desktop) */}
-                <div className="absolute -left-6 min-[350px]:-left-8 sm:-left-12 lg:-left-16 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 sm:gap-3 select-none pointer-events-none z-30 w-8">
-                  {/* Ambient Cyber Light Nodes travelling vertically */}
-                  <div className="absolute inset-x-0 h-40 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden flex items-center justify-center">
-                    <motion.div
-                      animate={{ y: [-80, 80] }}
-                      transition={{ duration: 3.5, repeat: Infinity, ease: "linear" }}
-                      className="w-1.5 h-1.5 rounded-full bg-gradient-to-t from-fuchsia-400 to-purple-500 blur-[1px] absolute"
-                    />
-                    <motion.div
-                      animate={{ y: [80, -80] }}
-                      transition={{ duration: 5, repeat: Infinity, ease: "linear", delay: 1.5 }}
-                      className="w-1 h-1 rounded-full bg-pink-400 blur-[0.5px] absolute"
-                    />
-                  </div>
-
-                  {/* Behind-the-line Rotating Cyber Magic Seal */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 w-28 h-28 lg:w-36 lg:h-36 flex items-center justify-center opacity-40 select-none pointer-events-none">
-                    <motion.svg
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                      className="w-full h-full text-purple-500/40 drop-shadow-[0_0_12px_rgba(168,85,247,0.35)]"
-                      viewBox="0 0 100 100"
-                    >
-                      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="0.75" strokeDasharray="4, 4" />
-                      <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                      <line x1="50" y1="5" x2="50" y2="15" stroke="currentColor" strokeWidth="0.75" />
-                      <line x1="50" y1="85" x2="50" y2="95" stroke="currentColor" strokeWidth="0.75" />
-                      <line x1="5" y1="50" x2="15" y2="50" stroke="currentColor" strokeWidth="0.75" />
-                      <line x1="85" y1="50" x2="95" y2="50" stroke="currentColor" strokeWidth="0.75" />
-                      <polygon points="50,18 78,68 22,68" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                      <polygon points="50,82 78,32 22,32" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                      <circle cx="50" cy="50" r="8" fill="none" stroke="currentColor" strokeWidth="0.75" />
-                    </motion.svg>
-                  </div>
-
-                  <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-purple-500 shadow-[0_0_12px_#a855f7] animate-ping" />
-                  <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-b from-purple-500/20 via-purple-500 to-pink-500/80 animate-pulse" />
-                  
-                  {/* Vertically gliding banner - Eminence in Shadow Slime magic style */}
-                  <motion.div
-                    animate={{ 
-                      y: [-120, -80, 80, 120],
-                      opacity: [0, 1, 1, 0]
-                    }}
-                    transition={{ 
-                      duration: 5.5, 
-                      repeat: Infinity, 
-                      ease: "easeInOut"
-                    }}
-                    className="flex flex-col items-center"
-                  >
-                    <div 
-                      className="flex items-center gap-1 sm:gap-2 py-1.5 sm:py-2" 
-                      style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
-                    >
-                      <span className="text-[8.5px] min-[360px]:text-[10.5px] sm:text-[13px] lg:text-[15px] font-mono font-black tracking-[0.25em] min-[360px]:tracking-[0.35em] bg-gradient-to-b from-white via-purple-300 to-fuchsia-400 bg-clip-text text-transparent uppercase whitespace-nowrap drop-shadow-[0_0_12px_rgba(168,85,247,0.95)] animate-[pulse_1.5s_infinite]">
-                        USE PASSWORD IN CHAT TO ENTER
-                      </span>
-                      <Key className="text-fuchsia-400 rotate-90 stroke-[3] drop-shadow-[0_0_10px_rgba(244,63,94,0.9)] animate-bounce w-3 h-3 sm:w-4 sm:h-4" />
-                    </div>
-                  </motion.div>
-
-                  <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-t from-purple-500/20 via-purple-500 to-pink-500/80 animate-pulse" />
-                  <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-pink-500 shadow-[0_0_12px_#ec4899] animate-ping" />
-                </div>
-
-                {/* Right Side vertical glowing banner (Visible on Mobile + Desktop) */}
-                <div className="absolute -right-6 min-[350px]:-right-8 sm:-right-12 lg:-right-16 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 sm:gap-3 select-none pointer-events-none z-30 w-8">
-                  {/* Ambient Cyber Light Nodes travelling vertically */}
-                  <div className="absolute inset-x-0 h-40 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden flex items-center justify-center">
-                    <motion.div
-                      animate={{ y: [80, -80] }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                      className="w-1.5 h-1.5 rounded-full bg-gradient-to-t from-pink-400 to-purple-500 blur-[1px] absolute"
-                    />
-                    <motion.div
-                      animate={{ y: [-80, 80] }}
-                      transition={{ duration: 5.5, repeat: Infinity, ease: "linear", delay: 1 }}
-                      className="w-1 h-1 rounded-full bg-fuchsia-400 blur-[0.5px] absolute"
-                    />
-                  </div>
-
-                  {/* Behind-the-line Rotating Cyber Magic Seal (Counter Rotating) */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 w-28 h-28 lg:w-36 lg:h-36 flex items-center justify-center opacity-40 select-none pointer-events-none">
-                    <motion.svg
-                      animate={{ rotate: -360 }}
-                      transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                      className="w-full h-full text-pink-500/40 drop-shadow-[0_0_12px_rgba(236,72,153,0.35)]"
-                      viewBox="0 0 100 100"
-                    >
-                      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="0.75" strokeDasharray="3, 3" />
-                      <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                      <circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="12, 4" />
-                      <line x1="50" y1="5" x2="50" y2="15" stroke="currentColor" strokeWidth="0.75" />
-                      <line x1="50" y1="85" x2="50" y2="95" stroke="currentColor" strokeWidth="0.75" />
-                      <line x1="5" y1="50" x2="15" y2="50" stroke="currentColor" strokeWidth="0.75" />
-                      <line x1="85" y1="50" x2="95" y2="50" stroke="currentColor" strokeWidth="0.75" />
-                      <polygon points="50,22 76,41 66,73 34,73 24,41" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                      <circle cx="50" cy="50" r="6" fill="none" stroke="currentColor" strokeWidth="0.75" />
-                    </motion.svg>
-                  </div>
-
-                  <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-pink-500 shadow-[0_0_12px_#ec4899] animate-ping" />
-                  <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-b from-pink-500/20 via-pink-500 to-purple-500/80 animate-pulse" />
-                  
-                  {/* Vertically gliding banner - Eminence in Shadow Slime magic style (Staggered) */}
-                  <motion.div
-                    animate={{ 
-                      y: [-120, -80, 80, 120],
-                      opacity: [0, 1, 1, 0]
-                    }}
-                    transition={{ 
-                      duration: 5.5, 
-                      repeat: Infinity, 
-                      ease: "easeInOut",
-                      delay: 0.8
-                    }}
-                    className="flex flex-col items-center"
-                  >
-                    <div 
-                      className="flex items-center gap-1 sm:gap-2 py-1.5 sm:py-2" 
-                      style={{ writingMode: 'vertical-lr' }}
-                    >
-                      <span className="text-[8.5px] min-[360px]:text-[10.5px] sm:text-[13px] lg:text-[15px] font-mono font-black tracking-[0.25em] min-[360px]:tracking-[0.35em] bg-gradient-to-b from-white via-purple-300 to-fuchsia-400 bg-clip-text text-transparent uppercase whitespace-nowrap drop-shadow-[0_0_12px_rgba(168,85,247,0.95)] animate-[pulse_1.5s_infinite]">
-                        USE PASSWORD IN CHAT TO ENTER
-                      </span>
-                      <Key className="text-fuchsia-400 -rotate-90 stroke-[3] drop-shadow-[0_0_10px_rgba(244,63,94,0.9)] animate-bounce w-3 h-3 sm:w-4 sm:h-4" />
-                    </div>
-                  </motion.div>
-
-                  <div className="w-[1.2px] sm:w-[1.5px] h-10 min-[360px]:h-14 sm:h-20 bg-gradient-to-t from-pink-500/20 via-pink-500 to-purple-500/80 animate-pulse" />
-                  <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-purple-500 shadow-[0_0_12px_#a855f7] animate-ping" />
-                </div>
-
-                {/* Chatbot Header */}
-                <div className="bg-[#151722] p-4 flex items-center justify-between border-b border-[#252838] select-none shrink-0 rounded-t-[2rem] relative">
-                  <div className="flex items-center">
-                    {/* Floating Circular Chathead character that goes beyond the chatbox with clean rounded-full overflow-hidden */}
-                    <div className="absolute -top-4 -left-4 z-30 select-none group">
-                      <div className="relative flex items-center justify-center">
-                        {/* Outer shining border frame of the avatar (glowing circle matching design mockups perfectly) */}
-                        <div className="w-[82px] h-[82px] rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-500 to-indigo-500 p-[3px] shadow-[0_4px_22px_rgba(168,85,247,0.6)] relative">
-                          <div className="w-full h-full rounded-full bg-[#12101e] border-2 border-white overflow-hidden flex items-center justify-center relative shadow-inner">
-                            {/* The Circular Shadow Chibi (Sticker) perfectly clipped to absolute circle, dropping white corners */}
-                            <img
-                              src={shadowChibiSticker}
-                              alt="Shadow Avatar Circular"
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-cover scale-[1.05] transform group-hover:scale-112 transition-transform duration-300"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Online Status Badge sitting on the bottom-right of the circular ring */}
-                        <span className="absolute bottom-1 right-1 w-4.5 h-4.5 bg-[#42b783] border-2 border-[#151722] rounded-full flex items-center justify-center shadow-lg">
-                          <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-75" />
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Chatbot Title and online label, indented generously to match the floating avatar */}
-                    <div className="pl-20 sm:pl-24 text-left">
-                      <h3 className="text-sm sm:text-base font-extrabold text-white uppercase tracking-widest leading-none font-sans filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                        Shadow
-                      </h3>
-                      <div className="flex items-center gap-1.5 mt-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
-                        <span className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest font-mono">Online</span>
-                        {isChatBossMode && (
-                          <span className="ml-2.5 text-[9px] text-purple-400 font-extrabold uppercase tracking-wider font-mono px-1.5 py-0.5 rounded border border-purple-500/30 bg-purple-950/40 animate-pulse">
-                            Boss Active
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Option to clear chat & Guest Login trigger removed */}
-                </div>
-
-                {/* Messages Body Scroll Area */}
-                <div className="flex-1 bg-[#101119] p-4 overflow-y-auto space-y-4 scroll-smooth">
-                  {chatMessages.map((msg, msgIndex) => {
-                    const isLastBotMsg = msg.sender === 'bot' && msgIndex === chatMessages.map(m => m.sender).lastIndexOf('bot');
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
-                      {msg.sender === 'bot' && (
-                        <div className="w-7 h-7 rounded-full overflow-hidden border border-purple-500/40 bg-[#12101e] shrink-0 mt-0.5 shadow-sm flex items-center justify-center">
-                          <img
-                            src={shadowChibiSticker}
-                            alt="Shadow Chathead"
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover transform scale-[1.05]"
-                          />
-                        </div>
-                      )}
-                      
-                      <div className="relative max-w-[80%] select-text flex flex-col items-start">
-                        <div
-                          className={`p-3 rounded-2xl text-[11.5px] leading-relaxed font-medium tracking-wide w-full ${
-                            msg.sender === 'user'
-                              ? 'bg-gradient-to-r from-teal-400 via-indigo-500 to-purple-600 text-white rounded-tr-none shadow-md'
-                              : 'bg-[#1b1c25] border border-[#262835] text-slate-100 rounded-tl-none shadow-sm'
-                          }`}
-                        >
-                          {renderMessageContent(msg.text, msg.sender)}
-                        </div>
-
-                        {/* Guest Login button under bot bubbles which have a passcode */}
-                        {msg.sender === 'bot' && (() => {
-                          const code = extractPasscode(msg.text);
-                          if (code) {
-                            return (
-                              <button
-                                type="button"
-                                id="guest-login-modal-btn"
-                                onClick={() => {
-                                  setGuestAuthError('');
-                                  setGuestPasscode('');
-                                  setShowGuestPopup(true);
-                                }}
-                                className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 border border-purple-500/25 text-white font-sans text-[10px] uppercase font-bold tracking-wider rounded-lg shadow-md transition-all cursor-pointer select-none"
-                              >
-                                <Unlock size={11} className="text-purple-200" />
-                                <span>GUEST LOGIN</span>
-                              </button>
-                            );
-                          }
-                          return null;
-                        })()}
-
-                        {/* Book Appointment button */}
-                        {msg.sender === 'bot' && (msg.isAppointmentRequest || msg.text.toLowerCase().includes('schedule') || msg.text.toLowerCase().includes('appointment') || msg.text.toLowerCase().includes('matingnan po natin ang computer ninyo')) && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!isAuthorized) {
-                                setIsAuthorized(true);
-                                setIsGuestMode(true);
-                              }
-                              setShowArchive(false);
-                              setAutoOpenAppointment(true);
-                            }}
-                            className="mt-2.5 flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 border border-emerald-400/20 text-white font-mono text-[9px] sm:text-[10px] uppercase font-black tracking-wider rounded-lg shadow-[0_0_12px_rgba(16,185,129,0.35)] transition-all cursor-pointer active:scale-95 select-none"
-                          >
-                            <Calendar size={11} className="text-emerald-100 animate-pulse" />
-                            <span>BOOK APPOINTMENT</span>
-                          </button>
-                        )}
-
-                        {/* Log Update button for Owner/Boss queries */}
-                        {isLastBotMsg && isChatBossMode && (
-                          <button
-                            type="button"
-                            onClick={() => setShowLogUpdateModal(true)}
-                            className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 hover:from-purple-500 hover:via-fuchsia-500 hover:to-indigo-500 text-white rounded-lg text-[10px] sm:text-xs font-bold font-mono tracking-wider shadow-[0_0_15px_rgba(168,85,247,0.45)] hover:shadow-[0_0_22px_rgba(168,85,247,0.6)] transition-all duration-300 cursor-pointer border border-purple-400/30 active:scale-95 select-none"
-                          >
-                            <Terminal className="w-3.5 h-3.5 animate-pulse" />
-                            <span>LOG UPDATE</span>
-                          </button>
-                        )}
-
-
-                        {/* Golden coin emoji next to user bubbles as in reference image */}
-                        {msg.sender === 'user' && (
-                          <div className="absolute -right-2 top-2 bg-[#fcd34d] text-neutral-900 rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm select-none">
-                            🪙
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                  {/* Typing Indicator */}
-                  {chatLoading && (
-                    <div className="flex items-start gap-2.5 justify-start">
-                      <div className="w-7 h-7 rounded-full overflow-hidden border border-purple-500/40 bg-[#12101e] shrink-0 mt-0.5 shadow-sm flex items-center justify-center animate-pulse">
-                        <img
-                          src={shadowChibiSticker}
-                          alt="Shadow Chathead typing"
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover transform scale-[1.05]"
-                        />
-                      </div>
-                      <div className="bg-[#1b1c25] border border-[#262835] p-3 rounded-2xl rounded-tl-none text-[11px] text-zinc-400 flex items-center gap-1 shadow-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Empty Element for Auto-Scroller Pin */}
-                  <div ref={chatEndRef} />
-                </div>
-
-
-
-
-
-                {/* Suggestions / Hot Chips for easier interactive navigation - Always visible */}
-                <div className="px-4 pb-2.5 pt-1 bg-[#101119] flex flex-wrap gap-1.5 justify-center shrink-0">
-                  {[
-                    "Anong mayroon dito?",
-                    "Hingi ng passcode, pre"
-                  ].map((chip, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setChatInput(chip);
-                        setTimeout(() => {
-                          const btn = document.getElementById('chat-submit-btn-1') || document.getElementById('chat-submit-btn-2');
-                          if (btn) btn.click();
-                        }, 60);
-                      }}
-                      className="px-2.5 py-1 bg-[#1b1c25] hover:bg-purple-950/40 border border-[#262835] hover:border-purple-500/30 text-zinc-300 hover:text-white rounded-lg text-[10px] font-medium transition-all duration-200 cursor-pointer"
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Form Input Footer */}
-                <div className="bg-[#151722] p-3 border-t border-[#252838] flex flex-col gap-2 shrink-0 rounded-b-[2rem]">
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      if (!chatInput.trim() || chatLoading) return;
-
-                      const userMsgText = chatInput;
-                      setChatInput('');
-
-                      let enteredTextClean = userMsgText.trim();
-                      let isPasscodeMatched = false;
-                      try {
-                        const msgBuffer = new TextEncoder().encode(enteredTextClean);
-                        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-                        const hashArray = Array.from(new Uint8Array(hashBuffer));
-                        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                        if (hashHex === 'cf7a14191ac01a39913eadfae86c9e032ec7bd69fe01d452113f54ea6eef68ef') {
-                          isPasscodeMatched = true;
-                        }
-                      } catch (e) {
-                        console.error(e);
-                      }
-
-                      let currentBossState = isChatBossMode;
-                      if (isPasscodeMatched || userMsgText.toLowerCase().trim() === 'kgab0730') {
-                        setIsChatBossMode(true);
-                        currentBossState = true;
-                      }
-
-                      // Append user message
-                      const userMsg = {
-                        id: `user-${Date.now()}`,
-                        sender: 'user' as const,
-                        text: userMsgText,
-                        timestamp: new Date()
-                      };
-                      setChatMessages((prev) => [...prev, userMsg]);
-                      if ((window as any).logUserMovement) {
-                        (window as any).logUserMovement('chat', `Typed in chatbot: "${userMsgText}"`);
-                      }
-                      const normText = userMsgText.toLowerCase().trim();
-                      if (normText === 'skip' || normText.replace(/[^a-z0-9]/g, '') === 'skip') {
-                        setIsAuthorized(true);
-                        setIsGuestMode(true);
-                        setIsTimedGuestSession(false);
-                        localStorage.setItem('is_timed_guest_session', 'false');
-                        setAppLoading(false);
-                        setShowGuestPopup(false);
-                        setShowOverrideInput(false);
-                        setChatLoading(false);
-                        const now = Date.now();
-                        setGuestLoginTime(now);
-                        localStorage.setItem('guest_login_time', now.toString());
-                        localStorage.setItem('is_guest_mode', 'true');
-                        return;
-                      }
-
-                      setChatLoading(true);
-                      const physicalHW = [
-                        "ram", "memory", "ddr4", "ddr5", "ddr3",
-                        "motherboard", "mobo", "mainboard", "board", "board-level",
-                        "cpu", "processor", "intel", "ryzen", "amd", "i5", "i7", "i9", "ryzen 5", "ryzen 7",
-                        "gpu", "video card", "videocard", "graphics card", "nvidia", "rtx", "gtx", "radeon",
-                        "power supply", "psu", "power cord", "charger",
-                        "hard drive", "hdd", "ssd", "m.2", "nvme",
-                        "fan", "cooler", "heatsink", "liquid cooling", "fan motor", "cooling fan",
-                        "screen", "monitor", "display", "panel", "lcd",
-                        "keyboard", "mouse", "headset", "speaker", "webcam", "camera", "microphone", "mic",
-                        "case", "chassis", "tower", "cables", "wire"
-                      ];
-
-                      const isHardwareWord = physicalHW.some(hw => {
-                        return normText === hw || 
-                               normText.includes(" " + hw + " ") || 
-                               normText.startsWith(hw + " ") || 
-                               normText.endsWith(" " + hw) || 
-                               normText.includes("-" + hw) || 
-                               normText.includes(hw + "-") ||
-                               normText.includes(" " + hw) ||
-                               normText.includes(hw + " ");
-                      });
-
-                      const isHwRepairQuery = normText.includes("hardware repair") || 
-                        normText.includes("hardware na sira") || 
-                        normText.includes("ayusin ang hardware") || 
-                        normText.includes("paggawa ng hardware") || 
-                        normText.includes("ayusin ang ram") ||
-                        normText.includes("nag aayos kayo ng ram") ||
-                        normText.includes("nag aayos kayo ng gpu") ||
-                        (normText.includes("hardware") && (normText.includes("repair") || normText.includes("ayos") || normText.includes("sira") || normText.includes("gawa") || normText.includes("palit") || normText.includes("unbox"))) ||
-                        (isHardwareWord && (
-                          normText.includes("repair") || 
-                          normText.includes("ayos") || 
-                          normText.includes("sira") || 
-                          normText.includes("gawa") || 
-                          normText.includes("palit") || 
-                          normText.includes("linis") || 
-                          normText.includes("basag") ||
-                          normText.includes("burnt") ||
-                          normText.includes("sunog") ||
-                          normText.includes("kabit") ||
-                          normText.includes("isaksak") ||
-                          normText.includes("pundido") ||
-                          normText.includes("basa") ||
-                          normText.includes("water damage") ||
-                          normText.includes("ipagawa") ||
-                          normText.includes("mag-ayos") ||
-                          normText.includes("magaayos") ||
-                          normText.includes("magpagawa") ||
-                          normText.includes("pagawa") ||
-                          normText.includes("papalitan") ||
-                          normText.includes("palitan")
-                        ));
-
-                      if (normText.includes("cpu")) {
-                        setTimeout(() => {
-                          setChatMessages((prev) => [
-                            ...prev,
-                            {
-                              id: `bot-${Date.now()}`,
-                              sender: 'bot' as const,
-                              text: "Teka pre, computer ba ang tinutukoy mo? Kasi ang CPU, part lang siya ng computer at hindi kami nag-aayos ng physical hardware. Online repair lang ang gawa namin dito. Ano ba ang problema ng PC mo, pre? 💻⚡",
-                              timestamp: new Date()
-                            }
-                          ]);
-                          setChatLoading(false);
-                        }, 500);
-                        return;
-                      }
-
-                      if (isHwRepairQuery) {
-                        setTimeout(() => {
-                          setChatMessages((prev) => [
-                            ...prev,
-                            {
-                              id: `bot-${Date.now()}`,
-                              sender: 'bot' as const,
-                              text: "Pasensya na, pre, pero hindi kami nag-o-offer ng hardware repair. Tanging online repair services lamang ang iniaalok namin—ibig sabihin ay inaayos namin ang inyong PC online kaya hindi kami pwedeng makasama ninyo nang personal o pumunta dyan habang ginagawa ito. 💻⚡",
-                              timestamp: new Date()
-                            }
-                          ]);
-                          setChatLoading(false);
-                        }, 500);
-                        return;
-                      }
-
-                      try {
-                        const controller = new AbortController();
-                        const timer = setTimeout(() => controller.abort(), 3500);
-                        const response = await fetch('/api/shadow-chat', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json'
-                          },
-                          signal: controller.signal,
-                          body: JSON.stringify({ 
-                            message: userMsgText,
-                            isBossMode: currentBossState,
-                            history: chatMessages.slice(-10).map(msg => ({
-                              sender: msg.sender,
-                              text: msg.text
-                            }))
-                          })
-                        });
-                        clearTimeout(timer);
-                        const data = await response.json();
-                        
-                        // Dynamically discover and cache chatbot-generated passwords
-                        const discoveredCodes = new Set<string>();
-                        if (data.generatedPasscodes && Array.isArray(data.generatedPasscodes)) {
-                          data.generatedPasscodes.forEach((code: any) => {
-                            if (code && typeof code === 'string') {
-                              discoveredCodes.add(code);
-                            }
-                          });
-                        }
-                        if (data.text) {
-                          // Extract backticked expressions (e.g. `code`)
-                          const backtickRegex = /`([^`]+)`/g;
-                          let match;
-                          while ((match = backtickRegex.exec(data.text)) !== null) {
-                            if (match[1] && match[1].trim()) {
-                              discoveredCodes.add(match[1].trim());
-                            }
-                          }
-
-                          // Regex extraction fallback for plain words following password/passcode/key/code
-                          const lines = data.text.split('\n');
-                          lines.forEach((line: string) => {
-                            const pwMatch = line.match(/(?:password|passcode|key|code):\s*(\S+)/i);
-                            if (pwMatch && pwMatch[1]) {
-                              // clean backticks, quotes, punctuation, or spaces
-                              const candidate = pwMatch[1]
-                                .replace(/[`'".,\/#!$%\^&\*;:{}=\-_~()?\s]+$/, '')
-                                .replace(/^[`'"]+/, '');
-                              if (candidate && candidate.length >= 6) {
-                                discoveredCodes.add(candidate);
-                              }
-                            }
-                          });
-                        }
-
-                        if (discoveredCodes.size > 0) {
-                          try {
-                            const savedRaw = localStorage.getItem('chatbot_generated_passwords');
-                            let savedList: string[] = [];
-                            if (savedRaw) {
-                              savedList = JSON.parse(savedRaw);
-                            }
-                            discoveredCodes.forEach(code => {
-                              if (!savedList.includes(code)) {
-                                savedList.push(code);
-                              }
-                              // Put into instant-copy fallback buffers for paste button resilience!
-                              try {
-                                (window as any).lastShadowCopiedText = code;
-                                localStorage.setItem('copied_passcode_buffer', code);
-                              } catch (_) {}
-                            });
-                            localStorage.setItem('chatbot_generated_passwords', JSON.stringify(savedList));
-                            setAvailablePasscodes(savedList);
-                          } catch (err) {
-                            console.error("Error storing chatbot-generated passwords:", err);
-                          }
-                        }
-                        
-                        // Append bot reply
-                        setChatMessages((prev) => [
-                          ...prev,
-                          {
-                            id: `bot-${Date.now()}`,
-                            sender: 'bot' as const,
-                            text: data.text || data.error || `Yo! Chat is a bit busy, but you said: "${userMsgText}"`,
-                            timestamp: new Date(),
-                            isAppointmentRequest: data.isAppointmentRequest || false
-                          }
-                        ]);
-                      } catch (err: any) {
-                        console.error("Chatback Proxy Error, running client-side offline brain fallback:", err);
-                        
-                        // Run identical offline responder fallback
-                        const norm = userMsgText.toLowerCase().trim();
-                        let replyText = "Mag-focus muna tayo sa PC problem mo. Let's focus on your PC problem. May problema o kailangan po ba kayong ipatsek sa inyong computer? 😊";
-                        
-                        const isNeg = 
-                          norm.includes("why") || 
-                          norm.includes("bakit") || 
-                          norm.includes("dont") || 
-                          norm.includes("don't") || 
-                          norm.includes("wag") || 
-                          norm.includes("huwag") || 
-                          norm.includes("stupid") || 
-                          norm.includes("bobo") || 
-                          norm.includes("did not") || 
-                          norm.includes("didn't") || 
-                          norm.includes("not asking") || 
-                          norm.includes("without") || 
-                          norm.includes("dodge") || 
-                          norm.includes("other output") ||
-                          norm.includes("complaint") ||
-                          norm.includes("bubu");
-
-                        const hasReq = 
-                          norm.includes("hingi") || 
-                          norm.includes("pahingi") || 
-                          norm.includes("bigyan") || 
-                          norm.includes("get") || 
-                          norm.includes("give") || 
-                          norm.includes("generate") || 
-                          norm.includes("makuha") || 
-                          norm.includes("pwede makahingi") || 
-                          norm.includes("pasilip") || 
-                          norm.includes("request") || 
-                          norm.includes("papasok") || 
-                          norm.includes("access") || 
-                          norm.includes("enter") || 
-                          norm.includes("maka-enter") || 
-                          norm.includes("makaenter") || 
-                          norm.includes("paano makapasok") || 
-                          norm.includes("ano ang");
-
-                        const hasPW = 
-                          norm.includes("passcode") || 
-                          norm.includes("password") || 
-                          norm.includes("key") || 
-                          norm.includes("code");
-
-                        const isCodeWanted = !isNeg && (
-                          (hasPW && hasReq) ||
-                          norm === "passcode" ||
-                          norm === "password" ||
-                          norm === "code" ||
-                          norm === "key" ||
-                          norm === "open"
-                        );
-
-                        if (isCodeWanted) {
-                          const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                          let code = "";
-                          for (let i = 0; i < 8; i++) {
-                            code += chars.charAt(Math.floor(Math.random() * chars.length));
-                          }
-                          replyText = `Eto po yung password, lods: \`${code}\``;
-                          
-                          // Save generated code to guest's valid passcode list
-                          try {
-                            const savedRaw = localStorage.getItem('chatbot_generated_passwords');
-                            let savedList: string[] = [];
-                            if (savedRaw) {
-                              savedList = JSON.parse(savedRaw);
-                            }
-                            if (!savedList.includes(code)) {
-                              savedList.push(code);
-                            }
-                            localStorage.setItem('chatbot_generated_passwords', JSON.stringify(savedList));
-                            setAvailablePasscodes(savedList);
-                            // Put into instant-copy fallback buffers for paste button resilience!
-                            (window as any).lastShadowCopiedText = code;
-                            localStorage.setItem('copied_passcode_buffer', code);
-                          } catch (e) {
-                            console.error("Client fallback save secret err", e);
-                          }
-                        }
-
-                        const nonServiceKeywords = [
-                          "namamatay", "mamatay", "namamatay-matay", "biglang namamatay", "bigla namamatay", 
-                          "namamatay pc", "namamatay computer", "namamatay ang pc", "namamatay ang computer",
-                          "shuts down", "shutting down", "turns off", "turning off", "power off", "no power", "walang power", 
-                          "ayaw mag-power", "ayaw mag-sindi", "ayaw sumindi", "nag-shutdown", "nagso-shutdown", "nag-sut down",
-                          "power supply", "psu", "hardware", "hardware problem", "hardware issue", "physical", "physical repair",
-                          "motherboard", "ram stick", "ram slot", "gpu physical", "video card physical", "hardware repair",
-                          "thermal", "pasting", "repasting", "thermal paste", "overheat", "overheating", "heatsink", "init", "mainit", "mabilis uminit",
-                          "fan noise", "beep", "beep code", "sira ang fan", "tunog sa loob", "pundido",
-                          "printer", "scanner", "photocopy", "xerox", "copier", "ink", "iphone", "android", "samsung", 
-                          "phone screen", "mobile", "cellphone", "ipad", "tablet", "water damage", "nabasa", "mabasa",
-                          "hinge", "basag na screen", "crack na casing", "dent", "dent repair", "soldering", "reball",
-                          "motherboard short", "macbook battery", "macbook display", "ps5", "xbox", "nintendo", "switch", 
-                          "console", "lens", "joystick"
-                        ];
-                        const servicesKeywords = [
-                          "sira", "broken", "pc won't", "boot", "black screen", "blue screen", "bsod", "slow", "lag", "hang", 
-                          "crash", 
-                          "virus", "malware", "bios", "mbr", "gpt", "partition", "deleted", "recover", "restoration", "lost file",
-                          "clone", "cloning", "backup", "system image", "os image", "iso image", "windows image", "backup image", "windows install", "reformat", "format", "password reset", 
-                          "reset password", "forgot password", "unblock", "lock screen", "assemble", "build pc", 
-                          "compatibility", "compatible", "upgrade", "pindot", "ayaw mag-open", "ayaw bumukas", 
-                          "no power", "restart", "restarting", "migration", "migrate", "transfer", "ssd", "hdd", "hard drive", "drive", "disk", "os transfer", "transfer os"
-                        ];
-
-                        const isNoHelpOfPC = 
-                          norm === "wala" || 
-                          norm === "wala naman" || 
-                          norm === "no" || 
-                          norm === "none" || 
-                          norm === "all good" ||
-                          norm === "ok naman" ||
-                          norm === "okay naman" ||
-                          norm === "walang problema" ||
-                          norm === "ayos lang" ||
-                          norm === "goods lang" ||
-                          norm === "goods naman" ||
-                          norm.startsWith("wala ") ||
-                          norm.includes("no problem") ||
-                          norm.includes("wala naman problema") ||
-                          norm.startsWith("no ") ||
-                          (norm.includes("wala") && !norm.includes("virus") && !norm.includes("file") && !norm.includes("recover") && !norm.includes("sira"));
-
-                        const isConfusedInClient = 
-                          norm.includes("dko lam") || 
-                          norm.includes("dko alam") || 
-                          norm.includes("di ko alam") || 
-                          norm.includes("hindi ko alam") || 
-                          norm.includes("diko alam") || 
-                          norm.includes("di ko maintindihan") || 
-                          norm.includes("diko maintindihan") || 
-                          norm.includes("ano ba yan") || 
-                          norm.includes("ano yan") || 
-                          norm.includes("di ko magets") || 
-                          norm.includes("dko magets");
-
-                        const isNonServiceInClient = nonServiceKeywords.some(keyword => norm.includes(keyword));
-                        const physicalHardwareWords = [
-                          "ram", "memory", "ddr4", "ddr5", "ddr3",
-                          "motherboard", "mobo", "mainboard", "board",
-                          "cpu", "processor", "intel", "ryzen", "amd", "i5", "i7", "i9", "ryzen 5", "ryzen 7",
-                          "gpu", "video card", "videocard", "graphics card", "nvidia", "rtx", "gtx", "radeon",
-                          "power supply", "psu", "power cord", "charger",
-                          "hard drive", "hdd", "ssd", "m.2", "nvme",
-                          "fan", "cooler", "heatsink", "liquid cooling", "fan motor", "cooling fan",
-                          "screen", "monitor", "display", "panel", "lcd",
-                          "keyboard", "mouse", "headset", "speaker", "webcam", "camera", "microphone", "mic",
-                          "case", "chassis", "tower", "cables", "wire"
-                        ];
-
-                        const hasPhysicalHardwareWord = physicalHardwareWords.some(hw => {
-                          return norm === hw || norm.includes(" " + hw + " ") || norm.startsWith(hw + " ") || norm.endsWith(" " + hw) || norm.includes("-" + hw) || norm.includes(hw + "-");
-                        });
-
-                        const isHardwareRepair = norm.includes("hardware repair") || 
-                          norm.includes("hardware na sira") || 
-                          norm.includes("ayusin ang hardware") || 
-                          norm.includes("paggawa ng hardware") || 
-                          norm.includes("ayusin ang ram") ||
-                          norm.includes("nag aayos kayo ng ram") ||
-                          (norm.includes("hardware") && (norm.includes("repair") || norm.includes("ayos") || norm.includes("sira") || norm.includes("gawa") || norm.includes("palit") || norm.includes("unbox"))) ||
-                          (hasPhysicalHardwareWord && (
-                            norm.includes("repair") || 
-                            norm.includes("ayos") || 
-                            norm.includes("sira") || 
-                            norm.includes("gawa") || 
-                            norm.includes("palit") || 
-                            norm.includes("linis") || 
-                            norm.includes("basag") ||
-                            norm.includes("burnt") ||
-                            norm.includes("sunog") ||
-                            norm.includes("kabit") ||
-                            norm.includes("isaksak") ||
-                            norm.includes("pundido") ||
-                            norm.includes("basa") ||
-                            norm.includes("water damage") ||
-                            norm.includes("ipagawa") ||
-                            norm.includes("mag-ayos") ||
-                            norm.includes("magaayos") ||
-                            norm.includes("magpagawa") ||
-                            norm.includes("pagawa") ||
-                            norm.includes("papalitan") ||
-                            norm.includes("palitan")
-                          ));
-                        const isServiceInClient = servicesKeywords.some(keyword => norm.includes(keyword)) || norm.includes("repair") || norm.includes("repairing") || norm.includes("ayusin");
-                        
-                        const isAppointmentInClient = [
-                          "appointment", "schedule", "magpasched", "magpa-schedule", "book", "booking", 
-                          "mag-book", "reserve", "reservation", "slot", "pabook", "sched", "calendar", "kailan ka pwede"
-                        ].some(keyword => norm.includes(keyword));
-
-                        const isImageGenerationRequest = 
-                          (norm.includes("gawa ka") && (norm.includes("image") || norm.includes("larawan") || norm.includes("drawing") || norm.includes("picture") || norm.includes("photo") || norm.includes("sining") || norm.includes("gupit"))) ||
-                          (norm.includes("create") && (norm.includes("image") || norm.includes("picture") || norm.includes("photo") || norm.includes("drawing") || norm.includes("logo") || norm.includes("avatar"))) ||
-                          (norm.includes("generate") && (norm.includes("image") || norm.includes("picture") || norm.includes("photo") || norm.includes("drawing") || norm.includes("logo") || norm.includes("avatar"))) ||
-                          norm.includes("draw") ||
-                          norm.includes("drawing");
-
-                        let isReplyAppointment = false;
-
-                        if (isImageGenerationRequest) {
-                          let subject = "image";
-                          const match = norm.match(/(?:gawa ka|create|generate|draw|painting of|picture of|photo of)\s+(?:ng\s+)?([a-z0-9\s\-]+?)\s+(?:image|picture|photo|drawing|draw)/i) 
-                                        || norm.match(/(?:gawa ka|create|generate|draw)\s+(?:ng\s+)?([a-z0-9\s\-]+)/i);
-                          if (match && match[1]) {
-                            const cleanSubj = match[1].trim();
-                            if (cleanSubj.length > 2 && cleanSubj.length < 30 && cleanSubj !== "ng" && cleanSubj !== "ka") {
-                              subject = `${cleanSubj} image`;
-                            }
-                          }
-                          replyText = `Pasensya na po, wala po akong capability na gumawa ng ${subject}, ako ay chatbot lamang. 😅 Pero kung may tanong po kayo tungkol sa system o PC diagnostics, sabihan niyo lang po ako!`;
-                        } else if (isCodeWanted) {
-                          // code logic already handled above or can be left or handled here cleanly.
-                          // Since we processed code in the original block, we'll keep the chain consistent
-                        } else if (norm.includes("cpu")) {
-                          replyText = "Teka, computer ba ang tinutukoy ninyo? Kasi ang CPU, part lang siya ng computer at hindi kami nag-aayos ng physical hardware. Online software troubleshooting lang ang gawa namin dito. Ano ba ang problema ng PC ninyo? 💻⚡";
-                        } else if (isHardwareRepair) {
-                          replyText = "Pasensya na po, subalit naka-focus lamang po kami sa online software troubleshooting at hindi po namin iniaalok ang ganyang uri ng mga serbisyo. May kailangan po ba kayong tulong sa ating available computer services? 😊";
-                        } else if (isAppointmentInClient) {
-                          replyText = "Pwedeng-pwede po kayong mag-schedule ng appointment para matingnan po natin ang computer ninyo. Maaari kayong mag-book ng slot sa 'Appointments' tab o sa pag-click ng appointment button sa ibaba! 📅⚡";
-                          isReplyAppointment = true;
-                        } else if (isNoHelpOfPC) {
-                          replyText = "Sige po, walang problema! Kung sakaling magkaroon po kayo ng problema sa computer (tulad ng Blue Screen, Boot Failure, o kailangan ng Reformat, Password Removal, BIOS Update, o Software Installation), sabihan niyo lamang po ako para matulungan namin kayo! 😊";
-                        } else if (isConfusedInClient) {
-                          replyText = "Matutulungan po namin kayo! Para malaman natin kung alin sa ating services ang kailangan, ano po ba ang problema sa inyong PC—tulad po ba ng Blue Screen, Boot Failure, Reformat, Data Recovery, Password Removal, BIOS Update, Secure Boot, MBR to GPT, o Software/Game Installation (Photoshop, Office 365, Windows 11 Activation)? 😊";
-                        } else if (isNonServiceInClient) {
-                          replyText = "Pasensya na po, subalit naka-focus lamang po kami sa online software troubleshooting at hindi po namin iniaalok ang ganyang uri ng mga serbisyo. May kailangan po ba kayong tulong sa ating available computer services? 😊";
-                        } else if (isServiceInClient) {
-                          const appointmentGuide = "Gusto niyo po ba mag-set ng appointment? Maaari kayong mag-book ng slot sa ating 'Appointments' tab sa portal o sa pamamagitan ng pag-click sa appointment button dito sa chat. 😊";
-                          if (norm.includes("photoshop") || norm.includes("adobe")) {
-                            replyText = `Opo! Nag-o-offer po kami ng Adobe Photoshop installation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("office 365") || norm.includes("office") || norm.includes("ms office")) {
-                            replyText = `Opo! Nag-o-offer po kami ng Microsoft Office 365 Installation & Activation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("windows 11") || norm.includes("activation") || norm.includes("activate")) {
-                            replyText = `Opo! Nag-o-offer po kami ng Windows 11 Permanent Activation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("game") || norm.includes("games")) {
-                            replyText = `Opo! Nag-o-offer po kami ng Game Installation services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("mbr") || norm.includes("gpt")) {
-                            replyText = `Opo! Nag-o-offer po kami ng MBR to GPT Conversion services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (
-                            norm.includes("clone") || norm.includes("cloning") ||
-                            norm.includes("migration") || norm.includes("migrate") ||
-                            norm.includes("transfer") || norm.includes("lipat") ||
-                            (norm.includes("os") && (norm.includes("ssd") || norm.includes("hdd") || norm.includes("drive") || norm.includes("hard drive"))) ||
-                            (norm.includes("ssd") && norm.includes("hdd"))
-                          ) {
-                            replyText = `Opo! Nag-o-offer po kami ng O.S. Migration at O.S. Cloning services (tulad ng pag-transfer ng OS mula SSD hanggang HDD o vice versa). Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("backup")) {
-                            replyText = `Opo! Nag-o-offer po kami ng System and Files Backup services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("format") || norm.includes("reformat")) {
-                            replyText = `Opo! Nag-o-offer po kami ng Format / Reformat services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("secure boot") || norm.includes("tpm")) {
-                            replyText = `Opo! Nag-o-offer po kami ng Secure Boot Issue configuration services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("password") || norm.includes("lock")) {
-                            replyText = `Opo! Nag-o-offer po kami ng Password Removal / Reset services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("recover") || norm.includes("restoration") || norm.includes("deleted") || norm.includes("lost")) {
-                            replyText = `Opo! Nag-o-offer po kami ng Data Recovery at File Restoration services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("bios")) {
-                            replyText = `Opo! Nag-o-offer po kami ng BIOS Update services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("blue screen") || norm.includes("bsod")) {
-                            replyText = `Opo! Nag-o-offer po kami ng Blue Screen (BSOD) system recovery services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("boot") || norm.includes("bumukas") || norm.includes("power") || norm.includes("start")) {
-                            replyText = `Opo! Nag-o-offer po kami ng Boot Failure recovery services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("slow") || norm.includes("lag") || norm.includes("hang")) {
-                            replyText = `Opo! Nag-o-offer po kami ng PC optimization at cleaning services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else if (norm.includes("virus") || norm.includes("malware")) {
-                            replyText = `Opo! Nag-o-offer po kami ng virus removal at security cleanup services. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          } else {
-                            replyText = `Opo! Nag-o-offer po kami ng online computer repair service at technical support via remote access. Matutulungan po namin kayo diyan! ${appointmentGuide}`;
-                          }
-                        } else if (
-                          norm.includes("anong meron") ||
-                          norm.includes("anong mayroon") ||
-                          norm.includes("what is this") ||
-                          norm.includes("what do you do") ||
-                          norm.includes("what does this") ||
-                          norm.includes("offer") ||
-                          norm.includes("service") ||
-                          norm.includes("services") ||
-                          norm.includes("repair") ||
-                          norm.includes("computer")
-                        ) {
-                          replyText = "Matutulungan po namin kayo diyan! Nag-o-offer po kami ng online computer repair service at technical support via remote access. Gusto niyo po ba mag-set ng appointment kung nais ninyong makausap o makontak nang direkta ang owner? 😊";
-                        } else if (
-                          norm.includes("sino ka") ||
-                          norm.includes("sino si shadow") ||
-                          norm.includes("who is shadow") ||
-                          norm.includes("who are you") ||
-                          norm.includes("identity")
-                        ) {
-                          replyText = "Ako si Shadow, ang iyong malupit na expert tech assistant, pre! Nandito ako para umalalay sa computer repairs at technical expertise nyo. 😎";
-                        } else if (
-                          norm.includes("download") || 
-                          norm.includes("files") || 
-                          norm.includes("archive") || 
-                          norm.includes("w10") || 
-                          norm.includes("w11") || 
-                          norm.includes("windows") || 
-                          norm.includes("office") || 
-                          norm.includes("tutorial") ||
-                          norm.includes("lesson")
-                        ) {
-                          replyText = "Focus tayo sa active systems repair, PC builds, at configurations expertise natin, pre. Tanong ka lang sa mga expert services na inaalok namin! 🛡️";
-                        } else if (
-                          norm.includes("musta") ||
-                          norm.includes("how are you") ||
-                          norm.includes("kumusta")
-                        ) {
-                          replyText = "Solid naman, bro! Kumusta rin sayo ngayon? Chill lang dito, kumusta ang araw mo? 😎";
-                        } else if (
-                          norm.includes("ngek") ||
-                          norm.includes("nyek") ||
-                          norm.includes("grabe") ||
-                          norm.includes("haha") ||
-                          norm.includes("lmao") ||
-                          norm.includes("lol")
-                        ) {
-                          replyText = "Ngek talaga, pre! Sobrang wacky ng system loops minsan eh no? Pero wag ka mag-alala, chill lang tayo dito. 😂";
-                        } else if (
-                          norm.includes("hello") ||
-                          norm.includes("hi") ||
-                          norm.includes("yo") ||
-                          norm.includes("hey") ||
-                          norm.includes("hoy")
-                        ) {
-                          replyText = "Yo, pre! Kumusta? Chill lang muna dito. Paano kita matutulungan ngayon? 😎";
-                        }
-
-                        setChatMessages((prev) => [
-                          ...prev,
-                          {
-                            id: `bot-fallback-${Date.now()}`,
-                            sender: 'bot' as const,
-                            text: replyText,
-                            timestamp: new Date(),
-                            isAppointmentRequest: isReplyAppointment
-                          }
-                        ]);
-                      } finally {
-                        setChatLoading(false);
-                      }
-                    }}
-                    className="flex flex-col gap-1.5"
-                  >
-                    {speechHelperText && (
-                      <div className="text-[10px] text-zinc-400 font-mono text-center mb-0.5 animate-pulse bg-zinc-900/60 rounded py-1 px-2 border border-[#242938]/40 self-center">
-                        🎙️ {speechHelperText}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 w-full">
-                      <div className="relative flex-1 flex items-center">
-                        <input
-                          type="text"
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          placeholder={isListening ? "Magsalita na po..." : "Type your message..."}
-                          className="w-full bg-[#101119] border border-[#242938] text-[11.5px] text-white pl-3.5 pr-10 py-2.5 rounded-xl outline-none focus:border-[#42b783]/40 placeholder:text-zinc-500 font-sans tracking-wide"
-                        />
-                        <button
-                          type="button"
-                          onClick={toggleListening}
-                          title={isListening ? "Stop listening" : "Speech to Text"}
-                          className={`absolute right-2 px-1.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
-                            isListening 
-                              ? "text-red-400 hover:text-red-300 bg-red-500/10 animate-pulse" 
-                              : "text-zinc-500 hover:text-white hover:bg-[#1c2030]"
-                          }`}
-                        >
-                          {isListening ? <MicOff size={13} /> : <Mic size={13} />}
-                        </button>
-                      </div>
-                      <button
-                        id="chat-submit-btn-1"
-                        type="submit"
-                        disabled={chatLoading}
-                        className="px-5 py-2.5 bg-[#42b783] hover:bg-[#52d399] active:scale-98 disabled:opacity-50 text-white font-bold text-xs rounded-xl tracking-wider transition-all duration-150 cursor-pointer shadow-[0_3px_10px_rgba(66,183,131,0.2)] flex items-center justify-center shrink-0 uppercase"
-                      >
-                        Send
-                      </button>
-                    </div>
-                  </form>
-                  {/* Credits alignment matching Silver Techpx */}
-                  <div className="text-center select-none pt-0.5">
-                    <span className="text-[9px] font-bold tracking-widest text-[#42b783]/85 font-mono">
-                      POWERED BY <span className="text-[#52d399] uppercase">Gemini 3.5</span>
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Integrated Admin Login button positioned strictly beneath the cards in-flow */}
-          {!showOverrideInput && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.3 }}
-              className="z-40 select-none pb-2 mt-1 sm:mt-2 shrink-0"
-            >
-              <button
-                onClick={() => {
-                  setAuthError('');
-                  setShowOverrideInput(true);
-                }}
-                className="px-4 py-2.5 bg-neutral-900/60 hover:bg-[#1f1a40]/60 border border-neutral-800 hover:border-purple-500/40 text-neutral-400 hover:text-white rounded-xl font-mono text-[9px] uppercase font-bold tracking-[0.18em] flex items-center gap-2 transition-all duration-300 backdrop-blur-md shadow-lg cursor-pointer"
-              >
-                <Lock size={11} className="text-purple-400" />
-                <span>ADMIN LOG IN</span>
-              </button>
             </motion.div>
           )}
-        </div>
-        
-        {/* Boss Logs Portal Update Modal */}
-        <LogUpdateModal
-          isOpen={showLogUpdateModal}
-          onClose={() => setShowLogUpdateModal(false)}
-        />
+        </AnimatePresence>
       </div>
+    );
+  }
+
+  if (activePortal === 'shadow_den') {
+    if (denLoading) {
+      return <ShadowDenLoadingScreen onComplete={() => setDenLoading(false)} />;
+    }
+    return (
+      <ShadowDenPortal
+        isAdmin={!isGuestMode || firebaseAdminConnected}
+        onBackToHub={() => {
+          setDenLoading(false);
+          setActivePortal('hub');
+          setIsAuthorized(false);
+        }}
+        onGoToShadowTech={handleLaunchShadowTech}
+      />
     );
   }
 
@@ -3319,20 +2018,29 @@ export default function App() {
                       localStorage.setItem('chatbot_generated_passwords', JSON.stringify(savedList));
                       setAvailablePasscodes(savedList);
                       
-                      // Also push this newly discovered passcode to the backend config dynamically!
-                      const payload = {
-                        admin_console_link: localStorage.getItem('admin_console_link') || 'https://drive.google.com',
-                        user_suggestions: JSON.parse(localStorage.getItem('shadow_suggestions') || '[]'),
-                        user_appointments: JSON.parse(localStorage.getItem('shadow_appointments') || '[]'),
-                        user_shout_outs: JSON.parse(localStorage.getItem('shadow_shout_outs_v3') || '[]'),
-                        user_activity_logs: JSON.parse(localStorage.getItem('shadow_user_movements') || '[]'),
-                        chatbot_passcodes: savedList
-                      };
-                      fetch('/api/configs', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                      }).catch(err => console.error("Config background passcode sync error:", err));
+                      // Persist newly discovered chatbot passcodes only under verified Admin authority
+                      if (hasStrictAdminAuthority()) {
+                        const payload = {
+                          admin_console_link: localStorage.getItem('admin_console_link') || 'https://drive.google.com',
+                          user_suggestions: JSON.parse(localStorage.getItem('shadow_suggestions') || '[]'),
+                          user_appointments: JSON.parse(localStorage.getItem('shadow_appointments') || '[]'),
+                          user_shout_outs: JSON.parse(localStorage.getItem('shadow_shout_outs_v3') || '[]'),
+                          user_activity_logs: JSON.parse(localStorage.getItem('shadow_user_movements') || '[]'),
+                          chatbot_passcodes: savedList
+                        };
+                        syncPrivateGlobalConfigsToFirestore(payload).catch(() => {});
+                        getAdminIdToken().then((idToken) => {
+                          if (!idToken) return;
+                          fetch('/api/configs', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              Authorization: `Bearer ${idToken}`,
+                            },
+                            body: JSON.stringify(payload)
+                          }).catch(err => console.error("Config background passcode sync error:", err));
+                        });
+                      }
 
                     } catch (err) {
                       console.error("Error storing chatbot-generated passwords:", err);
@@ -3652,9 +2360,32 @@ export default function App() {
                           <span>GUEST ACCESS: ACTIVE</span>
                         </div>
                       ) : (
-                        <div className="px-2 py-0.5 bg-emerald-950/80 border border-emerald-500/50 rounded-md flex items-center gap-1.5 text-[8px] sm:text-[9px] font-mono text-emerald-300 font-bold shadow-[0_0_10px_rgba(16,185,129,0.2)] animate-pulse">
-                          <ShieldCheck size={10} className="text-emerald-400" />
-                          <span>ADMIN PRIVILEGES // MASTER</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="px-2 py-0.5 bg-emerald-950/80 border border-emerald-500/50 rounded-md flex items-center gap-1.5 text-[8px] sm:text-[9px] font-mono text-emerald-300 font-bold shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                            <ShieldCheck size={10} className="text-emerald-400" />
+                            <span>ADMIN PRIVILEGES // MASTER</span>
+                          </div>
+                          {firebaseAdminConnected ? (
+                            <span className="px-2 py-0.5 bg-purple-950/80 border border-purple-500/50 rounded-md text-[8px] sm:text-[9px] font-mono text-purple-200 font-bold">
+                              FIREBASE SYNC: ACTIVE
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={isSyncingFirebaseAdmin}
+                              onClick={async () => {
+                                setIsSyncingFirebaseAdmin(true);
+                                try {
+                                  await googleSignIn();
+                                } catch (_) {}
+                                setIsSyncingFirebaseAdmin(false);
+                              }}
+                              className="px-2 py-0.5 bg-amber-950/80 hover:bg-amber-900/90 border border-amber-500/60 rounded-md text-[8px] sm:text-[9px] font-mono text-amber-200 font-bold cursor-pointer transition-colors"
+                              title="Sign in with your Admin Google account to permanently save all website changes to Firebase"
+                            >
+                              {isSyncingFirebaseAdmin ? 'SIGNING IN...' : 'SYNC FIREBASE ADMIN'}
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -3666,12 +2397,12 @@ export default function App() {
                     onClick={() => {
                       setShowArchive(false);
                     }}
-                    className="flex items-center gap-2 md:gap-3 group transition-all duration-300 text-purple-400 hover:text-white"
+                    className="flex items-center gap-2 md:gap-3 group transition-all duration-300 text-purple-400 hover:text-white cursor-pointer"
                   >
                     <div className="w-16 h-16 rounded-xl bg-purple-950/20 border border-purple-500/40 flex items-center justify-center text-purple-400 group-hover:text-purple-300 group-hover:border-purple-500/80 transition-all shadow-[0_0_15px_rgba(168,85,247,0.25)] group-hover:shadow-[0_0_25px_rgba(168,85,247,0.55)] shrink-0">
                       <ArrowLeft className="w-7 h-7" />
                     </div>
-                    <span className="font-mono text-xs md:text-sm lg:text-base font-black uppercase tracking-widest block cursor-pointer text-purple-400/90 group-hover:text-white transition-colors duration-300">
+                    <span className="font-mono text-xs md:text-sm lg:text-base font-black uppercase tracking-widest block text-purple-400/90 group-hover:text-white transition-colors duration-300">
                       Return_Home
                     </span>
                   </button>
@@ -3694,7 +2425,7 @@ export default function App() {
   
                 {/* Content Area */}
                 <main className="flex-1 flex flex-col bg-neutral-950 overflow-hidden">
-                  {!['GAMES', 'ANIME'].includes(activeTab) && (
+                  {activeTab !== 'GMAIL' && (
                     <div className="p-4 md:p-6 border-b border-neutral-900 flex items-center justify-between bg-zinc-900/45 shrink-0">
                       <h2 className="text-3xl md:text-5xl font-black uppercase tracking-wide leading-none text-white">
                         {TABS.find(t => t.id === activeTab)?.label?.toUpperCase() || activeTab.replace('_', ' ')}
@@ -3947,6 +2678,7 @@ export default function App() {
         isOpen={showLogUpdateModal}
         onClose={() => setShowLogUpdateModal(false)}
       />
+
 
       {/* Floating Circular Chathead with image 1 as picture - placed in the middle right part of the main page, fully draggable */}
       <div

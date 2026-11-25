@@ -1,9 +1,230 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permit public read and write access to portalSettings/globalConfigs for container orchestration and client-side syncing.
-    match /portalSettings/{document=**} {
-      allow read, write: if true;
+
+    // Global Safety Net: Default-deny all unspecified paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Hardened Global Primitives ---
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isEmailVerified() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'adriangabionza1990@gmail.com'
+      );
+    }
+
+    // --- Validation Blueprints ---
+    function isValidPublicCatalog(data) {
+      return data.keys().hasAll(['updatedBy', 'updatedAt'])
+        && data.keys().hasOnly([
+          'admin_console_link',
+          'custom_projects',
+          'custom_anime',
+          'custom_games',
+          'shadow_master_tutorials',
+          'custom_tools',
+          'deleted_item_ids',
+          'updatedBy',
+          'updatedAt'
+        ])
+        && data.updatedBy is string && data.updatedBy == request.auth.uid && isValidId(data.updatedBy)
+        && data.updatedAt == request.time
+        && (!('admin_console_link' in data) || (data.admin_console_link is string && data.admin_console_link.size() <= 512))
+        && (!('custom_projects' in data) || (data.custom_projects is list && data.custom_projects.size() <= 100 && (data.custom_projects.size() == 0 || data.custom_projects[0] is map)))
+        && (!('custom_anime' in data) || (data.custom_anime is list && data.custom_anime.size() <= 100 && (data.custom_anime.size() == 0 || data.custom_anime[0] is map)))
+        && (!('custom_games' in data) || (data.custom_games is list && data.custom_games.size() <= 100 && (data.custom_games.size() == 0 || data.custom_games[0] is map)))
+        && (!('shadow_master_tutorials' in data) || (data.shadow_master_tutorials is list && data.shadow_master_tutorials.size() <= 100 && (data.shadow_master_tutorials.size() == 0 || data.shadow_master_tutorials[0] is map)))
+        && (!('custom_tools' in data) || (data.custom_tools is list && data.custom_tools.size() <= 100 && (data.custom_tools.size() == 0 || data.custom_tools[0] is map)))
+        && (!('deleted_item_ids' in data) || (data.deleted_item_ids is list && data.deleted_item_ids.size() <= 200 && (data.deleted_item_ids.size() == 0 || data.deleted_item_ids[0] is string)));
+    }
+
+    function isValidGlobalConfig(data) {
+      return data.keys().hasAll(['updatedBy', 'updatedAt'])
+        && data.keys().hasOnly([
+          'admin_console_link',
+          'custom_projects',
+          'custom_anime',
+          'custom_games',
+          'shadow_master_tutorials',
+          'custom_tools',
+          'deleted_item_ids',
+          'user_suggestions',
+          'user_appointments',
+          'user_shout_outs',
+          'user_activity_logs',
+          'chatbot_passcodes',
+          'updatedBy',
+          'updatedAt'
+        ])
+        && data.updatedBy is string && data.updatedBy == request.auth.uid && isValidId(data.updatedBy)
+        && data.updatedAt == request.time
+        && (!('admin_console_link' in data) || (data.admin_console_link is string && data.admin_console_link.size() <= 512))
+        && (!('custom_projects' in data) || (data.custom_projects is list && data.custom_projects.size() <= 100 && (data.custom_projects.size() == 0 || data.custom_projects[0] is map)))
+        && (!('custom_anime' in data) || (data.custom_anime is list && data.custom_anime.size() <= 100 && (data.custom_anime.size() == 0 || data.custom_anime[0] is map)))
+        && (!('custom_games' in data) || (data.custom_games is list && data.custom_games.size() <= 100 && (data.custom_games.size() == 0 || data.custom_games[0] is map)))
+        && (!('shadow_master_tutorials' in data) || (data.shadow_master_tutorials is list && data.shadow_master_tutorials.size() <= 100 && (data.shadow_master_tutorials.size() == 0 || data.shadow_master_tutorials[0] is map)))
+        && (!('custom_tools' in data) || (data.custom_tools is list && data.custom_tools.size() <= 100 && (data.custom_tools.size() == 0 || data.custom_tools[0] is map)))
+        && (!('deleted_item_ids' in data) || (data.deleted_item_ids is list && data.deleted_item_ids.size() <= 200 && (data.deleted_item_ids.size() == 0 || data.deleted_item_ids[0] is string)))
+        && (!('user_suggestions' in data) || (data.user_suggestions is list && data.user_suggestions.size() <= 200 && (data.user_suggestions.size() == 0 || data.user_suggestions[0] is map)))
+        && (!('user_appointments' in data) || (data.user_appointments is list && data.user_appointments.size() <= 200 && (data.user_appointments.size() == 0 || data.user_appointments[0] is map)))
+        && (!('user_shout_outs' in data) || (data.user_shout_outs is list && data.user_shout_outs.size() <= 200 && (data.user_shout_outs.size() == 0 || data.user_shout_outs[0] is map)))
+        && (!('user_activity_logs' in data) || (data.user_activity_logs is list && data.user_activity_logs.size() <= 200 && (data.user_activity_logs.size() == 0 || data.user_activity_logs[0] is map)))
+        && (!('chatbot_passcodes' in data) || (data.chatbot_passcodes is list && data.chatbot_passcodes.size() <= 100 && (data.chatbot_passcodes.size() == 0 || data.chatbot_passcodes[0] is string)));
+    }
+
+    function isValidMusicLibrary(data) {
+      return data.keys().hasAll(['tracks', 'totalCount', 'updatedBy', 'updatedAt'])
+        && data.keys().hasOnly([
+          'tracks',
+          'playlists',
+          'syncedAt',
+          'totalCount',
+          'updatedBy',
+          'updatedAt'
+        ])
+        && data.tracks is list && data.tracks.size() <= 500 && (data.tracks.size() == 0 || data.tracks[0] is map)
+        && data.totalCount is number && data.totalCount >= 0 && data.totalCount <= 500
+        && data.updatedBy is string && data.updatedBy == request.auth.uid && isValidId(data.updatedBy)
+        && data.updatedAt == request.time
+        && (!('playlists' in data) || (data.playlists is list && data.playlists.size() <= 50 && (data.playlists.size() == 0 || data.playlists[0] is string)))
+        && (!('syncedAt' in data) || (data.syncedAt is string && data.syncedAt.size() <= 64));
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'email', 'photoURL', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == request.auth.uid && isValidId(data.uid)
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 254
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 512))
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    // --- Collection Rules ---
+
+    // Read-only boot connection verification probe
+    match /test/connection {
+      allow get: if true;
+      allow list, create, update, delete: if false;
+    }
+
+    // Admin membership markers (read self only; server/console managed)
+    match /admins/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && isOwner(userId);
+      allow list, create, update, delete: if false;
+    }
+
+    // Private User Profiles (strict PII isolation)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isEmailVerified()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isEmailVerified()
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && (
+          isAdmin() ||
+          (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'photoURL', 'updatedAt']))
+        );
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // Public non-PII website catalog (readable by visitors, strictly written by verified admins)
+    match /portalSettings/publicCatalog {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isAdmin() && isValidPublicCatalog(incoming());
+      allow update: if isAdmin()
+        && isValidPublicCatalog(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'admin_console_link',
+          'custom_projects',
+          'custom_anime',
+          'custom_games',
+          'shadow_master_tutorials',
+          'custom_tools',
+          'deleted_item_ids',
+          'updatedBy',
+          'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+
+    // Admin-only Global Configs (contains PII: appointments, activity logs, passcodes)
+    match /portalSettings/globalConfigs {
+      allow get: if isAdmin();
+      allow list: if false;
+      allow create: if isAdmin() && isValidGlobalConfig(incoming());
+      allow update: if isAdmin()
+        && isValidGlobalConfig(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'admin_console_link',
+          'custom_projects',
+          'custom_anime',
+          'custom_games',
+          'shadow_master_tutorials',
+          'custom_tools',
+          'deleted_item_ids',
+          'user_suggestions',
+          'user_appointments',
+          'user_shout_outs',
+          'user_activity_logs',
+          'chatbot_passcodes',
+          'updatedBy',
+          'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+
+    // Music Library Metadata (non-PII public read, strict admin write)
+    match /portalSettings/musicLibrary {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isAdmin() && isValidMusicLibrary(incoming());
+      allow update: if isAdmin()
+        && isValidMusicLibrary(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'tracks',
+          'playlists',
+          'syncedAt',
+          'totalCount',
+          'updatedBy',
+          'updatedAt'
+        ]);
+      allow delete: if isAdmin();
     }
   }
 }

@@ -314,7 +314,7 @@
       "id": "1780907612498",
       "link": "https://drive.google.com/file/d/1X-5SPugrF5vMcfbQwEf9W9bcl2olDxNH/view?usp=sharing",
       "category": "G: DRIVE",
-      "name": "technocal toolkit",
+      "name": "technical toolkit",
       "description": "Sergei Strelec"
     },
     {
@@ -348,6 +348,13 @@
   "user_appointments": [],
   "user_shout_outs": [],
   "user_activity_logs": [
+    {
+      "id": "log_1794472994067_466594",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"GAMES\"",
+      "user": "User 05",
+      "date": "04:43:14 PM"
+    },
     {
       "text": "[User 02] Switched category tab to: \"ANIME\"",
       "id": "log_1783973485265_44111",
@@ -1274,7 +1281,7 @@
     },
     {
       "id": "log_1782801384756_567102",
-      "text": "[User 02] Downloaded \"technocal toolkit\" from Maintenance Tools",
+      "text": "[User 02] Downloaded \"technical toolkit\" from Maintenance Tools",
       "user": "User 02",
       "date": "02:36:24 PM",
       "type": "action"
@@ -1764,7 +1771,7 @@
     },
     {
       "id": "log_1782158937382_394423",
-      "text": "[User 02] Downloaded \"technocal toolkit\" from Maintenance Tools",
+      "text": "[User 02] Downloaded \"technical toolkit\" from Maintenance Tools",
       "date": "04:08:57 AM",
       "user": "User 02",
       "type": "action"
@@ -1866,6 +1873,132 @@
       "date": "04:16:00 AM",
       "user": "User 02",
       "type": "chat"
+    },
+    {
+      "id": "log_1794472865970_944123",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"TOOLS\"",
+      "user": "User 05",
+      "date": "04:41:05 PM"
+    },
+    {
+      "id": "log_1794472816635_686263",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"GAMES\"",
+      "user": "User 05",
+      "date": "04:40:16 PM"
+    },
+    {
+      "id": "log_1794472796613_222504",
+      "type": "chat",
+      "text": "[User 05] Typed in chatbot: \"skip\"",
+      "user": "User 05",
+      "date": "04:39:56 PM"
+    },
+    {
+      "id": "log_1794472217633_162911",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"SOFTWARE\"",
+      "user": "User 05",
+      "date": "04:30:17 PM"
+    },
+    {
+      "id": "log_1794472207714_241700",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"ANIME\"",
+      "user": "User 05",
+      "date": "04:30:07 PM"
+    },
+    {
+      "id": "log_1794472203716_219156",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"TOOLS\"",
+      "user": "User 05",
+      "date": "04:30:03 PM"
+    },
+    {
+      "id": "log_1794472202933_844701",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"GAMES\"",
+      "user": "User 05",
+      "date": "04:30:02 PM"
+    },
+    {
+      "id": "log_1794472201542_338917",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"ANIME\"",
+      "user": "User 05",
+      "date": "04:30:01 PM"
+    },
+    {
+      "id": "log_1794471931715_886210",
+      "type": "chat",
+      "text": "[User 05] Typed in chatbot: \"skip\"",
+      "user": "User 05",
+      "date": "04:25:31 PM"
+    },
+    {
+      "id": "log_1794471801564_103080",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"TOOLS\"",
+      "user": "User 05",
+      "date": "04:23:21 PM"
+    },
+    {
+      "id": "log_1794471737680_925555",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"GAMES\"",
+      "user": "User 05",
+      "date": "04:22:17 PM"
+    },
+    {
+      "id": "log_1794471736871_997893",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"ANIME\"",
+      "user": "User 05",
+      "date": "04:22:16 PM"
+    },
+    {
+      "id": "log_1794471714361_201736",
+      "type": "chat",
+      "text": "[User 05] Typed in chatbot: \"skip\"",
+      "user": "User 05",
+      "date": "04:21:54 PM"
+    },
+    {
+      "id": "log_1794471676075_243229",
+      "type": "navigation",
+      "text": "[User 05] Switched category tab to: \"ANIME\"",
+      "user": "User 05",
+      "date": "04:21:16 PM"
+    },
+    {
+      "id": "log_1794471599451_336729",
+      "type": "chat",
+      "text": "[User 05] Typed in chatbot: \"skip\"",
+      "user": "User 05",
+      "date": "04:19:59 PM"
+    },
+    {
+      "id": "log_1794471575080_623340",
+      "type": "chat",
+      "text": "[User 05] Typed in chatbot: \"Anong mayroon dito?\"",
+      "user": "User 05",
+      "date": "04:19:35 PM"
+    },
+    {
+      "id": "log_1794471574961_827457",
+      "type": "chat",
+      "text": "[User 05] Typed in chatbot: \"Anong mayroon dito?\"",
+      "user": "User 05",
+      "date": "04:19:34 PM"
+    },
+    {
+      "id": "log_1794470867565_305309",
+      "type": "chat",
+      "text": "[User 05] Typed in chatbot: \"password\"",
+      "user": "User 05",
+      "date": "04:07:47 PM"
     }
   ],
   "chatbot_passcodes": [
