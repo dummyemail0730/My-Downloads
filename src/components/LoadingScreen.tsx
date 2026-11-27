@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-const TECH_LOADING_SCREEN_ART = '/assets/aistudio/image_cfcc69db.png';
+const TECH_LOADING_SCREEN_ART = '/assets/aistudio/Shadow_Tech__Cyberpunk_Loading_Screen_0bd47542.png';
 
 function MatrixRain() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -75,7 +75,7 @@ function MatrixRain() {
 
           if (y > 0) {
             const isHead = Math.random() > 0.95;
-            ctx.fillStyle = isHead ? '#f3e8ff' : '#a855f7';
+            ctx.fillStyle = isHead ? '#e0f7ff' : '#00c8ff';
             ctx.fillText(char, x, y);
           }
 
@@ -140,9 +140,9 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
   }, [isAudioAllowed]);
 
   useEffect(() => {
-    // Smooth 60fps progression from 0% to 100% over 7.7s + 0.3s completion hold = 8 seconds total
+    // Smooth 60fps progression from 0% to 100% over 14.7s + 0.3s completion hold = 15 seconds total
     const startTime = performance.now();
-    const rampDurationMs = 7700;
+    const rampDurationMs = 14700;
     let rafId = 0;
     let completeTimer: number | null = null;
     let finished = false;
@@ -175,9 +175,9 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
     };
   }, []);
 
-  // Exact inner progress track geometry for image_cfcc69db.png (1672x941):
-  // Top edge y=671 (x=473..1105), bottom edge y=692 (x=458..1090)
-  const maxBarWidth = 632;
+  // Exact inner progress track geometry for Shadow_Tech__Cyberpunk_Loading_Screen_0bd47542.png (1697x927):
+  // Top edge y=668 (x=481..1122), bottom edge y=688 (x=466..1107)
+  const maxBarWidth = 641;
   const currentBarWidth = (smoothProgress / 100) * maxBarWidth;
 
   return (
@@ -188,11 +188,11 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
           setHasInteracted(true);
         }
       }}
-      className="fixed inset-0 z-50 w-screen h-screen bg-[#02000c] overflow-hidden select-none cursor-pointer"
+      className="fixed inset-0 z-50 w-screen h-screen bg-[#010712] overflow-hidden select-none cursor-pointer"
     >
-      {/* Exact Full-Bleed Image 2 Artwork + Animated Neon Progress Bar & Live % Counter */}
+      {/* Full-Bleed Cyan Shadow Tech Artwork + Animated Neon Progress Bar & Live % Counter */}
       <svg
-        viewBox="0 0 1672 941"
+        viewBox="0 0 1697 927"
         preserveAspectRatio="xMidYMid slice"
         className="w-full h-full block"
         role="progressbar"
@@ -203,14 +203,14 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
       >
         <defs>
           <clipPath id="shadowTechMainBarClip">
-            <polygon points="473,671 1105,671 1090,692 458,692" />
+            <polygon points="481,668 1122,668 1107,688 466,688" />
           </clipPath>
 
           <linearGradient id="shadowTechMainBarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#7004f6" />
-            <stop offset="50%" stopColor="#b455fa" />
-            <stop offset="85%" stopColor="#d8b0fd" />
-            <stop offset="100%" stopColor="#f3e8ff" />
+            <stop offset="0%" stopColor="#0284c7" />
+            <stop offset="45%" stopColor="#00d8ff" />
+            <stop offset="85%" stopColor="#67e8f9" />
+            <stop offset="100%" stopColor="#e0faff" />
           </linearGradient>
 
           <filter id="shadowTechMainBarGlow" x="-10%" y="-60%" width="120%" height="220%">
@@ -222,34 +222,37 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
           </filter>
         </defs>
 
-        {/* Untouched Image 2 Artwork (Logo, Emblem, Frame, "LOADING... PLEASE WAIT") */}
+        {/* Untouched Shadow Tech Artwork */}
         <image
           href={TECH_LOADING_SCREEN_ART}
           x="0"
           y="0"
-          width="1672"
-          height="941"
+          width="1697"
+          height="927"
         />
 
-        {/* Mask ONLY the static track interior & baked "69%" readout */}
-        <polygon points="471,670 1107,670 1092,693 456,693" fill="#02010f" />
-        <polygon points="1130,668 1204,668 1197,696 1123,696" fill="#040212" />
+        {/* Blend out baked top-right screenshot toast artifact so only live badge & matrix rain show */}
+        <rect x="1218" y="24" width="468" height="66" rx="8" fill="#010814" fillOpacity="0.95" />
 
-        {/* Live Animated Slanted Neon Bar */}
+        {/* Mask ONLY the static track interior & baked "23%" readout */}
+        <polygon points="479,667 1123,667 1108,689 464,689" fill="#000811" />
+        <polygon points="1140,666 1216,666 1225,678 1215,690 1124,690 1132,678" fill="#010a15" />
+
+        {/* Live Animated Slanted Cyan Neon Bar */}
         <g clipPath="url(#shadowTechMainBarClip)">
           {currentBarWidth > 0 && (
             <polygon
-              points={`473,671 ${473 + currentBarWidth},671 ${458 + currentBarWidth},692 458,692`}
+              points={`481,668 ${481 + currentBarWidth},668 ${466 + currentBarWidth},688 466,688`}
               fill="url(#shadowTechMainBarGrad)"
               filter="url(#shadowTechMainBarGlow)"
             />
           )}
           {smoothProgress > 0.5 && smoothProgress < 100 && (
             <line
-              x1={473 + currentBarWidth}
-              y1={671}
-              x2={458 + currentBarWidth}
-              y2={692}
+              x1={481 + currentBarWidth}
+              y1={668}
+              x2={466 + currentBarWidth}
+              y2={688}
               stroke="#ffffff"
               strokeWidth="3"
               strokeOpacity="0.9"
@@ -260,10 +263,10 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
 
         {/* Live Dynamic Percentage Counter inside Hexagonal Cap */}
         <text
-          x="1166"
-          y="689"
+          x="1174"
+          y="685"
           textAnchor="middle"
-          fill="#f3e8ff"
+          fill="#e0f7ff"
           fontSize="22"
           fontWeight="700"
           fontFamily="ui-sans-serif, system-ui, -apple-system, sans-serif"
@@ -328,20 +331,20 @@ export default function LoadingScreen({ onComplete, isAudioAllowed }: LoadingScr
           setHasInteracted(true);
           setIsMuted((prev) => !prev);
         }}
-        className="absolute top-4 right-5 z-20 px-3 py-1.5 rounded-lg bg-black/65 hover:bg-purple-950/75 border border-purple-500/40 text-purple-200 hover:text-white shadow-[0_0_16px_rgba(168,85,247,0.22)] flex items-center gap-2.5 backdrop-blur-sm transition-colors cursor-pointer"
+        className="absolute top-4 right-5 z-20 px-3 py-1.5 rounded-lg bg-[#010b19]/80 hover:bg-cyan-950/80 border border-cyan-400/50 text-cyan-100 hover:text-white shadow-[0_0_16px_rgba(34,211,238,0.28)] flex items-center gap-2.5 backdrop-blur-sm transition-colors cursor-pointer"
         aria-label={isMuted ? 'Unmute background song' : 'Mute background song'}
       >
         {isMuted ? (
           <span className="text-[10px] leading-none">🔇</span>
         ) : (
           <span className="flex items-end gap-[2px] h-3.5">
-            <span className="w-0.5 bg-purple-400 rounded-full shadow-bar" style={{ animationDelay: '0s' }} />
+            <span className="w-0.5 bg-cyan-400 rounded-full shadow-bar" style={{ animationDelay: '0s' }} />
             <span className="w-0.5 bg-white rounded-full shadow-bar" style={{ animationDelay: '0.2s', animationDuration: '0.4s' }} />
-            <span className="w-0.5 bg-purple-300 rounded-full shadow-bar" style={{ animationDelay: '0.1s', animationDuration: '0.5s' }} />
+            <span className="w-0.5 bg-cyan-300 rounded-full shadow-bar" style={{ animationDelay: '0.1s', animationDuration: '0.5s' }} />
             <span className="w-0.5 bg-white rounded-full shadow-bar" style={{ animationDelay: '0.3s', animationDuration: '0.3s' }} />
           </span>
         )}
-        <span className="text-[10px] font-mono uppercase tracking-[0.16em] font-bold text-purple-100 whitespace-nowrap">
+        <span className="text-[10px] font-mono uppercase tracking-[0.16em] font-bold text-cyan-100 whitespace-nowrap">
           {isMuted ? 'SHADOW THEME: MUTED' : 'SHADOW THEME: "HIGHEST" ACTIVE'}
         </span>
       </button>

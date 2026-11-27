@@ -65,12 +65,12 @@ export default function ShadowDenLoadingScreen({ onComplete }: ShadowDenLoadingS
       advanceRealProgress();
     })();
 
-    // Safety fallback so slow network resources never exceed the 8s loading window
+    // Safety fallback so slow network resources never exceed the 15s loading window
     const safetyTimer = window.setTimeout(() => {
       if (!cancelled) {
         realProgressRef.current = 100;
       }
-    }, 7500);
+    }, 14500);
 
     return () => {
       cancelled = true;
@@ -80,7 +80,7 @@ export default function ShadowDenLoadingScreen({ onComplete }: ShadowDenLoadingS
 
   useEffect(() => {
     const startTime = performance.now();
-    const minDurationMs = 7700; // 7.7s progress + 0.3s 100% completion hold = 8s total
+    const minDurationMs = 14700; // 14.7s progress + 0.3s 100% completion hold = 15s total
     let rafId: number;
 
     const tick = (now: number) => {
@@ -88,7 +88,7 @@ export default function ShadowDenLoadingScreen({ onComplete }: ShadowDenLoadingS
       const timeProgress = Math.min(100, (elapsed / minDurationMs) * 100);
       const actual = realProgressRef.current;
 
-      // Sync smooth easing with actual asset load completion across the 8s window
+      // Sync smooth easing with actual asset load completion across the 15s window
       const target = actual >= 100 ? timeProgress : Math.min(timeProgress, Math.max(actual, (elapsed / minDurationMs) * 90));
 
       setDisplayProgress((prev) => {

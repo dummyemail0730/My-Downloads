@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary, Key, Database, Search, Download } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, FolderOpen, BookOpen, ExternalLink, X, Link as LinkIcon, CheckCircle, Activity, Sparkles, Lock, Unlock, ShieldAlert, Trash2, Pencil, Check, Send, Wrench, Smile, User, Music, Volume2, VolumeX, Plus, Play, Pause, SkipForward, SkipBack, MessageSquare, Heart, Cpu, ShieldCheck, Wallet, Copy, QrCode, Smartphone, Calendar, Clock, Binary, Key, Database, Search, Download, Home, Lightbulb, Settings, Monitor, Rocket } from 'lucide-react';
 import shadowBg from '../assets/images/shadow_master_atomic_1779279129608.png';
 import shadowChibiAvatar from '../assets/images/shadow_eminence_chibi_1779532936009.png';
 import shadowChibiSticker from '../assets/images/shadow_chibi_avatar_1779438320279.png';
@@ -34,6 +34,56 @@ import {
   flushAllLocalCatalogAndConfigsToFirestore,
 } from '../firebase';
 
+const TECH_PAGE_ART = '/assets/aistudio/image_9213b71d.png';
+
+const SHADOW_SERVICES = [
+  {
+    id: 'system-repair',
+    title: 'System Repair',
+    description: 'Fix crashes, errors, and performance issues.',
+    details: [
+      'Blue Screen (BSOD) Troubleshooting',
+      'Boot Failure & Startup Recovery',
+      'MBR to GPT Partition Conversion',
+      'BIOS Update & Secure Boot Issues',
+    ],
+  },
+  {
+    id: 'software-installation',
+    title: 'Software & Installation',
+    description: 'Install and configure your favorite programs.',
+    details: [
+      'Adobe Photoshop Setup & Configuration',
+      'Microsoft Office 365 Installation & Activation',
+      'Windows 11 Permanent Activation',
+      'Game Installation & Runtime Dependencies',
+    ],
+  },
+  {
+    id: 'optimization',
+    title: 'Optimization',
+    description: 'Boost performance and speed up your PC.',
+    details: [
+      'Clean Format / Reformat Setup',
+      'O.S. Cloning & Drive Migration',
+      'System Speed & Startup Optimization',
+      'Password Removal & Recovery Access',
+    ],
+  },
+  {
+    id: 'data-recovery',
+    title: 'Data Recovery',
+    description: 'Recover your important files and data.',
+    details: [
+      'Lost & Deleted File Recovery',
+      'System & Personal Files Backup',
+      'Corrupted Drive & Partition Rescue',
+      'Safe Data Transfer Before Reformat',
+    ],
+  },
+] as const;
+
+
 
 
 export default function ShadowProject({ 
@@ -51,6 +101,7 @@ export default function ShadowProject({
   autoOpenAppointment = false,
   onAppointmentOpened,
   initialActiveTab,
+  onToggleChat,
 }: { 
   onEnter: () => void; 
   hasPlayed?: boolean; 
@@ -66,6 +117,7 @@ export default function ShadowProject({
   autoOpenAppointment?: boolean;
   onAppointmentOpened?: () => void;
   initialActiveTab?: 'uplink' | 'linked' | 'tutorials' | 'history';
+  onToggleChat?: () => void;
 }) {
   const skip = hasPlayed;
 
@@ -704,6 +756,14 @@ export default function ShadowProject({
 
   const [isAccessingTutorials, setIsAccessingTutorials] = useState(false);
   const [accessingTutorialsProgress, setAccessingTutorialsProgress] = useState(1);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [highlightServices, setHighlightServices] = useState(false);
+
+  useEffect(() => {
+    if (!highlightServices) return;
+    const t = window.setTimeout(() => setHighlightServices(false), 1200);
+    return () => window.clearTimeout(t);
+  }, [highlightServices]);
 
   const [shouts, setShouts] = useState<Array<{
     id: string;
@@ -2612,202 +2672,7 @@ export default function ShadowProject({
   };
 
   return (
-    <div className="min-h-[200vh] w-full flex flex-col bg-black text-white relative overflow-y-auto no-scrollbar scroll-smooth">
-      {/* Background Image */}
-      <div className="fixed inset-0 z-0 opacity-25 pointer-events-none">
-        <img 
-          src={shadowBg} 
-          alt="Background" 
-          className="w-full h-full object-cover filter brightness-[0.5]"
-          referrerPolicy="no-referrer"
-        />
-      </div>
-
-      {/* Fixed Header Bar at top of screen containing Shadow Tech logo and navigation button group */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.0, duration: 0.8, ease: "easeInOut" }}
-        className="fixed top-0 left-0 right-0 z-40 bg-neutral-950/95 backdrop-blur-md border-b border-purple-500/15 px-4 py-3 md:px-12 md:py-4 flex flex-row items-center justify-between gap-4 shadow-[0_4px_30px_rgba(0,0,0,0.6)]"
-      >
-        <div className="flex items-center gap-2 sm:gap-4 md:gap-5 shrink-0">
-          {onLogout && (
-            <button
-              type="button"
-              onClick={onLogout}
-              title="Back to Shadow Hub"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/35 text-purple-200 font-mono text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 whitespace-nowrap"
-            >
-              <ArrowLeft size={12} />
-              <span className="hidden sm:inline">Hub</span>
-            </button>
-          )}
-          <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full border border-purple-500/35 shadow-[0_0_20px_rgba(168,85,247,0.45)] overflow-hidden flex items-center justify-center bg-black shrink-0">
-            <img 
-              src={shadowLogoLarge} 
-              alt="ShadowTech Logo" 
-              className="w-full h-full object-cover origin-[50%_30%] scale-[1.95] transition-transform duration-500 hover:scale-[2.1]"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-          <div className="flex flex-col items-start leading-[0.82] select-none font-sans">
-            <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-tighter text-white">
-              SHADOW
-            </span>
-            <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-tighter text-purple-500">
-              TECH.
-            </span>
-          </div>
-        </div>
-
-        <motion.div 
-          variants={headerBtnContainerVariants}
-          initial="hidden"
-          animate="visible"
-          className="flex-1 md:flex-initial flex items-center justify-end gap-1 md:gap-2 flex-row flex-wrap md:flex-nowrap max-w-[calc(100%-100px)] md:max-w-none"
-        >
-          <div className="flex-1 md:flex-initial relative group/btn">
-            <motion.button
-              variants={headerBtnItemVariants}
-              onClick={() => {
-                setIsAppointmentModalOpen(true);
-                setAptStep(1);
-              }}
-              className="w-full flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
-              id="appointment-scheduler-btn"
-            >
-              <Calendar size={10} className="text-purple-450 animate-pulse shrink-0" />
-              <span className="truncate">Appointment</span>
-            </motion.button>
-            {/* Appointment Dropdown Details */}
-            <div className="absolute top-[110%] right-0 md:left-0 md:right-auto w-60 md:w-64 p-3 bg-neutral-950/95 border border-purple-500/30 text-left rounded-lg opacity-0 invisible group-hover/btn:opacity-100 group-hover/btn:visible transition-all duration-300 z-50 shadow-[0_4px_30px_rgba(168,85,247,0.35)] backdrop-blur-md font-mono pointer-events-none">
-              <div className="text-[10px] uppercase font-bold text-purple-400 mb-1.5 flex items-center justify-between border-b border-purple-500/20 pb-1">
-                <span className="flex items-center gap-1">
-                  <Calendar size={10} className="text-purple-400 animate-pulse" />
-                  Appointment Scheduler
-                </span>
-                <span className="text-[8px] text-emerald-400">● SECURE</span>
-              </div>
-              <div className="text-[9px] text-zinc-400 leading-normal">
-                Dito ka pwedeng pumili ng date at oras para magpaayos ng PC o computer mo—physical man o online assistance.
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex-1 md:flex-initial relative group/btn">
-            <motion.button
-              variants={headerBtnItemVariants}
-              onClick={() => {
-                setIsSuggestionModalOpen(true);
-              }}
-              className="w-full flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
-              id="suggestion-system-btn"
-            >
-              <Sparkles size={10} className="text-purple-450 animate-pulse shrink-0" />
-              <span className="truncate">Suggestions</span>
-            </motion.button>
-            {/* Suggestions Dropdown Details */}
-            <div className="absolute top-[110%] right-0 md:left-1/2 md:-translate-x-1/2 w-60 md:w-64 p-3 bg-neutral-950/95 border border-purple-500/30 text-left rounded-lg opacity-0 invisible group-hover/btn:opacity-100 group-hover/btn:visible transition-all duration-300 z-50 shadow-[0_4px_30px_rgba(168,85,247,0.35)] backdrop-blur-md font-mono pointer-events-none">
-              <div className="text-[10px] uppercase font-bold text-purple-400 mb-1.5 flex items-center justify-between border-b border-purple-500/20 pb-1">
-                <span className="flex items-center gap-1">
-                  <Sparkles size={10} className="text-purple-400 animate-pulse" />
-                  Suggestions
-                </span>
-                <span className="text-[8px] text-amber-400">● INGESTING</span>
-              </div>
-              <div className="text-[9px] text-zinc-400 leading-normal">
-                Dito pwedeng mag-iwan ng suggestions, tulad ng request para sa bagong features, report sa mga sira o error, at iba pang feedback.
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex-1 md:flex-initial relative group/btn">
-            <motion.button
-              variants={headerBtnItemVariants}
-              onClick={() => {
-                setTempName(shoutName || '');
-                setNameValidationError(null);
-                setIsNamePromptOpen(true);
-              }}
-              className="w-full flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400"
-              id="shout-box-toggle-btn"
-            >
-              <MessageSquare size={10} className="text-purple-450 animate-pulse shrink-0" />
-              <span className="truncate">Shout Out Box</span>
-            </motion.button>
-            {/* Shout Out Box Dropdown Details */}
-            <div className="absolute top-[110%] right-0 md:left-1/2 md:-translate-x-1/2 w-60 md:w-64 p-3 bg-neutral-950/95 border border-purple-500/30 text-left rounded-lg opacity-0 invisible group-hover/btn:opacity-100 group-hover/btn:visible transition-all duration-300 z-50 shadow-[0_4px_30px_rgba(168,85,247,0.35)] backdrop-blur-md font-mono pointer-events-none">
-              <div className="text-[10px] uppercase font-bold text-purple-400 mb-1.5 flex items-center justify-between border-b border-purple-500/20 pb-1">
-                <span className="flex items-center gap-1">
-                  <MessageSquare size={10} className="text-purple-400 animate-pulse" />
-                  Shout Out Box
-                </span>
-                <span className="text-[8px] text-cyan-400">● LIVE FEED</span>
-              </div>
-              <div className="text-[9px] text-zinc-400 leading-normal">
-                Dito mo makikita ang message board para sa quick updates, kwentohan, o pag-iwan ng hi o hello ng mga bumibisita rito.
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 md:flex-initial relative group/btn">
-            <motion.button 
-              variants={headerBtnItemVariants}
-              onClick={() => {
-                if (isAuthenticated) {
-                  setIsModalOpen(true);
-                } else {
-                  setShowPasswordModal(true);
-                }
-              }}
-              className={`w-full flex items-center justify-center gap-1 md:gap-1.5 px-1.5 py-1.5 md:px-4 md:py-2 font-mono text-[8px] min-[350px]:text-[9px] min-[400px]:text-[10px] md:text-[10px] uppercase tracking-[0.01em] md:tracking-[0.15em] font-black transition-all active:scale-[0.98] shadow-lg border cursor-pointer select-none ${
-                isAuthenticated 
-                  ? 'bg-neutral-900 border-emerald-500/50 text-emerald-400 hover:bg-neutral-850 hover:border-emerald-400' 
-                  : 'bg-neutral-900 border-purple-500/40 text-purple-450 hover:bg-neutral-850 hover:border-purple-400'
-              }`}
-              id="google-drive-link-btn"
-            >
-              {isAuthenticated ? (
-                <Unlock size={10} className="text-emerald-400 animate-pulse shrink-0" />
-              ) : (
-                <Lock size={10} className="text-purple-450 animate-pulse shrink-0" />
-              )}
-              <span className="truncate">Admin Console</span>
-              <ExternalLink size={10} className="opacity-60 hidden min-[380px]:inline shrink-0" />
-            </motion.button>
-            {/* Admin Console Dropdown Details */}
-            <div className="absolute top-[110%] right-0 w-60 md:w-64 p-3 bg-neutral-950/95 border border-purple-500/30 text-left rounded-lg opacity-0 invisible group-hover/btn:opacity-100 group-hover/btn:visible transition-all duration-300 z-50 shadow-[0_4px_30px_rgba(168,85,247,0.35)] backdrop-blur-md font-mono pointer-events-none">
-              <div className="text-[10px] uppercase font-bold text-purple-400 mb-1.5 flex items-center justify-between border-b border-purple-500/20 pb-1">
-                <span className="flex items-center gap-1">
-                  {isAuthenticated ? <Unlock size={10} className="text-emerald-400 animate-pulse" /> : <Lock size={10} className="text-purple-500 animate-pulse" />}
-                  Admin Controls
-                </span>
-                <span className={isAuthenticated ? "text-[8px] text-emerald-400" : "text-[8px] text-red-500 animate-pulse"}>
-                  {isAuthenticated ? "● KEY DECRYPTED" : "● PRIVILEGED"}
-                </span>
-              </div>
-              <div className="text-[9px] text-zinc-400 leading-normal">
-                Dito nakalagay lahat ng logs, security settings at mga Link files sa Cloud Storage.
-              </div>
-            </div>
-          </div>
-          
-          {isAuthenticated && !isAdmin && (
-            <motion.button 
-              variants={headerBtnItemVariants}
-              onClick={() => {
-                setIsAuthenticated(false);
-                setIsModalOpen(false);
-              }}
-              className="p-1 md:p-2 bg-red-950/20 border border-red-500/20 hover:bg-red-950/40 text-red-400 font-mono text-[7px] min-[350px]:text-[8px] md:text-[9px] uppercase tracking-wider font-bold transition-all rounded cursor-pointer shrink-0"
-              title="Lock Console"
-            >
-              Lock
-            </motion.button>
-          )}
-        </motion.div>
-
-      </motion.div>
+    <div className="min-h-screen w-full flex flex-col bg-[#010611] text-white relative overflow-hidden">
 
       {/* Secure Passcode Decryption Modal */}
       <AnimatePresence>
@@ -6407,370 +6272,412 @@ export default function ShadowProject({
         )}
       </AnimatePresence>
 
-      {/* Section 2: Areas of Expertise (Replacing Why Sustain the Shadows) */}
-      {/* Positioned with perfect spacing to sit clear of upper buttons while resting higher */}
-      <div className="w-full relative z-10 pt-28 pb-16 md:pt-36 px-6 md:px-12">
-        <div className="relative z-10 max-w-5xl mx-auto w-full space-y-8">
-          
-          {/* Header Ribbon */}
-          <div className="flex flex-col items-center text-center space-y-3 pb-6 border-b border-neutral-900/30">
-            <div>
-              <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-neutral-100 via-white to-purple-300">
-                ONLINE COMPUTER REPAIR SERVICES
-              </h2>
-            </div>
-          </div>
+      {/* Full-Bleed Exact Copy of Image 2 (image_9213b71d.png) with SERVICES -> TECH ARSENAL & Pixel-Aligned Interactive Controls */}
+      <main className="w-full h-screen flex items-center justify-center bg-[#010611] relative z-10 overflow-hidden select-none">
+        <svg
+          viewBox="0 0 1672 941"
+          preserveAspectRatio="xMidYMid meet"
+          className="w-full h-full block"
+          role="region"
+          aria-label="Shadow Tech Online Computer Repair Services"
+        >
+          {/* Untouched 100% Copy of Image 2 */}
+          <image href={TECH_PAGE_ART} x="0" y="0" width="1672" height="941" />
 
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto text-white -mt-4 md:-mt-6 relative z-10">
-            
-            {/* Card 1: System Recovery & OS Configuration */}
-            <div className="relative w-full">
-              {/* Floating Scroll Down on the left side of Card 1 (only visible on lg and up) */}
-              <div className="hidden lg:flex absolute right-[calc(100%+1.25rem)] xl:right-[calc(100%+2.5rem)] top-1/2 -translate-y-1/2 flex-col items-center justify-center select-none pointer-events-none z-20">
-                <motion.div
-                  initial={skip ? { opacity: 0.6 } : { opacity: 0 }}
-                  animate={{ 
-                    opacity: [0.4, 1, 0.4],
-                    y: [0, 8, 0]
-                  }}
-                  transition={{
-                    duration: 2.0,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: 2.0
-                  }}
-                  className="flex flex-col items-center gap-1.5"
-                >
-                  <span className="text-[10px] font-sans font-black tracking-[0.4em] text-purple-400 uppercase drop-shadow-[0_0_8px_rgba(168,85,247,0.55)]">
-                    Scroll Down
-                  </span>
-                  <div className="w-1.5 h-7 rounded-full bg-neutral-900 border border-purple-500/30 flex items-start justify-center p-0.5 shadow-[0_0_10px_rgba(168,85,247,0.25)] flex-shrink-0">
-                    <motion.div 
-                      animate={{
-                        y: [0, 10, 0]
-                      }}
-                      transition={{
-                        duration: 1.5,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                      className="w-1 h-1.5 bg-amber-400 rounded-full"
+          {/* Replace ONLY the "SERVICES" word inside the 2nd navbar button with "TECH ARSENAL" */}
+          <rect x="876" y="48" width="94" height="27" rx="2" fill="#010810" />
+          <text
+            x="924"
+            y="65.5"
+            textAnchor="middle"
+            fill="#e8f8ff"
+            fontSize="11.2"
+            fontWeight="700"
+            fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+            style={{ letterSpacing: '0.02em' }}
+          >
+            TECH ARSENAL
+          </text>
+
+          {/* 1. HOME Button Hotspot */}
+          <g
+            role="button"
+            tabIndex={0}
+            aria-label="Home"
+            className="cursor-pointer group focus:outline-none"
+            onClick={() => {
+              if (onLogout) {
+                onLogout();
+              } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (onLogout) onLogout();
+              }
+            }}
+          >
+            <rect
+              x="675"
+              y="38"
+              width="135"
+              height="47"
+              rx="6"
+              fill="rgba(34,211,238,0.14)"
+              stroke="#67e8f9"
+              strokeWidth="1.5"
+              className="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150"
+            />
+          </g>
+
+          {/* 2. TECH ARSENAL Button Hotspot (Linked to Tech Arsenal / Archive) */}
+          <g
+            role="button"
+            tabIndex={0}
+            aria-label="Tech Arsenal"
+            className="cursor-pointer group focus:outline-none"
+            onClick={() => {
+              if (isEnteringArchive || isAccessingTutorials) return;
+              setIsEnteringArchive(true);
+              setEnteringArchiveProgress(1);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (!isEnteringArchive && !isAccessingTutorials) {
+                  setIsEnteringArchive(true);
+                  setEnteringArchiveProgress(1);
+                }
+              }
+            }}
+          >
+            <rect
+              x="830"
+              y="38"
+              width="153"
+              height="47"
+              rx="6"
+              fill="rgba(34,211,238,0.14)"
+              stroke="#67e8f9"
+              strokeWidth="1.5"
+              className="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150"
+            />
+          </g>
+
+          {/* Live Tech Arsenal Entry Progress Indicator */}
+          {isEnteringArchive && (
+            <foreignObject x="815" y="92" width="184" height="58" className="pointer-events-none">
+              <div className="w-full px-3 py-2 bg-[#020d1d]/95 border border-cyan-400/60 rounded-lg shadow-[0_4px_24px_rgba(34,211,238,0.4)] backdrop-blur-md flex items-center justify-center gap-2.5">
+                <div className="relative flex items-center justify-center w-8 h-8 shrink-0">
+                  <svg className="w-7 h-7 transform -rotate-90" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="34" className="stroke-slate-900" strokeWidth="6" fill="transparent" />
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="34"
+                      className="stroke-cyan-400 transition-all duration-100 ease-out"
+                      strokeWidth="6"
+                      fill="transparent"
+                      strokeDasharray="213.6"
+                      strokeDashoffset={213.6 * (1 - enteringArchiveProgress / 100)}
+                      strokeLinecap="round"
                     />
-                  </div>
-                  <span className="text-[8px] font-mono text-neutral-500 tracking-wider whitespace-nowrap">
-                    SWIPE TO DECRYPT BELOW
+                  </svg>
+                  <span className="absolute text-[8px] font-mono font-black text-cyan-200 leading-none tabular-nums">
+                    {enteringArchiveProgress}%
                   </span>
-                </motion.div>
+                </div>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-100 whitespace-nowrap">
+                  Entering Arsenal...
+                </span>
               </div>
+            </foreignObject>
+          )}
 
-              <motion.div 
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="relative p-6 md:p-8 min-h-[260px] md:min-h-[300px] rounded-2xl border border-neutral-900/60 bg-neutral-950/80 backdrop-blur-sm shadow-2xl flex flex-col justify-between group overflow-hidden w-full"
-              >
-                <div 
-                  className="absolute inset-0 z-0 bg-cover bg-center opacity-10 mix-blend-luminosity group-hover:opacity-100 group-hover:mix-blend-normal group-hover:brightness-150 transition-all duration-700" 
-                  style={{ backgroundImage: `url(${hardwareBackground})` }}
-                />
-                
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 flex items-center justify-center border border-neutral-900/80 rounded-xl bg-neutral-950 text-purple-400 font-black shrink-0 relative overflow-hidden shadow-inner">
-                      <Cpu className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-extrabold uppercase tracking-tight text-sm md:text-base text-neutral-100 group-hover:text-white">System Recovery & OS Configuration</h3>
-                  </div>
-                  
-                  <ul className="space-y-2">
-                    {[
-                      "Blue Screen",
-                      "Boot Failure",
-                      "MBR to GPT Conversion",
-                      "Format / Reformat",
-                      "Data Recovery",
-                      "System and Files Backup",
-                      "O.S. Cloning",
-                      "O.S. Migration",
-                      "Password Removal",
-                      "BIOS Update",
-                      "Secure Boot Issue"
-                    ].map((item) => (
-                      <li key={item} className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rotate-45 bg-purple-500 transition-colors shadow-[0_0_6px_rgba(168,85,247,0.4)]" />
-                        <span className="text-[11px] font-black uppercase tracking-widest text-neutral-400 group-hover:text-neutral-300 transition-colors">
-                          {item}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </motion.div>
-            </div>
+          {/* 3. APPOINTMENT Button Hotspot */}
+          <g
+            role="button"
+            tabIndex={0}
+            aria-label="Appointment"
+            className="cursor-pointer group focus:outline-none"
+            onClick={() => {
+              setIsAppointmentModalOpen(true);
+              setAptStep(1);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setIsAppointmentModalOpen(true);
+                setAptStep(1);
+              }
+            }}
+          >
+            <rect
+              x="1005"
+              y="38"
+              width="168"
+              height="47"
+              rx="6"
+              fill="rgba(34,211,238,0.14)"
+              stroke="#67e8f9"
+              strokeWidth="1.5"
+              className="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150"
+            />
+          </g>
 
-            {/* Card 2: Software & Game Installation */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="relative p-6 md:p-8 min-h-[260px] md:min-h-[300px] rounded-2xl border border-neutral-900/60 bg-neutral-950/80 backdrop-blur-sm shadow-2xl flex flex-col justify-between group overflow-hidden"
+          {/* 4. SUGGESTIONS Button Hotspot */}
+          <g
+            role="button"
+            tabIndex={0}
+            aria-label="Suggestions"
+            className="cursor-pointer group focus:outline-none"
+            onClick={() => setIsSuggestionModalOpen(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setIsSuggestionModalOpen(true);
+              }
+            }}
+          >
+            <rect
+              x="1195"
+              y="38"
+              width="169"
+              height="47"
+              rx="6"
+              fill="rgba(34,211,238,0.14)"
+              stroke="#67e8f9"
+              strokeWidth="1.5"
+              className="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150"
+            />
+          </g>
+
+          {/* 5. ADMIN CONSOLE Button Hotspot */}
+          <g
+            role="button"
+            tabIndex={0}
+            aria-label="Admin Console"
+            className="cursor-pointer group focus:outline-none"
+            onClick={() => {
+              if (isAuthenticated) {
+                setIsModalOpen(true);
+              } else {
+                setShowPasswordModal(true);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (isAuthenticated) {
+                  setIsModalOpen(true);
+                } else {
+                  setShowPasswordModal(true);
+                }
+              }
+            }}
+          >
+            <rect
+              x="1385"
+              y="38"
+              width="206"
+              height="47"
+              rx="6"
+              fill="rgba(34,211,238,0.14)"
+              stroke={isAuthenticated ? '#10b981' : '#67e8f9'}
+              strokeWidth="1.5"
+              className="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150"
+            />
+          </g>
+
+          {/* Optional Lock control when guest-authenticated */}
+          {isAuthenticated && !isAdmin && (
+            <g
+              role="button"
+              tabIndex={0}
+              aria-label="Lock Console"
+              className="cursor-pointer group focus:outline-none"
+              onClick={() => {
+                setIsAuthenticated(false);
+                setIsModalOpen(false);
+              }}
             >
-              <div 
-                className="absolute inset-0 z-0 bg-cover bg-center opacity-15 mix-blend-luminosity group-hover:opacity-100 group-hover:mix-blend-normal group-hover:brightness-150 transition-all duration-700" 
-                style={{ backgroundImage: `url(${computerSoftwareBg})` }}
+              <rect x="1600" y="45" width="54" height="32" rx="6" fill="rgba(127,29,29,0.75)" stroke="#ef4444" strokeWidth="1.2" />
+              <text x="1627" y="65" textAnchor="middle" fill="#fecaca" fontSize="11" fontWeight="700" fontFamily="ui-monospace, monospace">
+                LOCK
+              </text>
+            </g>
+          )}
+
+          {/* Hero CTA: EXPLORE SERVICES -> */}
+          <g
+            role="button"
+            tabIndex={0}
+            aria-label="Explore Services"
+            className="cursor-pointer group focus:outline-none"
+            onClick={() => setHighlightServices(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setHighlightServices(true);
+              }
+            }}
+          >
+            <rect
+              x="115"
+              y="443"
+              width="298"
+              height="66"
+              rx="10"
+              fill="rgba(34,211,238,0.16)"
+              stroke="#67e8f9"
+              strokeWidth="2"
+              className="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150"
+            />
+          </g>
+
+          {/* CLICK ME Chibi Chat Trigger on Right Edge */}
+          <g
+            role="button"
+            tabIndex={0}
+            aria-label="Chat with Shadow"
+            className="cursor-pointer group focus:outline-none"
+            onClick={() => onToggleChat?.()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onToggleChat?.();
+              }
+            }}
+          >
+            <rect
+              x="1520"
+              y="266"
+              width="146"
+              height="170"
+              fill="transparent"
+              stroke="none"
+            />
+          </g>
+
+          {/* 4 Interactive Service Cards (Click card or View Details -> opens Service Modal) */}
+          {[
+            { id: 'system-repair', label: 'System Repair Details', x: 105, y: 605, w: 332, h: 254 },
+            { id: 'software-installation', label: 'Software & Installation Details', x: 479, y: 605, w: 337, h: 254 },
+            { id: 'optimization', label: 'Optimization Details', x: 858, y: 605, w: 335, h: 254 },
+            { id: 'data-recovery', label: 'Data Recovery Details', x: 1235, y: 606, w: 333, h: 253 },
+          ].map((card) => (
+            <g
+              key={card.id}
+              role="button"
+              tabIndex={0}
+              aria-label={card.label}
+              className="cursor-pointer group focus:outline-none"
+              onClick={() => setSelectedServiceId(card.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelectedServiceId(card.id);
+                }
+              }}
+            >
+              <rect
+                x={card.x}
+                y={card.y}
+                width={card.w}
+                height={card.h}
+                rx="14"
+                fill={highlightServices ? 'rgba(34,211,238,0.14)' : 'rgba(34,211,238,0.09)'}
+                stroke="#67e8f9"
+                strokeWidth={highlightServices ? '2.5' : '1.5'}
+                className={
+                  highlightServices
+                    ? 'opacity-100 transition-opacity duration-200'
+                    : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150'
+                }
               />
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 flex items-center justify-center border border-neutral-900/80 rounded-xl bg-neutral-950 text-purple-400 font-black shrink-0 relative overflow-hidden shadow-inner">
-                    <Binary className="w-5 h-5" />
+            </g>
+          ))}
+        </svg>
+      </main>
+
+      {/* Service Details Modal */}
+      <AnimatePresence>
+        {selectedServiceId && (() => {
+          const activeService = SHADOW_SERVICES.find((s) => s.id === selectedServiceId);
+          if (!activeService) return null;
+          return (
+            <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 12 }}
+                className="relative w-full max-w-md bg-[#020d1f] border border-cyan-400/45 rounded-2xl p-6 text-white shadow-[0_0_40px_rgba(34,211,238,0.28)]"
+              >
+                <div className="flex items-start justify-between gap-4 border-b border-cyan-400/20 pb-3 mb-4">
+                  <div>
+                    <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-cyan-400 font-bold">
+                      Shadow Tech Service
+                    </p>
+                    <h3 className="text-lg font-black uppercase tracking-wide text-white mt-0.5">
+                      {activeService.title}
+                    </h3>
                   </div>
-                  <h3 className="font-extrabold uppercase tracking-tight text-sm md:text-base text-neutral-100 group-hover:text-white">Software & Game Installation</h3>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedServiceId(null)}
+                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    aria-label="Close service details"
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
-                
-                <ul className="space-y-2">
-                  {[
-                    "Adobe Photoshop",
-                    "Microsoft Office 365 Installation & Activation",
-                    "Windows 11 Permanent Activation",
-                    "Game Installation"
-                  ].map((item) => (
-                    <li key={item} className="flex items-center gap-3">
-                      <div className="w-1.5 h-1.5 rotate-45 bg-purple-500 transition-colors shadow-[0_0_6px_rgba(168,85,247,0.4)]" />
-                      <span className="text-[11px] font-black uppercase tracking-widest text-neutral-400 group-hover:text-neutral-300 transition-colors">
-                        {item}
-                      </span>
+
+                <p className="text-xs text-slate-300 mb-4 leading-relaxed">
+                  {activeService.description}
+                </p>
+
+                <ul className="space-y-2.5 mb-6">
+                  {activeService.details.map((item) => (
+                    <li key={item} className="flex items-center gap-2.5 text-xs text-cyan-50 font-medium">
+                      <span className="w-1.5 h-1.5 rotate-45 bg-cyan-400 shrink-0 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                      <span>{item}</span>
                     </li>
                   ))}
                 </ul>
-              </div>
-            </motion.div>
 
-          </div>
-
-          {/* Spacer */}
-          <div className="h-4" />
-
-        </div>
-      </div>
-
-      {/* Section 1: Hero Entry Lounge (Takes min-h-screen) */}
-      <div className="min-h-screen w-full relative z-10 flex flex-col justify-between">
-        {/* Centered text container to constraint screen stretch */}
-        <div className="max-w-7xl xl:max-w-[1360px] mx-auto w-full pl-10 pr-6 md:pl-14 md:pr-12 lg:pl-16 xl:pl-20 pt-16 pb-20 md:pt-24 md:pb-24 flex-1 flex flex-col justify-center relative">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center w-full my-auto">
-            
-            {/* Main Column: Shadow Project Info */}
-            <div className="lg:col-span-12 lg:max-w-4xl flex flex-col text-left">
-
-              <div className="flex flex-wrap items-center gap-2 mb-3 md:mb-5">
-                <motion.div 
-                  initial={skip ? { opacity: 1, x: 0 } : { opacity: 0, x: -100 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={skip ? { duration: 0 } : { 
-                    duration: 0.8,
-                    delay: 0.8,
-                    ease: "easeOut"
-                  }}
-                  className="inline-block px-3 py-1 bg-neutral-900 border border-neutral-800 text-purple-400 font-mono text-[10px] uppercase tracking-[0.3em] font-bold"
-                >
-                  By: Ian Collantes // V.1.0
-                </motion.div>
-
-                {isAdmin ? (
-                  <motion.div 
-                    initial={skip ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="inline-block px-3 py-1 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-mono text-[10px] uppercase tracking-[0.25em] font-bold shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse"
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedServiceId(null);
+                      setIsAppointmentModalOpen(true);
+                      setAptStep(1);
+                    }}
+                    className="flex-1 py-2.5 px-4 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold uppercase tracking-wider text-xs transition-colors cursor-pointer whitespace-nowrap"
                   >
-                    ✦ ADMINISTRATOR ACTIVE ✦
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    initial={skip ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="inline-block px-3 py-1 bg-purple-950/40 border border-purple-500/20 text-purple-400 font-mono text-[10px] uppercase tracking-[0.25em] font-bold animate-pulse"
-                  >
-                    ✦ VISITOR MODE ✦
-                  </motion.div>
-                )}
-              </div>
-
-              <motion.div 
-                initial={skip ? "visible" : "hidden"}
-                animate="visible"
-                variants={{
-                  visible: {
-                    transition: {
-                      staggerChildren: skip ? 0 : 0.04,
-                      delayChildren: skip ? 0 : 1.4
-                    }
-                  }
-                }}
-                className="space-y-4 mb-8"
-              >
-                <h3 className="text-[13px] sm:text-xl md:text-2xl font-black uppercase tracking-tight text-purple-400 max-w-2xl leading-snug">
-                  {"WE LURK IN THE SHADOWS TO SERVE THE LIGHT CONFIGURATIONS.".split(" ").map((word, i) => (
-                    <motion.span
-                      key={`header-${i}`}
-                      variants={{
-                        hidden: { opacity: 0, y: 5 },
-                        visible: { opacity: 1, y: 0 }
-                      }}
-                      transition={skip ? { duration: 0 } : undefined}
-                      className="inline-block mr-[0.3em]"
-                    >
-                      {word}
-                    </motion.span>
-                  ))}
-                </h3>
-                <p className="text-sm md:text-base font-bold uppercase tracking-tight text-neutral-400 max-w-2xl leading-relaxed">
-                  {"To survive in the tech world, one must operate from the shadows—lurking in the background while ensuring systems run at their absolute best. When a computer crashes or performance drops, diagnostics are already in motion. The technical toolkits are prepared to troubleshoot any issue.".split(" ").map((word, i) => (
-                    <motion.span
-                      key={`body-${i}`}
-                      variants={{
-                        hidden: { opacity: 0, y: 5 },
-                        visible: { opacity: 1, y: 0 }
-                      }}
-                      transition={skip ? { duration: 0 } : undefined}
-                      className="inline-block mr-[0.3em]"
-                    >
-                      {word}
-                    </motion.span>
-                  ))}
-                </p>
-              </motion.div>
-
-              <div className="flex flex-col sm:flex-row items-center gap-4 flex-wrap">
-                {/* Enter Archive Action Container */}
-                <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
-                  <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <motion.button 
-                      initial={skip ? { opacity: 1 } : { opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={skip ? { duration: 0 } : { 
-                        duration: 5.0, 
-                        ease: "easeInOut", 
-                        delay: 3.0 
-                      }}
-                      whileHover={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 1.02 }}
-                      whileTap={{ scale: (isEnteringArchive || isAccessingTutorials) ? 1 : 0.98 }}
-                      onClick={() => {
+                    Book Appointment
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedServiceId(null);
+                      if (!isEnteringArchive && !isAccessingTutorials) {
                         setIsEnteringArchive(true);
                         setEnteringArchiveProgress(1);
-                      }}
-                      disabled={isEnteringArchive || isAccessingTutorials}
-                      className={`group relative flex items-center justify-center gap-4 px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs transition-all duration-300 cursor-pointer w-full sm:w-auto shadow-[0_0_30px_rgba(168,85,247,0.5),0_0_12px_rgba(255,255,255,0.8)] hover:shadow-[0_0_45px_rgba(168,85,247,0.85)] ring-2 ring-purple-400/80 hover:ring-purple-300 ${
-                        (isEnteringArchive || isAccessingTutorials) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-neutral-100'
-                      }`}
-                    >
-                      Enter Archive
-                      <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform duration-500" />
-                    </motion.button>
-
-                    {isEnteringArchive && (
-                      <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
-                        {/* Outer rotating dashed purple ring */}
-                        <div className="absolute inset-0 rounded-full border border-dashed border-purple-500/30 animate-spin [animation-duration:12s]" />
-                        
-                        {/* Inner SVG Circular Progress */}
-                        <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 80 80">
-                          {/* Background Track */}
-                          <circle
-                            cx="40"
-                            cy="40"
-                            r="34"
-                            className="stroke-neutral-950/85"
-                            strokeWidth="6"
-                            fill="transparent"
-                          />
-                          {/* Foreground Progress */}
-                          <circle
-                            cx="40"
-                            cy="40"
-                            r="34"
-                            className="stroke-purple-500 transition-all duration-100 ease-out"
-                            strokeWidth="6"
-                            fill="transparent"
-                            strokeDasharray="213.6"
-                            strokeDashoffset={213.6 * (1 - enteringArchiveProgress / 100)}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        
-                        {/* Center text showing percentage and TX label */}
-                        <div className="absolute flex flex-col items-center justify-center font-mono">
-                          <span className="text-[10px] font-black text-purple-400 leading-none">
-                            {enteringArchiveProgress}%
-                          </span>
-                          <span className="text-[5px] font-black text-purple-500/60 tracking-wider uppercase leading-none mt-0.5">TX</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Directing Arrow Highlighting "Enter Archive" */}
-                  <motion.div 
-                    initial={skip ? { opacity: 1 } : { opacity: 0, x: 15 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={skip ? { duration: 0 } : { 
-                      duration: 1.2, 
-                      ease: "easeOut", 
-                      delay: 3.2 
+                      }
                     }}
-                    className="flex items-center gap-3 w-full sm:w-auto"
+                    className="py-2.5 px-4 rounded-lg bg-[#051a33] hover:bg-cyan-950 border border-cyan-400/45 text-cyan-100 font-bold uppercase tracking-wider text-xs transition-colors cursor-pointer whitespace-nowrap"
                   >
-                    <motion.div
-                      animate={{ 
-                        x: [-7, 3, -7] 
-                      }}
-                      transition={{ 
-                        duration: 1.3, 
-                        repeat: Infinity, 
-                        ease: "easeInOut" 
-                      }}
-                      className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-purple-950/70 border border-purple-500/60 shadow-[0_0_25px_rgba(168,85,247,0.45)] select-none"
-                    >
-                      {/* Desktop arrow: points left directly at Enter Archive button */}
-                      <ArrowLeft className="w-5 h-5 text-purple-400 stroke-[3] hidden sm:block animate-pulse" />
-                      
-                      {/* Mobile arrow: points up directly at Enter Archive button when stacked vertically */}
-                      <ArrowLeft className="w-4 h-4 text-purple-400 stroke-[3] sm:hidden -rotate-90 animate-pulse" />
-
-                      <span className="font-mono text-[11px] font-black uppercase tracking-[0.2em] text-purple-200">
-                        Enter Here
-                      </span>
-                    </motion.div>
-                  </motion.div>
+                    Tech Arsenal
+                  </button>
                 </div>
-              </div>
+              </motion.div>
             </div>
-
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Support Section - Centered at the absolute bottom of the scroll flow */}
-      <div className="w-full relative z-10 pt-16 pb-24 px-6 md:px-12 bg-black/45 border-t border-neutral-900/40">
-        <div className="relative z-10 max-w-5xl mx-auto w-full space-y-12">
-          
-          {/* Support Shadow Garden Button */}
-          <div className="flex flex-col items-center justify-center pt-6 pb-4">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onSupportClick}
-              className="group relative px-6 md:px-8 py-3 bg-gradient-to-r from-purple-900 via-indigo-950 to-purple-950 hover:from-purple-800 hover:to-indigo-900 border border-purple-500/30 hover:border-purple-400 text-white rounded-xl font-mono text-[10px] md:text-[11px] font-black uppercase tracking-[0.25em] transition-all duration-300 shadow-[0_0_20px_rgba(168,85,247,0.25)] hover:shadow-[0_0_35px_rgba(168,85,247,0.55)] cursor-pointer flex items-center gap-2"
-            >
-              <Heart className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
-              <span>Support shadow Garden</span>
-              <Heart className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
-            </motion.button>
-          </div>
-
-        </div>
-      </div>
+          );
+        })()}
+      </AnimatePresence>
 
       {/* Community Violation Warning popup */}
       <AnimatePresence>

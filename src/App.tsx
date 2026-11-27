@@ -2320,6 +2320,7 @@ export default function App() {
                   isAdmin={!isGuestMode}
                   autoOpenAppointment={autoOpenAppointment}
                   onAppointmentOpened={() => setAutoOpenAppointment(false)}
+                  onToggleChat={() => setIsFloatingChatOpen(prev => !prev)}
                 />
               </div>
             </div>
@@ -2695,24 +2696,25 @@ export default function App() {
           {isFloatingChatOpen && renderChatbot(true)}
         </AnimatePresence>
 
-        {/* Circular Chathead Button (using image 1) */}
+        {/* Circular Chathead Button (hidden on ShadowProject main screen where Image 2 renders CLICK ME directly) */}
+        {(showArchive || showShadowLoreOnly || showSupportPage) && (
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onDragStart={(e) => e.preventDefault()}
-          className="relative w-16 h-16 rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-500 to-indigo-500 p-[3px] shadow-[0_4px_25px_rgba(168,85,247,0.7)] flex items-center justify-center cursor-pointer overflow-visible group transition-all duration-300 border-2 border-white/10 hover:border-white/30"
+          className="relative w-16 h-16 rounded-full p-[3px] flex items-center justify-center cursor-pointer overflow-visible group transition-all duration-300 border-2 border-white/10 hover:border-white/30 bg-gradient-to-tr from-purple-600 via-fuchsia-500 to-indigo-500 shadow-[0_4px_25px_rgba(168,85,247,0.7)]"
           title="Chat with Shadow"
         >
           {/* Click me tooltip badge on top of the chathead */}
           {!isFloatingChatOpen && (
-            <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-mono text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border border-purple-400/60 shadow-[0_0_12px_rgba(168,85,247,0.5)] animate-bounce select-none whitespace-nowrap">
+            <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-white font-mono text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md animate-bounce select-none whitespace-nowrap bg-gradient-to-r from-purple-600 to-indigo-600 border border-purple-400/60 shadow-[0_0_12px_rgba(168,85,247,0.5)]">
               click me
-              <div className="absolute -bottom-[3.5px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-indigo-600 border-r border-b border-purple-400/60 rotate-45" />
+              <div className="absolute -bottom-[3.5px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rotate-45 bg-indigo-600 border-r border-b border-purple-400/60" />
             </div>
           )}
 
           {/* Circular picture frame perfectly wrapping image 1 */}
-          <div className="w-full h-full rounded-full bg-[#12101e] border-2 border-white overflow-hidden flex items-center justify-center relative shadow-inner pointer-events-none">
+          <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center relative shadow-inner pointer-events-none border-2 bg-[#12101e] border-white">
             <img
               src={shadowChibiSticker}
               alt="Shadow Chathead Avatar"
@@ -2724,13 +2726,14 @@ export default function App() {
           </div>
 
           {/* Online status indicator ring bottom-right of the circle */}
-          <span className="absolute bottom-0 right-0 w-4.5 h-4.5 bg-[#42b783] border-2 border-[#12101e] rounded-full flex items-center justify-center shadow-lg">
+          <span className="absolute bottom-0 right-0 w-4.5 h-4.5 bg-[#42b783] border-2 border-[#031326] rounded-full flex items-center justify-center shadow-lg">
             <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-75" />
           </span>
 
           {/* Glowing pulse ring behind the button */}
-          <div className="absolute inset-0 rounded-full bg-purple-500/20 blur-[8px] -z-10 group-hover:bg-purple-500/35 transition-colors duration-300 animate-pulse" />
+          <div className="absolute inset-0 rounded-full blur-[8px] -z-10 transition-colors duration-300 animate-pulse bg-purple-500/20 group-hover:bg-purple-500/35" />
         </motion.button>
+        )}
       </div>
     </div>
   );
